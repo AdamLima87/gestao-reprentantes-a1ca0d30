@@ -12,6 +12,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { reprocessarComissoes } from "@/lib/comissoes.functions";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { fmtBRL as fmtBRLUtil } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
   component: ComissoesPage,
