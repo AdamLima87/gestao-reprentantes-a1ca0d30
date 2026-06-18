@@ -131,7 +131,7 @@ function PedidosPage() {
                   <TableHead>Prazo</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Vendedor Interno</TableHead>
+                  <TableHead>Vend. Interno</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
