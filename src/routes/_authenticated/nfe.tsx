@@ -85,6 +85,7 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
     numero_nfe: "",
     data_nfe: new Date().toISOString().slice(0, 10),
     valor_nfe: "",
+    valor_produtos: "",
     data_entrega: "",
   });
 
@@ -120,7 +121,7 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
           <div><Label>Pedido *</Label>
             <Select value={form.pedido_id} onValueChange={(v) => {
               const p = pedidos.find((x) => x.id === v);
-              setForm({ ...form, pedido_id: v, valor_nfe: form.valor_nfe || String(p?.valor_produtos ?? "") });
+              setForm({ ...form, pedido_id: v, valor_produtos: String(p?.valor_produtos ?? "") });
             }}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
@@ -133,9 +134,10 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
             <div><Label>Data emissão *</Label><Input type="date" value={form.data_nfe} onChange={(e) => setForm({ ...form, data_nfe: e.target.value })} required /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Valor NF-e (R$) *</Label><Input type="number" step="0.01" value={form.valor_nfe} onChange={(e) => setForm({ ...form, valor_nfe: e.target.value })} required /></div>
-            <div><Label>Data entrega</Label><Input type="date" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} /></div>
+            <div><Label>Valor produtos (R$)</Label><Input type="number" step="0.01" value={form.valor_produtos} disabled readOnly /></div>
+            <div><Label>Valor da nota (R$) *</Label><Input type="number" step="0.01" value={form.valor_nfe} onChange={(e) => setForm({ ...form, valor_nfe: e.target.value })} required /></div>
           </div>
+          <div><Label>Data entrega</Label><Input type="date" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} /></div>
           <DialogFooter><Button type="submit">Salvar e calcular comissões</Button></DialogFooter>
         </form>
       </DialogContent>
