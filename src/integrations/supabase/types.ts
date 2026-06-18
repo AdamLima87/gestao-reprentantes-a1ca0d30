@@ -14,16 +14,401 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          ativo: boolean
+          cnpj: string | null
+          criado_em: string
+          id: string
+          nome: string
+          regiao: string | null
+          representante_id: string | null
+          ultima_compra_at: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj?: string | null
+          criado_em?: string
+          id?: string
+          nome: string
+          regiao?: string | null
+          representante_id?: string | null
+          ultima_compra_at?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string | null
+          criado_em?: string
+          id?: string
+          nome?: string
+          regiao?: string | null
+          representante_id?: string | null
+          ultima_compra_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_representante_id_fkey"
+            columns: ["representante_id"]
+            isOneToOne: false
+            referencedRelation: "representantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comissao_config: {
+        Row: {
+          cliente_id: string
+          criado_em: string
+          id: string
+          percentual: number
+          representante_id: string
+        }
+        Insert: {
+          cliente_id: string
+          criado_em?: string
+          id?: string
+          percentual: number
+          representante_id: string
+        }
+        Update: {
+          cliente_id?: string
+          criado_em?: string
+          id?: string
+          percentual?: number
+          representante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissao_config_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_config_representante_id_fkey"
+            columns: ["representante_id"]
+            isOneToOne: false
+            referencedRelation: "representantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comissoes: {
+        Row: {
+          ano_ref: number
+          base_calculo: number
+          criado_em: string
+          id: string
+          mes_ref: number
+          nfe_id: string
+          pedido_id: string
+          percentual_aplicado: number
+          representante_id: string
+          tipo: Database["public"]["Enums"]["comissao_tipo"]
+          valor_comissao: number
+        }
+        Insert: {
+          ano_ref: number
+          base_calculo: number
+          criado_em?: string
+          id?: string
+          mes_ref: number
+          nfe_id: string
+          pedido_id: string
+          percentual_aplicado: number
+          representante_id: string
+          tipo: Database["public"]["Enums"]["comissao_tipo"]
+          valor_comissao: number
+        }
+        Update: {
+          ano_ref?: number
+          base_calculo?: number
+          criado_em?: string
+          id?: string
+          mes_ref?: number
+          nfe_id?: string
+          pedido_id?: string
+          percentual_aplicado?: number
+          representante_id?: string
+          tipo?: Database["public"]["Enums"]["comissao_tipo"]
+          valor_comissao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissoes_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_representante_id_fkey"
+            columns: ["representante_id"]
+            isOneToOne: false
+            referencedRelation: "representantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metas: {
+        Row: {
+          ano: number
+          criado_em: string
+          id: string
+          mes: number
+          representante_id: string | null
+          valor: number
+        }
+        Insert: {
+          ano: number
+          criado_em?: string
+          id?: string
+          mes: number
+          representante_id?: string | null
+          valor: number
+        }
+        Update: {
+          ano?: number
+          criado_em?: string
+          id?: string
+          mes?: number
+          representante_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_representante_id_fkey"
+            columns: ["representante_id"]
+            isOneToOne: false
+            referencedRelation: "representantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfe: {
+        Row: {
+          ano_ref: number
+          criado_em: string
+          data_entrega: string | null
+          data_nfe: string
+          id: string
+          mes_ref: number
+          numero_nfe: string
+          pedido_id: string
+          valor_nfe: number
+        }
+        Insert: {
+          ano_ref: number
+          criado_em?: string
+          data_entrega?: string | null
+          data_nfe: string
+          id?: string
+          mes_ref: number
+          numero_nfe: string
+          pedido_id: string
+          valor_nfe: number
+        }
+        Update: {
+          ano_ref?: number
+          criado_em?: string
+          data_entrega?: string | null
+          data_nfe?: string
+          id?: string
+          mes_ref?: number
+          numero_nfe?: string
+          pedido_id?: string
+          valor_nfe?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          ano_ref: number
+          cliente_id: string
+          criado_em: string
+          data_pedido: string
+          id: string
+          jefferson_participou: boolean
+          mes_ref: number
+          numero_pedido: string
+          numero_pedido_cliente: string | null
+          prazo_entrega: string | null
+          representante_id: string
+          status: Database["public"]["Enums"]["pedido_status"]
+          valor_produtos: number
+        }
+        Insert: {
+          ano_ref?: number
+          cliente_id: string
+          criado_em?: string
+          data_pedido?: string
+          id?: string
+          jefferson_participou?: boolean
+          mes_ref?: number
+          numero_pedido: string
+          numero_pedido_cliente?: string | null
+          prazo_entrega?: string | null
+          representante_id: string
+          status?: Database["public"]["Enums"]["pedido_status"]
+          valor_produtos?: number
+        }
+        Update: {
+          ano_ref?: number
+          cliente_id?: string
+          criado_em?: string
+          data_pedido?: string
+          id?: string
+          jefferson_participou?: boolean
+          mes_ref?: number
+          numero_pedido?: string
+          numero_pedido_cliente?: string | null
+          prazo_entrega?: string | null
+          representante_id?: string
+          status?: Database["public"]["Enums"]["pedido_status"]
+          valor_produtos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_representante_id_fkey"
+            columns: ["representante_id"]
+            isOneToOne: false
+            referencedRelation: "representantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          criado_em: string
+          id: string
+          nome: string
+          representante_id: string | null
+        }
+        Insert: {
+          criado_em?: string
+          id: string
+          nome?: string
+          representante_id?: string | null
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          nome?: string
+          representante_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_representante_id_fkey"
+            columns: ["representante_id"]
+            isOneToOne: false
+            referencedRelation: "representantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      representantes: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          id: string
+          nome: string
+          percentual_padrao: number
+          regiao: string | null
+          tipo: Database["public"]["Enums"]["rep_tipo"]
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          nome: string
+          percentual_padrao?: number
+          regiao?: string | null
+          tipo?: Database["public"]["Enums"]["rep_tipo"]
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          nome?: string
+          percentual_padrao?: number
+          regiao?: string | null
+          tipo?: Database["public"]["Enums"]["rep_tipo"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          criado_em: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_representante_id: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "vendedor_interno" | "representante" | "financeiro"
+      comissao_tipo:
+        | "externo"
+        | "interno_novo"
+        | "interno_reativacao"
+        | "interno_recorrente"
+        | "interno_sobre_rep"
+      pedido_status:
+        | "pedido"
+        | "producao"
+        | "faturado"
+        | "entregue"
+        | "cancelado"
+      rep_tipo: "externo" | "interno"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +535,23 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "vendedor_interno", "representante", "financeiro"],
+      comissao_tipo: [
+        "externo",
+        "interno_novo",
+        "interno_reativacao",
+        "interno_recorrente",
+        "interno_sobre_rep",
+      ],
+      pedido_status: [
+        "pedido",
+        "producao",
+        "faturado",
+        "entregue",
+        "cancelado",
+      ],
+      rep_tipo: ["externo", "interno"],
+    },
   },
 } as const
