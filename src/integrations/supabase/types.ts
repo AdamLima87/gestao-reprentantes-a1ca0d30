@@ -104,7 +104,7 @@ export type Database = {
           nfe_id: string
           pedido_id: string
           percentual_aplicado: number
-          representante_id: string
+          representante_id: string | null
           tipo: Database["public"]["Enums"]["comissao_tipo"]
           valor_comissao: number
         }
@@ -117,7 +117,7 @@ export type Database = {
           nfe_id: string
           pedido_id: string
           percentual_aplicado: number
-          representante_id: string
+          representante_id?: string | null
           tipo: Database["public"]["Enums"]["comissao_tipo"]
           valor_comissao: number
         }
@@ -130,7 +130,7 @@ export type Database = {
           nfe_id?: string
           pedido_id?: string
           percentual_aplicado?: number
-          representante_id?: string
+          representante_id?: string | null
           tipo?: Database["public"]["Enums"]["comissao_tipo"]
           valor_comissao?: number
         }
