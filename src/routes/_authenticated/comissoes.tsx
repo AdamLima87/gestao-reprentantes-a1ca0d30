@@ -27,7 +27,23 @@ const TIPO_LABEL: Record<string, string> = {
 
 function ComissoesPage() {
   const { roles, representanteId } = useAuth();
+  const isAdmin = roles.includes("admin");
   const isRepOnly = roles.includes("representante") && !roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const qc = useQueryClient();
+
+  const reprocessar = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("reprocessar_comissoes");
+      if (error) throw error;
+      return data as { comissoes_geradas: number };
+    },
+    onSuccess: (res) => {
+      toast.success(`Reprocessado: ${res?.comissoes_geradas ?? 0} comissões geradas.`);
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
