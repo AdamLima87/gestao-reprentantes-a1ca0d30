@@ -102,6 +102,7 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
     if (error) return toast.error(error.message);
     toast.success("NF-e registrada! Comissões calculadas automaticamente.");
     setOpen(false);
+    await new Promise((resolve) => setTimeout(resolve, 800));
     onDone();
   };
 
