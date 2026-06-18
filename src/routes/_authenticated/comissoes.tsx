@@ -22,6 +22,38 @@ export const Route = createFileRoute("/_authenticated/comissoes")({
 
 const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+function gerarExtratoPDF(repNome: string, mes: number, ano: number, rows: any[], total: number) {
+  const doc = new jsPDF({ orientation: "landscape" });
+  doc.setFontSize(16);
+  doc.text("Gestão de Representantes", 14, 15);
+  doc.setFontSize(12);
+  doc.text(`Extrato de Comissões — ${repNome}`, 14, 23);
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Período: ${String(mes).padStart(2, "0")}/${ano}`, 14, 30);
+  doc.setTextColor(0);
+  autoTable(doc, {
+    head: [["Pedido", "Cliente", "NF-e", "Valor Base", "Tipo", "%", "Comissão"]],
+    body: rows.map((c) => [
+      c.pedidos?.numero_pedido ?? "—",
+      c.pedidos?.clientes?.nome ?? "—",
+      c.nfe?.numero_nfe ?? "—",
+      fmtBRLUtil(c.base_calculo),
+      TIPO_LABEL[c.tipo] ?? c.tipo,
+      `${Number(c.percentual_aplicado).toFixed(2)}%`,
+      fmtBRLUtil(c.valor_comissao),
+    ]),
+    startY: 35,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [40, 40, 40] },
+  });
+  const finalY = (doc as any).lastAutoTable?.finalY ?? 40;
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Total a receber: ${fmtBRLUtil(total)}`, 14, finalY + 12);
+  doc.save(`extrato-${repNome.replace(/\s+/g, "_")}-${String(mes).padStart(2, "0")}-${ano}.pdf`);
+}
+
 const TIPO_LABEL: Record<string, string> = {
   externo: "Representante",
   interno_sobre_rep: "Vend. Interno 0,5%",
