@@ -85,6 +85,7 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
     numero_nfe: "",
     data_nfe: new Date().toISOString().slice(0, 10),
     valor_nfe: "",
+    valor_produtos: "",
     data_entrega: "",
   });
 
