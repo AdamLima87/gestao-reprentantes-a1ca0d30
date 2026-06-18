@@ -84,6 +84,19 @@ function PedidosPage() {
     qc.invalidateQueries({ queryKey: ["pedidos"] });
   };
 
+  const remove = async (id: string) => {
+    if (!confirm("Excluir este pedido? Esta ação não pode ser desfeita e removerá NF-es e comissões vinculadas.")) return;
+    await supabase.from("comissoes").delete().eq("pedido_id", id);
+    await supabase.from("nfe").delete().eq("pedido_id", id);
+    const { error } = await supabase.from("pedidos").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Pedido excluído.");
+    qc.invalidateQueries({ queryKey: ["pedidos"] });
+    qc.invalidateQueries({ queryKey: ["nfes"] });
+    qc.invalidateQueries({ queryKey: ["comissoes"] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
