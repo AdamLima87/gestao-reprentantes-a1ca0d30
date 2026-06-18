@@ -63,7 +63,7 @@ function PedidosPage() {
     const next = NEXT_STATUS[current];
     if (!next) return;
     if (next === "faturado") {
-      toast.info("Para marcar como faturado, registre uma NF-e.");
+      toast.warning("Status atualizado via NF-e. Registre uma NF-e para este pedido na aba NF-e.");
       return;
     }
     const { error } = await supabase.from("pedidos").update({ status: next as typeof STATUS[number] }).eq("id", id);
