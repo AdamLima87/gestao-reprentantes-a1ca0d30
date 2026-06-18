@@ -37,7 +37,12 @@ function NfePage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">NF-e</h1>
-        {canCreate && <NovaNfeDialog pedidos={pedidos ?? []} onDone={() => { qc.invalidateQueries({ queryKey: ["nfes"] }); qc.invalidateQueries({ queryKey: ["pedidos"] }); qc.invalidateQueries({ queryKey: ["comissoes"] }); }} />}
+        {canCreate && <NovaNfeDialog pedidos={pedidos ?? []} onDone={() => {
+          qc.invalidateQueries({ queryKey: ["nfes"] });
+          qc.invalidateQueries({ queryKey: ["pedidos"] });
+          qc.invalidateQueries({ queryKey: ["comissoes"] });
+          qc.invalidateQueries({ queryKey: ["dashboard"] });
+        }} />}
       </div>
 
       <Card>
@@ -102,7 +107,7 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
     if (error) return toast.error(error.message);
     toast.success("NF-e registrada! Comissões calculadas automaticamente.");
     setOpen(false);
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     onDone();
   };
 
