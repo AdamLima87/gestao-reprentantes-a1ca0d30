@@ -117,6 +117,20 @@ function ComissoesPage() {
               </Select>
             </div>
           )}
+          {repFilter !== "todos" && (
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const repNome = (reps ?? []).find((r) => r.id === repFilter)?.nome ?? "Representante";
+                  gerarExtratoPDF(repNome, mes, ano, data ?? [], total);
+                }}
+                disabled={!data || data.length === 0}
+              >
+                Extrato PDF
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
