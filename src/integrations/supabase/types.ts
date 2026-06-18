@@ -386,6 +386,7 @@ export type Database = {
     }
     Functions: {
       current_representante_id: { Args: never; Returns: string }
+      ensure_vendedor_interno_representante: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -394,6 +395,7 @@ export type Database = {
         Returns: boolean
       }
       is_representante_interno: { Args: { _user: string }; Returns: boolean }
+      recalcular_comissoes_sem_auth: { Args: never; Returns: Json }
       reprocessar_comissoes: { Args: never; Returns: Json }
     }
     Enums: {

@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { useServerFn } from "@tanstack/react-start";
+import { reprocessarComissoes } from "@/lib/comissoes.functions";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
   component: ComissoesPage,
@@ -30,13 +32,10 @@ function ComissoesPage() {
   const isAdmin = roles.includes("admin");
   const isRepOnly = roles.includes("representante") && !roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
   const qc = useQueryClient();
+  const callReprocessar = useServerFn(reprocessarComissoes);
 
   const reprocessar = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.rpc("reprocessar_comissoes");
-      if (error) throw error;
-      return data as { comissoes_geradas: number };
-    },
+    mutationFn: async () => callReprocessar(),
     onSuccess: (res) => {
       toast.success(`Reprocessado: ${res?.comissoes_geradas ?? 0} comissões geradas.`);
       qc.invalidateQueries({ queryKey: ["comissoes"] });
