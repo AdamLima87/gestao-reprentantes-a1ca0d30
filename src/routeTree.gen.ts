@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticated/pedidos'
 import { Route as AuthenticatedNfeRouteImport } from './routes/_authenticated/nfe'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -31,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPedidosRoute = AuthenticatedPedidosRouteImport.update({
   id: '/pedidos',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
+  '/relatorios': typeof AuthenticatedRelatoriosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/nfe': typeof AuthenticatedNfeRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
+  '/relatorios': typeof AuthenticatedRelatoriosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/nfe': typeof AuthenticatedNfeRoute
   '/_authenticated/pedidos': typeof AuthenticatedPedidosRoute
+  '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/nfe'
     | '/pedidos'
+    | '/relatorios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/nfe'
     | '/pedidos'
+    | '/relatorios'
   id:
     | '__root__'
     | '/'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/nfe'
     | '/_authenticated/pedidos'
+    | '/_authenticated/relatorios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -146,6 +158,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/relatorios': {
+      id: '/_authenticated/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pedidos': {
       id: '/_authenticated/pedidos'
@@ -191,6 +210,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedNfeRoute: typeof AuthenticatedNfeRoute
   AuthenticatedPedidosRoute: typeof AuthenticatedPedidosRoute
+  AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -199,6 +219,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedNfeRoute: AuthenticatedNfeRoute,
   AuthenticatedPedidosRoute: AuthenticatedPedidosRoute,
+  AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

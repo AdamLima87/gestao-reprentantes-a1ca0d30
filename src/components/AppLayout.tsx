@@ -2,7 +2,7 @@ import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-route
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FileText, Receipt, DollarSign, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Receipt, DollarSign, Settings, LogOut, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -17,6 +17,7 @@ const NAV: NavItem[] = [
   { to: "/pedidos", label: "Pedidos", icon: FileText, allow: ["admin", "vendedor_interno", "representante", "financeiro"] },
   { to: "/nfe", label: "NF-e", icon: Receipt, allow: ["admin", "vendedor_interno", "financeiro"] },
   { to: "/comissoes", label: "Comissões", icon: DollarSign, allow: ["admin", "vendedor_interno", "representante", "financeiro"] },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, allow: ["admin", "vendedor_interno", "financeiro"] },
   { to: "/cadastros", label: "Cadastros", icon: Settings, allow: ["admin"] },
 ];
 
