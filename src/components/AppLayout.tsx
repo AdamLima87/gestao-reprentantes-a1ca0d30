@@ -27,7 +27,7 @@ export function AppLayout() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    navigate({ to: "/login", replace: true });
   };
 
   const visible = NAV.filter((n) => roles.some((r) => n.allow.includes(r)));

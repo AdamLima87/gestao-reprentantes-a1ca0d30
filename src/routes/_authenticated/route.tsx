@@ -12,7 +12,7 @@ function AuthGate() {
   const { loading, session } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
-    if (!loading && !session) navigate({ to: "/auth", replace: true });
+    if (!loading && !session) navigate({ to: "/login", replace: true });
   }, [loading, session, navigate]);
   if (loading || !session) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando…</div>;
