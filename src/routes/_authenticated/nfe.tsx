@@ -37,7 +37,12 @@ function NfePage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">NF-e</h1>
-        {canCreate && <NovaNfeDialog pedidos={pedidos ?? []} onDone={() => { qc.invalidateQueries({ queryKey: ["nfes"] }); qc.invalidateQueries({ queryKey: ["pedidos"] }); qc.invalidateQueries({ queryKey: ["comissoes"] }); }} />}
+        {canCreate && <NovaNfeDialog pedidos={pedidos ?? []} onDone={() => {
+          qc.invalidateQueries({ queryKey: ["nfes"] });
+          qc.invalidateQueries({ queryKey: ["pedidos"] });
+          qc.invalidateQueries({ queryKey: ["comissoes"] });
+          qc.invalidateQueries({ queryKey: ["dashboard"] });
+        }} />}
       </div>
 
       <Card>
