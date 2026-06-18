@@ -48,7 +48,10 @@ function Dashboard() {
   const statusList = ["pedido", "producao", "faturado", "entregue", "cancelado"];
   const porStatus = statusList.map((s) => ({
     status: s,
-    count: data.pedidos.filter((p) => p.status === s).length,
+    count:
+      s === "faturado"
+        ? data.pedidos.filter((p) => p.status === "faturado" || p.status === "entregue").length
+        : data.pedidos.filter((p) => p.status === s).length,
   }));
 
   // Atrasados
