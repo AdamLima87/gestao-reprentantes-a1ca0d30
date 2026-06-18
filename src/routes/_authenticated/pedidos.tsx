@@ -50,6 +50,7 @@ function PedidosPage() {
   });
   const { data: pedidos, isLoading } = useQuery({
     queryKey: ["pedidos", filterStatus, filterRep],
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       let q = supabase.from("pedidos").select("*, clientes(nome), representantes(nome)").order("criado_em", { ascending: false });
       if (filterStatus !== "todos") q = q.eq("status", filterStatus as typeof STATUS[number]);
