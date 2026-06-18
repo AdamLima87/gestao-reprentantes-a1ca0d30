@@ -12,7 +12,7 @@ function IndexRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
     if (loading) return;
-    navigate({ to: session ? "/dashboard" : "/auth", replace: true });
+    navigate({ to: session ? "/dashboard" : "/login", replace: true });
   }, [loading, session, navigate]);
   return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando…</div>;
 }
