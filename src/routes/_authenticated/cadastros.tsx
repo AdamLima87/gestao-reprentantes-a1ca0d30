@@ -463,45 +463,6 @@ function UsuariosTab() {
 }
 
 // ============== IMPORTAR ==============
-type ImportRow = {
-  numero_pedido: string;
-  numero_pedido_cliente: string;
-  cliente_nome: string;
-  representante_nome: string;
-  data_pedido: string;
-  prazo_entrega: string;
-  valor_produtos: string;
-  mes_ref: string;
-  ano_ref: string;
-  status: string;
-};
-
-const IMPORT_HEADERS: (keyof ImportRow)[] = [
-  "numero_pedido",
-  "numero_pedido_cliente",
-  "cliente_nome",
-  "representante_nome",
-  "data_pedido",
-  "prazo_entrega",
-  "valor_produtos",
-  "mes_ref",
-  "ano_ref",
-  "status",
-];
-
-const IMPORT_HEADER_LABELS: Record<keyof ImportRow, string> = {
-  numero_pedido: "numero_pedido",
-  numero_pedido_cliente: "numero_pedido_cliente",
-  cliente_nome: "cliente_nome",
-  representante_nome: "representante_nome",
-  data_pedido: "data_pedido",
-  prazo_entrega: "prazo_entrega",
-  valor_produtos: "valor_produtos",
-  mes_ref: "mes_ref",
-  ano_ref: "ano_ref",
-  status: "status",
-};
-
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
   let cur: string[] = [];
@@ -525,67 +486,188 @@ function parseCSV(text: string): string[][] {
   return rows.filter((r) => r.length > 1 || (r[0] && r[0].trim() !== ""));
 }
 
-function downloadModeloCSV() {
-  const headers = IMPORT_HEADERS.map((h) => IMPORT_HEADER_LABELS[h]).join(";");
-  const sample = [
-    "PED-001", "CLI-100", "ACME LTDA", "João Silva", "2026-06-01", "2026-06-15", "1500.00", "6", "2026", "pedido",
-  ].join(";");
-  const csv = `${headers}\n${sample}\n`;
+function downloadCSV(filename: string, headers: string[], sample: string[]) {
+  const csv = `${headers.join(";")}\n${sample.join(";")}\n`;
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "modelo-pedidos.csv";
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
 
 function ImportarTab() {
+  return (
+    <div className="space-y-6">
+      <ImportClientesSection />
+      <ImportPedidosSection />
+    </div>
+  );
+}
+
+// ---------- Importar Clientes ----------
+type ClienteRow = { nome: string; cnpj: string; regiao: string; nome_representante: string; ativo: string };
+const CLIENTE_HEADERS: (keyof ClienteRow)[] = ["nome", "cnpj", "regiao", "nome_representante", "ativo"];
+
+function ImportClientesSection() {
   const qc = useQueryClient();
-  const [rows, setRows] = useState<ImportRow[]>([]);
-  const [filename, setFilename] = useState<string>("");
+  const [rows, setRows] = useState<ClienteRow[]>([]);
+  const [filename, setFilename] = useState("");
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ ok: number; errors: { line: number; reason: string }[] } | null>(null);
+  const [result, setResult] = useState<{ ok: number; warnings: string[]; errors: { line: number; reason: string }[] } | null>(null);
 
   const handleFile = async (file: File) => {
-    setResult(null);
-    setFilename(file.name);
-    const text = await file.text();
-    const parsed = parseCSV(text);
-    if (parsed.length < 2) {
-      toast.error("Arquivo CSV vazio ou inválido.");
-      setRows([]);
-      return;
-    }
+    setResult(null); setFilename(file.name);
+    const parsed = parseCSV(await file.text());
+    if (parsed.length < 2) { toast.error("CSV vazio."); setRows([]); return; }
     const header = parsed[0].map((h) => h.trim().toLowerCase());
     const idx: Record<string, number> = {};
-    IMPORT_HEADERS.forEach((h) => { idx[h] = header.indexOf(h); });
-    const missing = IMPORT_HEADERS.filter((h) => idx[h] === -1);
-    if (missing.length > 0) {
-      toast.error(`Cabeçalhos ausentes: ${missing.join(", ")}`);
-      setRows([]);
-      return;
-    }
-    const parsedRows: ImportRow[] = parsed.slice(1).map((r) => ({
-      numero_pedido: (r[idx.numero_pedido] ?? "").trim(),
-      numero_pedido_cliente: (r[idx.numero_pedido_cliente] ?? "").trim(),
-      cliente_nome: (r[idx.cliente_nome] ?? "").trim(),
-      representante_nome: (r[idx.representante_nome] ?? "").trim(),
-      data_pedido: (r[idx.data_pedido] ?? "").trim(),
-      prazo_entrega: (r[idx.prazo_entrega] ?? "").trim(),
-      valor_produtos: (r[idx.valor_produtos] ?? "").trim(),
-      mes_ref: (r[idx.mes_ref] ?? "").trim(),
-      ano_ref: (r[idx.ano_ref] ?? "").trim(),
-      status: (r[idx.status] ?? "").trim(),
-    }));
-    setRows(parsedRows);
+    CLIENTE_HEADERS.forEach((h) => { idx[h] = header.indexOf(h); });
+    const missing = CLIENTE_HEADERS.filter((h) => idx[h] === -1);
+    if (missing.length) { toast.error(`Cabeçalhos ausentes: ${missing.join(", ")}`); setRows([]); return; }
+    setRows(parsed.slice(1).map((r) => ({
+      nome: (r[idx.nome] ?? "").trim(),
+      cnpj: (r[idx.cnpj] ?? "").trim(),
+      regiao: (r[idx.regiao] ?? "").trim(),
+      nome_representante: (r[idx.nome_representante] ?? "").trim(),
+      ativo: (r[idx.ativo] ?? "").trim(),
+    })));
   };
 
   const confirmar = async () => {
-    if (rows.length === 0) return;
+    if (!rows.length) return;
     setImporting(true);
     const errors: { line: number; reason: string }[] = [];
+    const warnings: string[] = [];
     let ok = 0;
+    const { data: reps } = await supabase.from("representantes").select("id, nome");
+    const repByName = new Map((reps ?? []).map((r) => [r.nome.trim().toLowerCase(), r.id]));
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]; const line = i + 2;
+      if (!r.nome) { errors.push({ line, reason: "nome vazio" }); continue; }
+      let representante_id: string | null = null;
+      if (r.nome_representante) {
+        const rid = repByName.get(r.nome_representante.toLowerCase());
+        if (rid) representante_id = rid;
+        else warnings.push(`Linha ${line}: representante "${r.nome_representante}" não encontrado — cliente importado sem representante.`);
+      }
+      const ativo = !["nao", "não", "false", "0", "n"].includes(r.ativo.toLowerCase());
+      const { error } = await supabase.from("clientes").insert({
+        nome: r.nome, cnpj: r.cnpj || null, regiao: r.regiao || null,
+        representante_id, ativo,
+      });
+      if (error) { errors.push({ line, reason: error.message }); continue; }
+      ok++;
+    }
+    setResult({ ok, warnings, errors });
+    setImporting(false);
+    if (ok > 0) { toast.success(`${ok} cliente(s) importado(s).`); qc.invalidateQueries({ queryKey: ["clientes-adm"] }); }
+    if (errors.length) toast.error(`${errors.length} erro(s).`);
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Importar Clientes</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p><strong>Instruções:</strong> baixe o modelo, preencha e faça upload. Separador <code>;</code>. O campo <code>nome_representante</code> deve bater exatamente com um representante cadastrado (caso contrário, o cliente é criado sem representante).</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button type="button" variant="outline"
+            onClick={() => downloadCSV("modelo-clientes.csv", CLIENTE_HEADERS as string[], ["ACME LTDA", "00.000.000/0001-00", "Sul", "João Silva", "sim"])}>
+            Baixar modelo CSV
+          </Button>
+          <Input type="file" accept=".csv,text/csv" className="max-w-sm"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+        </div>
+
+        {rows.length > 0 && (
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-sm">Prévia: <strong>{rows.length}</strong> linha(s) de <code>{filename}</code></p>
+              <Button onClick={confirmar} disabled={importing}>{importing ? "Importando…" : "Confirmar importação"}</Button>
+            </div>
+            <div className="max-h-72 overflow-auto border rounded">
+              <Table>
+                <TableHeader><TableRow>{CLIENTE_HEADERS.map((h) => <TableHead key={h} className="text-xs">{h}</TableHead>)}</TableRow></TableHeader>
+                <TableBody>
+                  {rows.slice(0, 50).map((r, i) => (
+                    <TableRow key={i}>{CLIENTE_HEADERS.map((h) => <TableCell key={h} className="text-xs font-mono">{r[h]}</TableCell>)}</TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {rows.length > 50 && <p className="text-xs text-muted-foreground p-2">Exibindo primeiras 50 linhas…</p>}
+            </div>
+          </>
+        )}
+
+        {result && (
+          <div className="border rounded p-4 space-y-2">
+            <p className="text-sm">✅ Importados: <strong>{result.ok}</strong> &nbsp;|&nbsp; ⚠️ Avisos: <strong>{result.warnings.length}</strong> &nbsp;|&nbsp; ❌ Erros: <strong>{result.errors.length}</strong></p>
+            {result.warnings.length > 0 && (
+              <ul className="text-xs text-amber-600 list-disc pl-5 max-h-40 overflow-auto">
+                {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            )}
+            {result.errors.length > 0 && (
+              <ul className="text-xs text-destructive list-disc pl-5 max-h-40 overflow-auto">
+                {result.errors.map((e, i) => <li key={i}>Linha {e.line}: {e.reason}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------- Importar Pedidos (+ NF-e opcional) ----------
+type PedidoRow = {
+  numero_pedido: string; numero_pedido_cliente: string; nome_cliente: string; nome_representante: string;
+  data_pedido: string; prazo_entrega: string; valor_produtos: string; mes_ref: string; ano_ref: string;
+  status: string; vendedor_interno_participou: string;
+  nfe_emitida: string; numero_nfe: string; valor_nfe: string; data_nfe: string; data_entrega_nfe: string;
+};
+const PEDIDO_HEADERS: (keyof PedidoRow)[] = [
+  "numero_pedido", "numero_pedido_cliente", "nome_cliente", "nome_representante",
+  "data_pedido", "prazo_entrega", "valor_produtos", "mes_ref", "ano_ref",
+  "status", "vendedor_interno_participou",
+  "nfe_emitida", "numero_nfe", "valor_nfe", "data_nfe", "data_entrega_nfe",
+];
+
+const isSim = (v: string) => ["sim", "s", "true", "1", "yes", "y"].includes(v.trim().toLowerCase());
+
+function ImportPedidosSection() {
+  const qc = useQueryClient();
+  const [rows, setRows] = useState<PedidoRow[]>([]);
+  const [filename, setFilename] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<{ pedidos: number; nfes: number; comissoes: number; errors: { line: number; reason: string }[] } | null>(null);
+
+  const handleFile = async (file: File) => {
+    setResult(null); setFilename(file.name);
+    const parsed = parseCSV(await file.text());
+    if (parsed.length < 2) { toast.error("CSV vazio."); setRows([]); return; }
+    const header = parsed[0].map((h) => h.trim().toLowerCase());
+    const idx: Record<string, number> = {};
+    PEDIDO_HEADERS.forEach((h) => { idx[h] = header.indexOf(h); });
+    const required: (keyof PedidoRow)[] = ["numero_pedido", "nome_cliente", "nome_representante", "data_pedido", "valor_produtos"];
+    const missing = required.filter((h) => idx[h] === -1);
+    if (missing.length) { toast.error(`Cabeçalhos obrigatórios ausentes: ${missing.join(", ")}`); setRows([]); return; }
+    setRows(parsed.slice(1).map((r) => {
+      const row = {} as PedidoRow;
+      PEDIDO_HEADERS.forEach((h) => { row[h] = idx[h] >= 0 ? (r[idx[h]] ?? "").trim() : ""; });
+      return row;
+    }));
+  };
+
+  const confirmar = async () => {
+    if (!rows.length) return;
+    setImporting(true);
+    const errors: { line: number; reason: string }[] = [];
+    let pedidosOk = 0, nfesOk = 0, comissoesOk = 0;
 
     const { data: clientes } = await supabase.from("clientes").select("id, nome");
     const { data: reps } = await supabase.from("representantes").select("id, nome");
@@ -593,24 +675,14 @@ function ImportarTab() {
     const repByName = new Map((reps ?? []).map((r) => [r.nome.trim().toLowerCase(), r.id]));
 
     for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const line = i + 2;
-      if (!r.numero_pedido || !r.cliente_nome) {
-        errors.push({ line, reason: "numero_pedido ou cliente_nome vazios" });
-        continue;
-      }
-      const cliente_id = clienteByName.get(r.cliente_nome.toLowerCase());
-      if (!cliente_id) {
-        errors.push({ line, reason: `Cliente não encontrado: "${r.cliente_nome}"` });
-        continue;
-      }
+      const r = rows[i]; const line = i + 2;
+      if (!r.numero_pedido || !r.nome_cliente) { errors.push({ line, reason: "numero_pedido ou nome_cliente vazios" }); continue; }
+      const cliente_id = clienteByName.get(r.nome_cliente.toLowerCase());
+      if (!cliente_id) { errors.push({ line, reason: `Cliente não encontrado: "${r.nome_cliente}"` }); continue; }
       let representante_id: string | null = null;
-      if (r.representante_nome) {
-        const rid = repByName.get(r.representante_nome.toLowerCase());
-        if (!rid) {
-          errors.push({ line, reason: `Representante não encontrado: "${r.representante_nome}"` });
-          continue;
-        }
+      if (r.nome_representante) {
+        const rid = repByName.get(r.nome_representante.toLowerCase());
+        if (!rid) { errors.push({ line, reason: `Representante não encontrado: "${r.nome_representante}"` }); continue; }
         representante_id = rid;
       }
       const data_pedido = r.data_pedido || new Date().toISOString().slice(0, 10);
@@ -618,83 +690,91 @@ function ImportarTab() {
       const mes_ref = r.mes_ref ? Number(r.mes_ref) : d.getMonth() + 1;
       const ano_ref = r.ano_ref ? Number(r.ano_ref) : d.getFullYear();
       const status = (r.status || "pedido") as "pedido" | "producao" | "faturado" | "entregue" | "cancelado";
-      const { error } = await supabase.from("pedidos").insert({
+
+      const { data: pedidoIns, error: pedErr } = await supabase.from("pedidos").insert({
         numero_pedido: r.numero_pedido,
         numero_pedido_cliente: r.numero_pedido_cliente || null,
-        cliente_id,
-        representante_id,
-        data_pedido,
-        prazo_entrega: r.prazo_entrega || null,
+        cliente_id, representante_id,
+        data_pedido, prazo_entrega: r.prazo_entrega || null,
         valor_produtos: Number(r.valor_produtos || 0),
-        mes_ref,
-        ano_ref,
-        status,
-      });
-      if (error) {
-        errors.push({ line, reason: error.message });
-        continue;
+        mes_ref, ano_ref, status,
+        jefferson_participou: isSim(r.vendedor_interno_participou),
+      }).select("id").single();
+      if (pedErr || !pedidoIns) { errors.push({ line, reason: pedErr?.message ?? "falha ao inserir pedido" }); continue; }
+      pedidosOk++;
+
+      if (isSim(r.nfe_emitida)) {
+        const data_nfe = r.data_nfe || data_pedido;
+        const dn = new Date(data_nfe);
+        const { error: nfeErr } = await supabase.from("nfe").insert({
+          pedido_id: pedidoIns.id,
+          numero_nfe: r.numero_nfe || r.numero_pedido,
+          valor_nfe: Number(r.valor_nfe || r.valor_produtos || 0),
+          data_nfe,
+          data_entrega: r.data_entrega_nfe || null,
+          mes_ref: dn.getMonth() + 1,
+          ano_ref: dn.getFullYear(),
+        });
+        if (nfeErr) { errors.push({ line, reason: `NF-e: ${nfeErr.message}` }); continue; }
+        nfesOk++;
+        const { count } = await supabase.from("comissoes").select("id", { count: "exact", head: true }).eq("pedido_id", pedidoIns.id);
+        comissoesOk += count ?? 0;
       }
-      ok++;
     }
 
-    setResult({ ok, errors });
+    setResult({ pedidos: pedidosOk, nfes: nfesOk, comissoes: comissoesOk, errors });
     setImporting(false);
-    if (ok > 0) {
-      toast.success(`${ok} pedido(s) importado(s).`);
+    if (pedidosOk > 0) {
+      toast.success(`${pedidosOk} pedido(s) importado(s).`);
       qc.invalidateQueries({ queryKey: ["pedidos"] });
+      qc.invalidateQueries({ queryKey: ["nfes"] });
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
     }
-    if (errors.length > 0) {
-      toast.error(`${errors.length} linha(s) com erro.`);
-    }
+    if (errors.length) toast.error(`${errors.length} erro(s).`);
   };
 
   return (
     <Card>
-      <CardHeader><CardTitle>Importar pedidos via planilha</CardTitle></CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p><strong>Instruções:</strong></p>
-          <ol className="list-decimal pl-5 space-y-1">
-            <li>Baixe o modelo CSV abaixo e preencha com seus pedidos.</li>
-            <li>O <strong>nome do cliente</strong> e o <strong>nome do representante</strong> devem ser <em>exatamente</em> iguais aos cadastrados.</li>
-            <li>Use separador <code>;</code> (ponto e vírgula). Datas no formato AAAA-MM-DD.</li>
-            <li>Status válidos: <code>pedido</code>, <code>producao</code>, <code>faturado</code>, <code>entregue</code>, <code>cancelado</code>.</li>
-            <li>Faça upload do arquivo, confira a prévia e confirme a importação.</li>
-          </ol>
+      <CardHeader><CardTitle>Importar Pedidos</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p><strong>Instruções:</strong> baixe o modelo, preencha e faça upload. Separador <code>;</code>, datas no formato AAAA-MM-DD.</p>
+          <p>Quando <code>nfe_emitida = sim</code>, o sistema cria também a NF-e vinculada usando <code>numero_nfe</code>, <code>valor_nfe</code>, <code>data_nfe</code> e <code>data_entrega_nfe</code>, e dispara o cálculo de comissões automaticamente.</p>
+          <p>Status válidos: <code>pedido</code>, <code>producao</code>, <code>faturado</code>, <code>entregue</code>, <code>cancelado</code>.</p>
         </div>
-
         <div className="flex flex-wrap gap-3">
-          <Button type="button" variant="outline" onClick={downloadModeloCSV}>Baixar modelo CSV</Button>
-          <Input
-            type="file"
-            accept=".csv,text/csv"
-            className="max-w-sm"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-            }}
-          />
+          <Button type="button" variant="outline"
+            onClick={() => downloadCSV("modelo-pedidos.csv", PEDIDO_HEADERS as string[],
+              ["PED-001", "CLI-100", "ACME LTDA", "João Silva", "2026-06-01", "2026-06-15", "1500.00", "6", "2026", "faturado", "nao", "sim", "NFE-123", "1500.00", "2026-06-02", "2026-06-10"])}>
+            Baixar modelo CSV
+          </Button>
+          <Input type="file" accept=".csv,text/csv" className="max-w-sm"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
         </div>
 
         {rows.length > 0 && (
           <>
             <div className="flex items-center justify-between">
               <p className="text-sm">Prévia: <strong>{rows.length}</strong> linha(s) de <code>{filename}</code></p>
-              <Button onClick={confirmar} disabled={importing}>
-                {importing ? "Importando…" : "Confirmar importação"}
-              </Button>
+              <Button onClick={confirmar} disabled={importing}>{importing ? "Importando…" : "Confirmar importação"}</Button>
             </div>
             <div className="max-h-96 overflow-auto border rounded">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {IMPORT_HEADERS.map((h) => <TableHead key={h} className="text-xs">{h}</TableHead>)}
+                    <TableHead className="text-xs">Tipo</TableHead>
+                    {PEDIDO_HEADERS.map((h) => <TableHead key={h} className="text-xs">{h}</TableHead>)}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.slice(0, 50).map((r, i) => (
                     <TableRow key={i}>
-                      {IMPORT_HEADERS.map((h) => <TableCell key={h} className="text-xs font-mono">{r[h]}</TableCell>)}
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {isSim(r.nfe_emitida)
+                          ? <span className="text-emerald-600 font-medium">📄 Pedido + NF-e</span>
+                          : <span className="text-muted-foreground">📋 Só pedido</span>}
+                      </TableCell>
+                      {PEDIDO_HEADERS.map((h) => <TableCell key={h} className="text-xs font-mono">{r[h]}</TableCell>)}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -705,27 +785,26 @@ function ImportarTab() {
         )}
 
         {result && (
-          <Card>
-            <CardHeader><CardTitle>Resumo da importação</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm">
-                ✅ Importados com sucesso: <strong>{result.ok}</strong> &nbsp;|&nbsp;
-                ❌ Erros: <strong>{result.errors.length}</strong>
-              </p>
-              {result.errors.length > 0 && (
-                <div className="max-h-72 overflow-auto border rounded">
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Linha</TableHead><TableHead>Motivo</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {result.errors.map((e, i) => (
-                        <TableRow key={i}><TableCell>{e.line}</TableCell><TableCell className="text-xs">{e.reason}</TableCell></TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="border rounded p-4 space-y-2">
+            <p className="text-sm">
+              ✅ Pedidos importados: <strong>{result.pedidos}</strong> &nbsp;|&nbsp;
+              📄 NF-es geradas: <strong>{result.nfes}</strong> &nbsp;|&nbsp;
+              💰 Comissões calculadas: <strong>{result.comissoes}</strong> &nbsp;|&nbsp;
+              ❌ Erros: <strong>{result.errors.length}</strong>
+            </p>
+            {result.errors.length > 0 && (
+              <div className="max-h-72 overflow-auto border rounded">
+                <Table>
+                  <TableHeader><TableRow><TableHead>Linha</TableHead><TableHead>Motivo</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {result.errors.map((e, i) => (
+                      <TableRow key={i}><TableCell>{e.line}</TableCell><TableCell className="text-xs">{e.reason}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
