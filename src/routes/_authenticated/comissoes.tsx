@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
@@ -25,7 +27,23 @@ const TIPO_LABEL: Record<string, string> = {
 
 function ComissoesPage() {
   const { roles, representanteId } = useAuth();
+  const isAdmin = roles.includes("admin");
   const isRepOnly = roles.includes("representante") && !roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const qc = useQueryClient();
+
+  const reprocessar = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("reprocessar_comissoes");
+      if (error) throw error;
+      return data as { comissoes_geradas: number };
+    },
+    onSuccess: (res) => {
+      toast.success(`Reprocessado: ${res?.comissoes_geradas ?? 0} comissões geradas.`);
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
@@ -54,7 +72,23 @@ function ComissoesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Comissões</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Comissões</h1>
+        {isAdmin && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (confirm("Isso apaga todas as comissões e recalcula a partir das NF-e existentes. Continuar?")) {
+                reprocessar.mutate();
+              }
+            }}
+            disabled={reprocessar.isPending}
+          >
+            {reprocessar.isPending ? "Reprocessando…" : "Reprocessar comissões"}
+          </Button>
+        )}
+      </div>
+
 
       <Card>
         <CardContent className="pt-6 flex flex-wrap gap-3">

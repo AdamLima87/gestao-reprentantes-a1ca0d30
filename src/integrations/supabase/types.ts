@@ -394,6 +394,7 @@ export type Database = {
         Returns: boolean
       }
       is_representante_interno: { Args: { _user: string }; Returns: boolean }
+      reprocessar_comissoes: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "vendedor_interno" | "representante" | "financeiro"
