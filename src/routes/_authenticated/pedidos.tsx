@@ -193,7 +193,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.cliente_id || !form.representante_id || !form.numero_pedido) {
+    if (!form.cliente_id || !form.numero_pedido) {
       toast.error("Preencha os campos obrigatórios.");
       return;
     }
@@ -202,7 +202,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
       numero_pedido: form.numero_pedido,
       numero_pedido_cliente: form.numero_pedido_cliente || null,
       cliente_id: form.cliente_id,
-      representante_id: form.representante_id,
+      representante_id: form.representante_id || null,
       data_pedido: form.data_pedido,
       prazo_entrega: form.prazo_entrega || null,
       valor_produtos: Number(form.valor_produtos || 0),
