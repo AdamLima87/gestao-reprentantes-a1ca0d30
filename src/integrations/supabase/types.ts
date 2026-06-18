@@ -249,7 +249,7 @@ export type Database = {
           numero_pedido: string
           numero_pedido_cliente: string | null
           prazo_entrega: string | null
-          representante_id: string
+          representante_id: string | null
           status: Database["public"]["Enums"]["pedido_status"]
           valor_produtos: number
         }
@@ -264,7 +264,7 @@ export type Database = {
           numero_pedido: string
           numero_pedido_cliente?: string | null
           prazo_entrega?: string | null
-          representante_id: string
+          representante_id?: string | null
           status?: Database["public"]["Enums"]["pedido_status"]
           valor_produtos?: number
         }
@@ -279,7 +279,7 @@ export type Database = {
           numero_pedido?: string
           numero_pedido_cliente?: string | null
           prazo_entrega?: string | null
-          representante_id?: string
+          representante_id?: string | null
           status?: Database["public"]["Enums"]["pedido_status"]
           valor_produtos?: number
         }
