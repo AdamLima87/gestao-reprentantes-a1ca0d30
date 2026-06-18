@@ -156,7 +156,7 @@ function RepsTab() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="externo">Externo</SelectItem>
-                      <SelectItem value="interno">Interno (Jefferson)</SelectItem>
+                      <SelectItem value="interno">Interno</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

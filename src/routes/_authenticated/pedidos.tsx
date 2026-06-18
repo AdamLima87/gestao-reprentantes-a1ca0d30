@@ -131,7 +131,7 @@ function PedidosPage() {
                   <TableHead>Prazo</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Jefferson</TableHead>
+                  <TableHead>Vendedor Interno</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -245,7 +245,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
           <div><Label>Valor produtos (R$)</Label><Input type="number" step="0.01" value={form.valor_produtos} onChange={(e) => setForm({ ...form, valor_produtos: e.target.value })} /></div>
           <div className="flex items-center gap-2">
             <Switch checked={form.jefferson_participou} onCheckedChange={(v) => setForm({ ...form, jefferson_participou: v })} />
-            <Label className="!mt-0">Jefferson participou?</Label>
+            <Label className="!mt-0">Vendedor interno participou?</Label>
           </div>
           <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
         </form>
