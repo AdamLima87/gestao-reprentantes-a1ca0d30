@@ -12,12 +12,47 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { reprocessarComissoes } from "@/lib/comissoes.functions";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { fmtBRL as fmtBRLUtil } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
   component: ComissoesPage,
 });
 
 const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function gerarExtratoPDF(repNome: string, mes: number, ano: number, rows: any[], total: number) {
+  const doc = new jsPDF({ orientation: "landscape" });
+  doc.setFontSize(16);
+  doc.text("Gestão de Representantes", 14, 15);
+  doc.setFontSize(12);
+  doc.text(`Extrato de Comissões — ${repNome}`, 14, 23);
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Período: ${String(mes).padStart(2, "0")}/${ano}`, 14, 30);
+  doc.setTextColor(0);
+  autoTable(doc, {
+    head: [["Pedido", "Cliente", "NF-e", "Valor Base", "Tipo", "%", "Comissão"]],
+    body: rows.map((c) => [
+      c.pedidos?.numero_pedido ?? "—",
+      c.pedidos?.clientes?.nome ?? "—",
+      c.nfe?.numero_nfe ?? "—",
+      fmtBRLUtil(c.base_calculo),
+      TIPO_LABEL[c.tipo] ?? c.tipo,
+      `${Number(c.percentual_aplicado).toFixed(2)}%`,
+      fmtBRLUtil(c.valor_comissao),
+    ]),
+    startY: 35,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [40, 40, 40] },
+  });
+  const finalY = (doc as any).lastAutoTable?.finalY ?? 40;
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Total a receber: ${fmtBRLUtil(total)}`, 14, finalY + 12);
+  doc.save(`extrato-${repNome.replace(/\s+/g, "_")}-${String(mes).padStart(2, "0")}-${ano}.pdf`);
+}
 
 const TIPO_LABEL: Record<string, string> = {
   externo: "Representante",
@@ -112,6 +147,20 @@ function ComissoesPage() {
                   {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {repFilter !== "todos" && (
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const repNome = (reps ?? []).find((r) => r.id === repFilter)?.nome ?? "Representante";
+                  gerarExtratoPDF(repNome, mes, ano, data ?? [], total);
+                }}
+                disabled={!data || data.length === 0}
+              >
+                Extrato PDF
+              </Button>
             </div>
           )}
         </CardContent>

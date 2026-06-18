@@ -35,10 +35,16 @@ function PedidosPage() {
   const isFinanceiro = roles.includes("financeiro");
   const canCreate = isAdmin || isInterno || roles.includes("representante");
   const canToggleJeff = isAdmin || isInterno;
+  const canEdit = isAdmin || isInterno;
   const qc = useQueryClient();
 
+  const now = new Date();
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterRep, setFilterRep] = useState<string>("todos");
+  const [filterMes, setFilterMes] = useState<string>("todos");
+  const [filterAno, setFilterAno] = useState<string>(String(now.getFullYear()));
+
+  const [editing, setEditing] = useState<any | null>(null);
 
   const { data: reps } = useQuery({
     queryKey: ["reps"],
@@ -49,12 +55,14 @@ function PedidosPage() {
     queryFn: async () => (await supabase.from("clientes").select("*").order("nome")).data ?? [],
   });
   const { data: pedidos, isLoading } = useQuery({
-    queryKey: ["pedidos", filterStatus, filterRep],
+    queryKey: ["pedidos", filterStatus, filterRep, filterMes, filterAno],
     refetchOnWindowFocus: true,
     queryFn: async () => {
       let q = supabase.from("pedidos").select("*, clientes(nome), representantes(nome)").order("criado_em", { ascending: false });
       if (filterStatus !== "todos") q = q.eq("status", filterStatus as typeof STATUS[number]);
       if (filterRep !== "todos") q = q.eq("representante_id", filterRep);
+      if (filterMes !== "todos") q = q.eq("mes_ref", Number(filterMes));
+      if (filterAno !== "todos") q = q.eq("ano_ref", Number(filterAno));
       return (await q).data ?? [];
     },
   });
@@ -97,6 +105,9 @@ function PedidosPage() {
     qc.invalidateQueries({ queryKey: ["dashboard"] });
   };
 
+  const anoAtual = now.getFullYear();
+  const anos = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -128,6 +139,28 @@ function PedidosPage() {
               </Select>
             </div>
           )}
+          <div className="w-40">
+            <Label className="text-xs">Mês</Label>
+            <Select value={filterMes} onValueChange={setFilterMes}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os meses</SelectItem>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <SelectItem key={m} value={String(m)}>{String(m).padStart(2, "0")}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-32">
+            <Label className="text-xs">Ano</Label>
+            <Select value={filterAno} onValueChange={setFilterAno}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {anos.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
@@ -150,37 +183,43 @@ function PedidosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(pedidos ?? []).map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-mono text-xs">{p.numero_pedido}</TableCell>
-                    <TableCell>{p.clientes?.nome ?? "—"}</TableCell>
-                    <TableCell>{p.representantes?.nome ?? "—"}</TableCell>
-                    <TableCell>{p.data_pedido}</TableCell>
-                    <TableCell>{p.prazo_entrega ?? "—"}</TableCell>
-                    <TableCell>{fmtBRL(p.valor_produtos)}</TableCell>
-                    <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={p.jefferson_participou}
-                        disabled={!canToggleJeff}
-                        onCheckedChange={(v) => toggleJeff(p.id, v)}
-                      />
-                    </TableCell>
-                    <TableCell className="space-x-1">
-                      {NEXT_STATUS[p.status] && !isFinanceiro && (
-                        <Button size="sm" variant="outline" onClick={() => advance(p.id, p.status)}>
-                          → {NEXT_STATUS[p.status]}
-                        </Button>
-                      )}
-                      {isAdmin && p.status !== "cancelado" && (
-                        <Button size="sm" variant="destructive" onClick={() => cancel(p.id)}>Cancelar</Button>
-                      )}
-                      {isAdmin && (
-                        <Button size="sm" variant="destructive" onClick={() => remove(p.id)}>Excluir</Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {(pedidos ?? []).map((p) => {
+                  const editable = canEdit && p.status !== "entregue" && p.status !== "cancelado";
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono text-xs">{p.numero_pedido}</TableCell>
+                      <TableCell>{p.clientes?.nome ?? "—"}</TableCell>
+                      <TableCell>{p.representantes?.nome ?? "—"}</TableCell>
+                      <TableCell>{p.data_pedido}</TableCell>
+                      <TableCell>{p.prazo_entrega ?? "—"}</TableCell>
+                      <TableCell>{fmtBRL(p.valor_produtos)}</TableCell>
+                      <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={p.jefferson_participou}
+                          disabled={!canToggleJeff}
+                          onCheckedChange={(v) => toggleJeff(p.id, v)}
+                        />
+                      </TableCell>
+                      <TableCell className="space-x-1">
+                        {NEXT_STATUS[p.status] && !isFinanceiro && (
+                          <Button size="sm" variant="outline" onClick={() => advance(p.id, p.status)}>
+                            → {NEXT_STATUS[p.status]}
+                          </Button>
+                        )}
+                        {editable && (
+                          <Button size="sm" variant="outline" onClick={() => setEditing(p)}>Editar</Button>
+                        )}
+                        {isAdmin && p.status !== "cancelado" && (
+                          <Button size="sm" variant="destructive" onClick={() => cancel(p.id)}>Cancelar</Button>
+                        )}
+                        {isAdmin && (
+                          <Button size="sm" variant="destructive" onClick={() => remove(p.id)}>Excluir</Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {(pedidos ?? []).length === 0 && (
                   <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">Nenhum pedido.</TableCell></TableRow>
                 )}
@@ -189,6 +228,19 @@ function PedidosPage() {
           )}
         </CardContent>
       </Card>
+
+      {editing && (
+        <EditarPedidoDialog
+          pedido={editing}
+          reps={reps ?? []}
+          clientes={clientes ?? []}
+          onClose={() => setEditing(null)}
+          onDone={() => {
+            setEditing(null);
+            qc.invalidateQueries({ queryKey: ["pedidos"] });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -268,6 +320,87 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
             <Label className="!mt-0">Vendedor interno participou?</Label>
           </div>
           <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
+  pedido: any; reps: any[]; clientes: any[]; onClose: () => void; onDone: () => void;
+}) {
+  const [form, setForm] = useState({
+    numero_pedido: pedido.numero_pedido ?? "",
+    numero_pedido_cliente: pedido.numero_pedido_cliente ?? "",
+    cliente_id: pedido.cliente_id ?? "",
+    representante_id: pedido.representante_id ?? "",
+    data_pedido: pedido.data_pedido ?? new Date().toISOString().slice(0, 10),
+    prazo_entrega: pedido.prazo_entrega ?? "",
+    valor_produtos: String(pedido.valor_produtos ?? ""),
+    jefferson_participou: !!pedido.jefferson_participou,
+  });
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.cliente_id || !form.numero_pedido) {
+      toast.error("Preencha os campos obrigatórios.");
+      return;
+    }
+    const d = new Date(form.data_pedido);
+    const { error } = await supabase.from("pedidos").update({
+      numero_pedido: form.numero_pedido,
+      numero_pedido_cliente: form.numero_pedido_cliente || null,
+      cliente_id: form.cliente_id,
+      representante_id: form.representante_id || null,
+      data_pedido: form.data_pedido,
+      prazo_entrega: form.prazo_entrega || null,
+      valor_produtos: Number(form.valor_produtos || 0),
+      mes_ref: d.getMonth() + 1,
+      ano_ref: d.getFullYear(),
+      jefferson_participou: form.jefferson_participou,
+    }).eq("id", pedido.id);
+    if (error) return toast.error(error.message);
+    toast.success("Pedido atualizado!");
+    onDone();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Editar pedido</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Nº Pedido *</Label><Input value={form.numero_pedido} onChange={(e) => setForm({ ...form, numero_pedido: e.target.value })} required /></div>
+            <div><Label>Nº Pedido cliente</Label><Input value={form.numero_pedido_cliente} onChange={(e) => setForm({ ...form, numero_pedido_cliente: e.target.value })} /></div>
+          </div>
+          <div><Label>Cliente *</Label>
+            <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>{clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div><Label>Representante</Label>
+            <Select value={form.representante_id || "__none__"} onValueChange={(v) => setForm({ ...form, representante_id: v === "__none__" ? "" : v })}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Venda interna (sem rep) —</SelectItem>
+                {reps.map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Data pedido</Label><Input type="date" value={form.data_pedido} onChange={(e) => setForm({ ...form, data_pedido: e.target.value })} /></div>
+            <div><Label>Prazo entrega</Label><Input type="date" value={form.prazo_entrega} onChange={(e) => setForm({ ...form, prazo_entrega: e.target.value })} /></div>
+          </div>
+          <div><Label>Valor produtos (R$)</Label><Input type="number" step="0.01" value={form.valor_produtos} onChange={(e) => setForm({ ...form, valor_produtos: e.target.value })} /></div>
+          <div className="flex items-center gap-2">
+            <Switch checked={form.jefferson_participou} onCheckedChange={(v) => setForm({ ...form, jefferson_participou: v })} />
+            <Label className="!mt-0">Vendedor interno participou?</Label>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="submit">Salvar</Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
