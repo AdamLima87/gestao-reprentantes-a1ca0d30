@@ -72,7 +72,23 @@ function ComissoesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Comissões</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Comissões</h1>
+        {isAdmin && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (confirm("Isso apaga todas as comissões e recalcula a partir das NF-e existentes. Continuar?")) {
+                reprocessar.mutate();
+              }
+            }}
+            disabled={reprocessar.isPending}
+          >
+            {reprocessar.isPending ? "Reprocessando…" : "Reprocessar comissões"}
+          </Button>
+        )}
+      </div>
+
 
       <Card>
         <CardContent className="pt-6 flex flex-wrap gap-3">
