@@ -193,7 +193,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.cliente_id || !form.representante_id || !form.numero_pedido) {
+    if (!form.cliente_id || !form.numero_pedido) {
       toast.error("Preencha os campos obrigatórios.");
       return;
     }
@@ -202,7 +202,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
       numero_pedido: form.numero_pedido,
       numero_pedido_cliente: form.numero_pedido_cliente || null,
       cliente_id: form.cliente_id,
-      representante_id: form.representante_id,
+      representante_id: form.representante_id || null,
       data_pedido: form.data_pedido,
       prazo_entrega: form.prazo_entrega || null,
       valor_produtos: Number(form.valor_produtos || 0),
@@ -232,10 +232,13 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
               <SelectContent>{clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div><Label>Representante *</Label>
-            <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
+          <div><Label>Representante</Label>
+            <Select value={form.representante_id || "__none__"} onValueChange={(v) => setForm({ ...form, representante_id: v === "__none__" ? "" : v })}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{reps.map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                <SelectItem value="__none__">— Venda interna (sem rep) —</SelectItem>
+                {reps.map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
