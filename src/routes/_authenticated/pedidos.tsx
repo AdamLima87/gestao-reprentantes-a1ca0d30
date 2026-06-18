@@ -232,10 +232,13 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
               <SelectContent>{clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div><Label>Representante *</Label>
-            <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
+          <div><Label>Representante</Label>
+            <Select value={form.representante_id || "__none__"} onValueChange={(v) => setForm({ ...form, representante_id: v === "__none__" ? "" : v })}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{reps.map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                <SelectItem value="__none__">— Venda interna (sem rep) —</SelectItem>
+                {reps.map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
