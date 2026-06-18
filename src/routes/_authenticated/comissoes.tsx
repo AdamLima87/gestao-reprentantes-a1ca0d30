@@ -15,6 +15,14 @@ export const Route = createFileRoute("/_authenticated/comissoes")({
 
 const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const TIPO_LABEL: Record<string, string> = {
+  externo: "Representante",
+  interno_sobre_rep: "Vend. Interno 0,5%",
+  interno_novo: "Vend. Interno - Cliente Novo",
+  interno_reativacao: "Vend. Interno - Reativação",
+  interno_recorrente: "Vend. Interno - Recorrente",
+};
+
 function ComissoesPage() {
   const { roles, representanteId } = useAuth();
   const isRepOnly = roles.includes("representante") && !roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
@@ -97,7 +105,7 @@ function ComissoesPage() {
                       <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
                       <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe}</TableCell>
                       <TableCell>{fmtBRL(c.base_calculo)}</TableCell>
-                      <TableCell><Badge variant="outline">{c.tipo}</Badge></TableCell>
+                      <TableCell><Badge variant="outline">{TIPO_LABEL[c.tipo] ?? c.tipo}</Badge></TableCell>
                       <TableCell>{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
                       <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
                     </TableRow>

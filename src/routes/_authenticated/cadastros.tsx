@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { createUser } from "@/lib/admin-users.functions";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
   component: CadastrosPage,
@@ -346,9 +348,79 @@ function UsuariosTab() {
     toast.success("Representante vinculado.");
   };
 
+  const callCreate = useServerFn(createUser);
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    nome: "",
+    email: "",
+    senha: "",
+    role: "representante" as "admin" | "vendedor_interno" | "representante" | "financeiro",
+    representante_id: "none",
+  });
+
+  const submitNew = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await callCreate({
+        data: {
+          nome: form.nome,
+          email: form.email,
+          senha: form.senha,
+          role: form.role,
+          representante_id: form.representante_id === "none" ? null : form.representante_id,
+        },
+      });
+      toast.success("Usuário criado!");
+      setOpen(false);
+      setForm({ nome: "", email: "", senha: "", role: "representante", representante_id: "none" });
+      qc.invalidateQueries({ queryKey: ["profiles-adm"] });
+      qc.invalidateQueries({ queryKey: ["roles-adm"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao criar usuário.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Card>
-      <CardHeader><CardTitle>Usuários do sistema</CardTitle></CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Usuários do sistema</CardTitle>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button>+ Novo usuário</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Novo usuário</DialogTitle></DialogHeader>
+            <form onSubmit={submitNew} className="space-y-3">
+              <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+              <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
+              <div><Label>Senha provisória *</Label><Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={6} /></div>
+              <div><Label>Perfil *</Label>
+                <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as typeof form.role })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
+                    <SelectItem value="representante">Representante</SelectItem>
+                    <SelectItem value="financeiro">Financeiro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Representante vinculado</Label>
+                <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Nenhum —</SelectItem>
+                    {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Criando…" : "Criar usuário"}</Button></DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
       <CardContent>
         <Table>
           <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Perfil</TableHead><TableHead>Vinculado a representante</TableHead></TableRow></TableHeader>
