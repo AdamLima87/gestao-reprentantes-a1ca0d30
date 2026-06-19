@@ -36,10 +36,10 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-muted/20">
-      <aside className="w-64 border-r bg-card flex flex-col">
-        <div className="p-5 border-b">
-          <h1 className="font-bold text-lg">Gestão Repr.</h1>
-          <p className="text-xs text-muted-foreground mt-1 capitalize">{roleLabel.replace("_", " ")}</p>
+      <aside className="w-64 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+        <div className="p-5 border-b border-sidebar-border/40">
+          <h1 className="font-bold text-lg text-sidebar-foreground">Gestão Repr.</h1>
+          <p className="text-xs text-sidebar-foreground/70 mt-1 capitalize">{roleLabel.replace("_", " ")}</p>
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {visible.map((n) => {
@@ -51,7 +51,9 @@ export function AppLayout() {
                 to={n.to}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                  active ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground/80"
+                  active
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-primary/30"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -60,12 +62,17 @@ export function AppLayout() {
             );
           })}
         </nav>
-        <div className="p-3 border-t">
-          <div className="text-xs mb-2 px-2">
+        <div className="p-3 border-t border-sidebar-border/40">
+          <div className="text-xs mb-2 px-2 text-sidebar-foreground">
             <div className="font-medium truncate">{nome || user?.email}</div>
-            <div className="text-muted-foreground truncate">{user?.email}</div>
+            <div className="text-sidebar-foreground/70 truncate">{user?.email}</div>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={signOut}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-primary/30 hover:text-sidebar-foreground"
+            onClick={signOut}
+          >
             <LogOut className="h-4 w-4 mr-2" /> Sair
           </Button>
         </div>
