@@ -387,17 +387,22 @@ export type Database = {
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          cpf: string | null
           criado_em: string
+          data_nascimento: string | null
           endereco: string | null
           estado: string | null
           id: string
           nome: string
+          nome_completo: string | null
           nome_socio: string | null
           numero: string | null
           percentual_padrao: number
           razao_social: string | null
           regiao: string | null
+          rg: string | null
           tipo: Database["public"]["Enums"]["rep_tipo"]
+          tipo_pessoa: string
         }
         Insert: {
           ativo?: boolean
@@ -405,17 +410,22 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          cpf?: string | null
           criado_em?: string
+          data_nascimento?: string | null
           endereco?: string | null
           estado?: string | null
           id?: string
           nome: string
+          nome_completo?: string | null
           nome_socio?: string | null
           numero?: string | null
           percentual_padrao?: number
           razao_social?: string | null
           regiao?: string | null
+          rg?: string | null
           tipo?: Database["public"]["Enums"]["rep_tipo"]
+          tipo_pessoa?: string
         }
         Update: {
           ativo?: boolean
@@ -423,17 +433,22 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          cpf?: string | null
           criado_em?: string
+          data_nascimento?: string | null
           endereco?: string | null
           estado?: string | null
           id?: string
           nome?: string
+          nome_completo?: string | null
           nome_socio?: string | null
           numero?: string | null
           percentual_padrao?: number
           razao_social?: string | null
           regiao?: string | null
+          rg?: string | null
           tipo?: Database["public"]["Enums"]["rep_tipo"]
+          tipo_pessoa?: string
         }
         Relationships: []
       }
