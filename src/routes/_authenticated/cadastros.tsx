@@ -38,6 +38,7 @@ function CadastrosPage() {
           <TabsTrigger value="cconfig">% por cliente</TabsTrigger>
           <TabsTrigger value="metas">Metas</TabsTrigger>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
+          <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="importar">Importar</TabsTrigger>
         </TabsList>
         <TabsContent value="clientes"><ClientesTab /></TabsContent>
@@ -45,6 +46,7 @@ function CadastrosPage() {
         <TabsContent value="cconfig"><CConfigTab /></TabsContent>
         <TabsContent value="metas"><MetasTab /></TabsContent>
         <TabsContent value="usuarios"><UsuariosTab /></TabsContent>
+        <TabsContent value="empresa"><EmpresaTab /></TabsContent>
         <TabsContent value="importar"><ImportarTab /></TabsContent>
       </Tabs>
     </div>
