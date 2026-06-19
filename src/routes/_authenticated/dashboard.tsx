@@ -114,23 +114,40 @@ function Dashboard() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Ranking de representantes (mês)</CardTitle></CardHeader>
-        <CardContent>
-          {ranking.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sem faturamento no mês ainda.</p>
-          ) : (
-            <ul className="divide-y">
-              {ranking.map((r, i) => (
-                <li key={i} className="py-2 flex justify-between text-sm">
-                  <span><span className="text-muted-foreground mr-2">#{i + 1}</span>{r.nome}</span>
-                  <span className="font-medium">{fmtBRL(r.total)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {(() => {
+        const counts: Record<string, number> = {};
+        for (const r of data.reps as any[]) {
+          if (r.tipo !== "externo" || !r.ativo || !r.regiao) continue;
+          const raw = String(r.regiao).trim();
+          const uf = raw.length === 2 ? raw.toUpperCase() : (NOME_TO_UF[raw.toLowerCase()] ?? raw.toUpperCase());
+          counts[uf] = (counts[uf] ?? 0) + 1;
+        }
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader><CardTitle>Cobertura por Estado</CardTitle></CardHeader>
+              <CardContent><BrasilMap counts={counts} /></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Ranking de representantes (mês)</CardTitle></CardHeader>
+              <CardContent>
+                {ranking.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem faturamento no mês ainda.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {ranking.map((r, i) => (
+                      <li key={i} className="py-2 flex justify-between text-sm">
+                        <span><span className="text-muted-foreground mr-2">#{i + 1}</span>{r.nome}</span>
+                        <span className="font-medium">{fmtBRL(r.total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
     </div>
   );
 }
