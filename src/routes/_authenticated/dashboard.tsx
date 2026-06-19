@@ -104,12 +104,21 @@ function Dashboard() {
         <CardHeader><CardTitle>Pedidos por status</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {porStatus.map((s) => (
-              <div key={s.status} className="border rounded-md p-3">
-                <div className="text-xs uppercase text-muted-foreground">{s.status}</div>
-                <div className="text-xl font-semibold">{s.count}</div>
-              </div>
-            ))}
+            {porStatus.map((s) => {
+              const labels: Record<string, string> = {
+                pedido: "Pedido",
+                producao: "Produção",
+                faturado: "Faturado",
+                entregue: "Entregue",
+                cancelado: "Cancelado",
+              };
+              return (
+                <div key={s.status} className="border rounded-md p-3">
+                  <div className="text-xs text-muted-foreground">{labels[s.status] ?? s.status}</div>
+                  <div className="text-xl font-semibold">{s.count}</div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
