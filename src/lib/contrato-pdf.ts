@@ -109,56 +109,66 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   y += LINE_H * 2;
   doc.setFont(FONT, "normal");
 
+  // Quebra texto em linhas respeitando maxW (sem confiar em splitTextToSize p/ justificar)
+  const wrapLines = (text: string, width: number): string[] => {
+    const out: string[] = [];
+    for (const paragraph of text.split(/\n/)) {
+      const words = paragraph.split(/\s+/).filter(Boolean);
+      if (words.length === 0) { out.push(""); continue; }
+      let line = "";
+      for (const w of words) {
+        const test = line ? line + " " + w : w;
+        if (doc.getTextWidth(test) > width && line) {
+          out.push(line);
+          line = w;
+        } else {
+          line = test;
+        }
+      }
+      if (line) out.push(line);
+    }
+    return out;
+  };
+
+  // Renderiza uma linha justificada distribuindo o espaço extra entre as palavras
+  const drawJustifiedLine = (line: string, x: number, yy: number, width: number) => {
+    const words = line.split(" ").filter(Boolean);
+    if (words.length <= 1) { doc.text(line, x, yy); return; }
+    const wordsWidth = words.reduce((s, w) => s + doc.getTextWidth(w), 0);
+    const gap = (width - wordsWidth) / (words.length - 1);
+    let cx = x;
+    for (let i = 0; i < words.length; i++) {
+      doc.text(words[i], cx, yy);
+      cx += doc.getTextWidth(words[i]) + gap;
+    }
+  };
+
   const writeParagraph = (
     text: string,
     opts: { boldTitle?: string; align?: "left" | "center" | "justify"; spacing?: number } = {}
   ) => {
     const align = opts.align ?? "justify";
 
+    // Título em negrito (em linha própria)
     if (opts.boldTitle) {
-      // título da cláusula em negrito, depois corpo justificado
-      const titulo = opts.boldTitle;
-      const corpo = text;
-      doc.setFont(FONT, "bold");
-      const tituloLines = doc.splitTextToSize(titulo + " - ", maxW) as string[];
-      const tituloW = doc.getTextWidth(titulo + " - ");
-      // Se couber em uma linha simples, escrevemos o título em negrito e o corpo logo após
       ensure();
-      doc.text(titulo + " -", margin, y);
-      doc.setFont(FONT, "normal");
-      const firstLineMax = maxW - tituloW;
-      // split do corpo: primeira linha curta + restante normal
-      const allLines = doc.splitTextToSize(corpo, maxW) as string[];
-      // estratégia simples: nova linha para o corpo (mais legível e estável)
-      void tituloLines; void firstLineMax;
+      doc.setFont(FONT, "bold");
+      doc.text(opts.boldTitle + " -", margin, y);
       y += LINE_H;
-      for (let i = 0; i < allLines.length; i++) {
-        const ln = allLines[i];
-        ensure();
-        const isLast = i === allLines.length - 1;
-        if (align === "justify" && !isLast && ln.trim().includes(" ")) {
-          doc.text(ln, margin, y, { align: "justify", maxWidth: maxW });
-        } else if (align === "center") {
-          doc.text(ln, pageW / 2, y, { align: "center" });
-        } else {
-          doc.text(ln, margin, y);
-        }
-        y += LINE_H;
-      }
-      y += opts.spacing ?? 2;
-      return;
+      doc.setFont(FONT, "normal");
+    } else {
+      doc.setFont(FONT, "normal");
     }
 
-    doc.setFont(FONT, "normal");
-    const lines = doc.splitTextToSize(text, maxW) as string[];
+    const lines = wrapLines(text, maxW);
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
       ensure();
       const isLast = i === lines.length - 1;
       if (align === "center") {
         doc.text(ln, pageW / 2, y, { align: "center" });
-      } else if (align === "justify" && !isLast && ln.trim().includes(" ")) {
-        doc.text(ln, margin, y, { align: "justify", maxWidth: maxW });
+      } else if (align === "justify" && !isLast && ln.includes(" ")) {
+        drawJustifiedLine(ln, margin, y, maxW);
       } else {
         doc.text(ln, margin, y);
       }
