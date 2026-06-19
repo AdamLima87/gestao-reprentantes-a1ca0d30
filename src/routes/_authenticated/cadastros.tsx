@@ -452,13 +452,14 @@ function EmpresaTab() {
     } finally { setBuscando(false); }
   };
 
+  const EMPRESA_ID = "00000000-0000-0000-0000-000000000001";
   const salvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setSalvando(true);
-    const payload = { ...form };
-    const res = empresa
-      ? await supabase.from("configuracoes_empresa").update(payload).eq("id", empresa.id)
-      : await supabase.from("configuracoes_empresa").insert(payload);
+    const payload = { id: empresa?.id ?? EMPRESA_ID, ...form };
+    const res = await supabase
+      .from("configuracoes_empresa")
+      .upsert(payload, { onConflict: "id" });
     setSalvando(false);
     if (res.error) return toast.error(res.error.message);
     toast.success("Dados da empresa salvos!");
