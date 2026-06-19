@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { createUser } from "@/lib/admin-users.functions";
-import { fetchCnpj } from "@/lib/brasilapi";
+import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search } from "lucide-react";
 
