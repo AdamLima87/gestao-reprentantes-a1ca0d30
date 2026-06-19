@@ -337,12 +337,18 @@ function RepsTab() {
     qc.invalidateQueries({ queryKey: ["reps-adm"] });
   };
 
-  const gerarContrato = (r: any) => {
-    if (!empresa) {
+  const gerarContrato = async (r: any) => {
+    const { data: empresaDb, error } = await supabase
+      .from("configuracoes_empresa")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+    console.log("[gerarContrato] empresa:", empresaDb, "error:", error);
+    if (error || !empresaDb) {
       toast.error("Configure os dados da empresa primeiro (aba Empresa).");
       return;
     }
-    gerarContratoPDF(empresa, { ...r, percentual_padrao: Number(r.percentual_padrao ?? 0) });
+    gerarContratoPDF(empresaDb, { ...r, percentual_padrao: Number(r.percentual_padrao ?? 0) });
   };
 
   return (
