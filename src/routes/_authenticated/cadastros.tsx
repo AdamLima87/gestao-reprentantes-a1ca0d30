@@ -331,7 +331,7 @@ function RepsTab() {
   const openEdit = (r: any) => {
     setEditingId(r.id);
     setForm({
-      nome: r.nome ?? "", regiao: r.regiao ?? "", tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      nome: r.nome ?? "", regiao: ((): string => { const raw = String(r.regiao ?? "").trim(); if (!raw) return ""; if (raw.length === 2) return raw.toUpperCase(); return NOME_TO_UF[raw.toLowerCase()] ?? ""; })(), tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
       tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
