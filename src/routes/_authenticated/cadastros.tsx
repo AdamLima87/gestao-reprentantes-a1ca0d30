@@ -184,7 +184,16 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
     <>
       <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Região</Label><Input value={form.regiao} onChange={(e) => setForm({ ...form, regiao: e.target.value })} /></div>
+        <div><Label>Região (UF)</Label>
+          <Select value={form.regiao} onValueChange={(v) => setForm({ ...form, regiao: v })}>
+            <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {BR_STATES.map((s) => (
+                <SelectItem key={s.sigla} value={s.sigla}>{s.sigla} — {s.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div><Label>Tipo</Label>
           <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as "externo" | "interno" })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
