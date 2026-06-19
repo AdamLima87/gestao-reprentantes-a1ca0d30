@@ -18,6 +18,7 @@ import { createUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search } from "lucide-react";
+import { BR_STATES, NOME_TO_UF } from "@/lib/estados-brasil";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
   component: CadastrosPage,
