@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { BrasilMap } from "@/components/BrasilMap";
+import { NOME_TO_UF } from "@/lib/estados-brasil";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
