@@ -283,18 +283,25 @@ function RepsTab() {
 
   const payload = (f: RepFormState) => {
     const isExt = f.tipo === "externo";
+    const isPJ = isExt && f.tipo_pessoa === "juridica";
+    const isPF = isExt && f.tipo_pessoa === "fisica";
     return {
       nome: f.nome, regiao: f.regiao || null, tipo: f.tipo,
       percentual_padrao: Number(f.percentual_padrao), ativo: f.ativo,
-      cnpj: isExt ? (f.cnpj || null) : null,
-      razao_social: isExt ? (f.razao_social || null) : null,
+      tipo_pessoa: isExt ? f.tipo_pessoa : "juridica",
+      cnpj: isPJ ? (f.cnpj || null) : null,
+      razao_social: isPJ ? (f.razao_social || null) : null,
+      nome_socio: isPJ ? (f.nome_socio || null) : null,
+      cpf: isPF ? (f.cpf || null) : null,
+      nome_completo: isPF ? (f.nome_completo || null) : null,
+      rg: isPF ? (f.rg || null) : null,
+      data_nascimento: isPF ? (f.data_nascimento || null) : null,
       endereco: isExt ? (f.endereco || null) : null,
       numero: isExt ? (f.numero || null) : null,
       bairro: isExt ? (f.bairro || null) : null,
       cidade: isExt ? (f.cidade || null) : null,
       estado: isExt ? (f.estado || null) : null,
       cep: isExt ? (f.cep || null) : null,
-      nome_socio: isExt ? (f.nome_socio || null) : null,
     };
   };
 
@@ -316,9 +323,11 @@ function RepsTab() {
     setForm({
       nome: r.nome ?? "", regiao: r.regiao ?? "", tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
+      tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
       endereco: r.endereco ?? "", numero: r.numero ?? "", bairro: r.bairro ?? "",
       cidade: r.cidade ?? "", estado: r.estado ?? "", cep: r.cep ?? "", nome_socio: r.nome_socio ?? "",
+      cpf: r.cpf ?? "", nome_completo: r.nome_completo ?? "", rg: r.rg ?? "", data_nascimento: r.data_nascimento ?? "",
     });
     setOpen(true);
   };
