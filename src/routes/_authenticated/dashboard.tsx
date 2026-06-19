@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { BrasilMap } from "@/components/BrasilMap";
+import { NOME_TO_UF } from "@/lib/estados-brasil";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -26,7 +28,7 @@ function Dashboard() {
         supabase.from("pedidos").select("id, status, prazo_entrega, valor_produtos, representante_id"),
         supabase.from("nfe").select("valor_nfe, mes_ref, ano_ref, pedido_id").eq("mes_ref", mes).eq("ano_ref", ano),
         supabase.from("metas").select("valor, mes, ano, representante_id").eq("mes", mes).eq("ano", ano),
-        supabase.from("representantes").select("id, nome"),
+        supabase.from("representantes").select("id, nome, regiao, tipo, ativo"),
       ]);
       return {
         pedidos: pedidosRes.data ?? [],
@@ -112,23 +114,40 @@ function Dashboard() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Ranking de representantes (mês)</CardTitle></CardHeader>
-        <CardContent>
-          {ranking.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sem faturamento no mês ainda.</p>
-          ) : (
-            <ul className="divide-y">
-              {ranking.map((r, i) => (
-                <li key={i} className="py-2 flex justify-between text-sm">
-                  <span><span className="text-muted-foreground mr-2">#{i + 1}</span>{r.nome}</span>
-                  <span className="font-medium">{fmtBRL(r.total)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {(() => {
+        const counts: Record<string, number> = {};
+        for (const r of data.reps as any[]) {
+          if (r.tipo !== "externo" || !r.ativo || !r.regiao) continue;
+          const raw = String(r.regiao).trim();
+          const uf = raw.length === 2 ? raw.toUpperCase() : (NOME_TO_UF[raw.toLowerCase()] ?? raw.toUpperCase());
+          counts[uf] = (counts[uf] ?? 0) + 1;
+        }
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader><CardTitle>Cobertura por Estado</CardTitle></CardHeader>
+              <CardContent><BrasilMap counts={counts} /></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Ranking de representantes (mês)</CardTitle></CardHeader>
+              <CardContent>
+                {ranking.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem faturamento no mês ainda.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {ranking.map((r, i) => (
+                      <li key={i} className="py-2 flex justify-between text-sm">
+                        <span><span className="text-muted-foreground mr-2">#{i + 1}</span>{r.nome}</span>
+                        <span className="font-medium">{fmtBRL(r.total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
     </div>
   );
 }

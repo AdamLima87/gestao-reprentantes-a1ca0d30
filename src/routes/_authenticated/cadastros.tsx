@@ -18,6 +18,7 @@ import { createUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search } from "lucide-react";
+import { BR_STATES, NOME_TO_UF } from "@/lib/estados-brasil";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
   component: CadastrosPage,
@@ -184,7 +185,16 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
     <>
       <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Região</Label><Input value={form.regiao} onChange={(e) => setForm({ ...form, regiao: e.target.value })} /></div>
+        <div><Label>Região (UF)</Label>
+          <Select value={form.regiao} onValueChange={(v) => setForm({ ...form, regiao: v })}>
+            <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {BR_STATES.map((s) => (
+                <SelectItem key={s.sigla} value={s.sigla}>{s.sigla} — {s.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div><Label>Tipo</Label>
           <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as "externo" | "interno" })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -321,7 +331,7 @@ function RepsTab() {
   const openEdit = (r: any) => {
     setEditingId(r.id);
     setForm({
-      nome: r.nome ?? "", regiao: r.regiao ?? "", tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      nome: r.nome ?? "", regiao: ((): string => { const raw = String(r.regiao ?? "").trim(); if (!raw) return ""; if (raw.length === 2) return raw.toUpperCase(); return NOME_TO_UF[raw.toLowerCase()] ?? ""; })(), tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
       tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
