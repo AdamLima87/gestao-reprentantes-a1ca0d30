@@ -169,6 +169,7 @@ export type Database = {
           endereco: string | null
           estado: string | null
           id: string
+          logo_base64: string | null
           nome_socio: string | null
           numero: string | null
           razao_social: string | null
@@ -185,6 +186,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          logo_base64?: string | null
           nome_socio?: string | null
           numero?: string | null
           razao_social?: string | null
@@ -201,6 +203,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          logo_base64?: string | null
           nome_socio?: string | null
           numero?: string | null
           razao_social?: string | null
