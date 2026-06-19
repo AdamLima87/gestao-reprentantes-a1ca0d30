@@ -15,6 +15,7 @@ export type EmpresaContrato = {
 export type RepContrato = {
   nome: string;
   regiao?: string | null;
+  tipo_pessoa?: "juridica" | "fisica" | null;
   razao_social?: string | null;
   cnpj?: string | null;
   endereco?: string | null;
@@ -24,6 +25,10 @@ export type RepContrato = {
   estado?: string | null;
   cep?: string | null;
   nome_socio?: string | null;
+  cpf?: string | null;
+  nome_completo?: string | null;
+  rg?: string | null;
+  data_nascimento?: string | null;
   percentual_padrao: number;
 };
 
@@ -90,17 +95,23 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   const empresaCnpj = empresa.cnpj || "[CNPJ DA EMPRESA]";
   const empresaEnd = enderecoCompleto(empresa) || "[ENDEREÇO COMPLETO DA EMPRESA]";
   const empresaSocio = empresa.nome_socio || "[NOME DO SÓCIO DA EMPRESA]";
-  const repRazao = rep.razao_social || rep.nome || "[RAZÃO SOCIAL DO REPRESENTANTE]";
-  const repCnpj = rep.cnpj || "[CNPJ DO REPRESENTANTE]";
+  const isPF = rep.tipo_pessoa === "fisica";
+  const repNome = isPF ? (rep.nome_completo || rep.nome) : (rep.razao_social || rep.nome || "[RAZÃO SOCIAL DO REPRESENTANTE]");
+  const repDocLabel = isPF ? "CPF" : "CNPJ";
+  const repDoc = isPF ? (rep.cpf || "[CPF DO REPRESENTANTE]") : (rep.cnpj || "[CNPJ DO REPRESENTANTE]");
   const repEnd = enderecoCompleto(rep) || "[ENDEREÇO COMPLETO DO REPRESENTANTE]";
   const repRegiao = rep.regiao || "[REGIÃO DO REPRESENTANTE]";
-  const repSocio = rep.nome_socio || "[NOME DO SÓCIO DO REPRESENTANTE]";
+  const repSocio = isPF ? (rep.nome_completo || rep.nome) : (rep.nome_socio || "[NOME DO SÓCIO DO REPRESENTANTE]");
   const pct = Number(rep.percentual_padrao ?? 0).toFixed(2).replace(".", ",");
 
   writeParagraph("CONTRATO REPRESENTAÇÃO COMERCIAL AUTÔNOMA", { bold: true, align: "center", spacing: 6 });
 
+  const aberturaRep = isPF
+    ? `${repNome}, ${repDocLabel} Nº ${repDoc}, End.: ${repEnd}, doravante denominado(a) REPRESENTANTE`
+    : `${repNome}, ${repDocLabel} Nº ${repDoc}, End.: ${repEnd}, neste ato representada por seu sócio ao final identificado doravante denominado REPRESENTANTE`;
+
   writeParagraph(
-    `Pelo presente instrumento de contrato de representação comercial que fazem entre si, de um lado a empresa ${empresaRazao}, inscrita no CNPJ sob n°. ${empresaCnpj}, com sede à ${empresaEnd}, neste ato representado por seu sócio administrador ${empresaSocio}, doravante denominada REPRESENTADA, e do outro lado, ${repRazao}, CNPJ Nº ${repCnpj}, End.: ${repEnd}, neste ato representada por seu sócio ao final identificado doravante denominado REPRESENTANTE, tem entre si justo e acertado o quanto segue:`
+    `Pelo presente instrumento de contrato de representação comercial que fazem entre si, de um lado a empresa ${empresaRazao}, inscrita no CNPJ sob n°. ${empresaCnpj}, com sede à ${empresaEnd}, neste ato representado por seu sócio administrador ${empresaSocio}, doravante denominada REPRESENTADA, e do outro lado, ${aberturaRep}, tem entre si justo e acertado o quanto segue:`
   );
 
   const clausulas: [string, string][] = [

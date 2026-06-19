@@ -25,3 +25,14 @@ export async function fetchCnpj(cnpjRaw: string): Promise<CnpjInfo> {
     cep: d.cep ?? "",
   };
 }
+
+export type CpfInfo = { nome: string };
+
+export async function fetchCpf(cpfRaw: string): Promise<CpfInfo> {
+  const cpf = cpfRaw.replace(/\D/g, "");
+  if (cpf.length !== 11) throw new Error("CPF deve conter 11 dígitos.");
+  const res = await fetch(`https://brasilapi.com.br/api/cpf/v1/${cpf}`);
+  if (!res.ok) throw new Error(`CPF não encontrado (${res.status}).`);
+  const d = await res.json();
+  return { nome: d.nome ?? d.name ?? "" };
+}
