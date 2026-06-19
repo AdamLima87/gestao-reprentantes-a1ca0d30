@@ -127,15 +127,25 @@ function ClientesTab() {
 // ============== REPS ==============
 type RepFormState = {
   nome: string; regiao: string; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
+  tipo_pessoa: "juridica" | "fisica";
   cnpj: string; razao_social: string; endereco: string; numero: string; bairro: string; cidade: string; estado: string; cep: string; nome_socio: string;
+  cpf: string; nome_completo: string; rg: string; data_nascimento: string;
 };
 const emptyRepForm: RepFormState = {
   nome: "", regiao: "", tipo: "externo", percentual_padrao: "5.0", ativo: true,
+  tipo_pessoa: "juridica",
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
+  cpf: "", nome_completo: "", rg: "", data_nascimento: "",
+};
+
+const emptyEnderecoFields = {
+  cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
+  cpf: "", nome_completo: "", rg: "", data_nascimento: "",
 };
 
 function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: RepFormState) => void }) {
   const [buscando, setBuscando] = useState(false);
+  const [buscandoCpf, setBuscandoCpf] = useState(false);
   const buscarCnpj = async () => {
     if (!form.cnpj.trim()) return toast.error("Informe o CNPJ.");
     setBuscando(true);
@@ -144,19 +154,31 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
       setForm({
         ...form,
         razao_social: d.razao_social,
-        endereco: d.logradouro,
-        numero: d.numero,
-        bairro: d.bairro,
-        cidade: d.municipio,
-        estado: d.uf,
-        cep: d.cep,
+        endereco: d.logradouro, numero: d.numero, bairro: d.bairro,
+        cidade: d.municipio, estado: d.uf, cep: d.cep,
       });
       toast.success("Dados preenchidos pela BrasilAPI.");
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao consultar CNPJ.");
-    } finally {
-      setBuscando(false);
-    }
+    } finally { setBuscando(false); }
+  };
+  const buscarCpf = async () => {
+    if (!form.cpf.trim()) return toast.error("Informe o CPF.");
+    setBuscandoCpf(true);
+    try {
+      const d = await fetchCpf(form.cpf);
+      if (d.nome) {
+        setForm({ ...form, nome_completo: d.nome });
+        toast.success("Nome preenchido pela BrasilAPI.");
+      } else {
+        toast.message("CPF válido, mas nome não disponível na API.");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao consultar CPF.");
+    } finally { setBuscandoCpf(false); }
+  };
+  const onTipoPessoaChange = (v: "juridica" | "fisica") => {
+    setForm({ ...form, ...emptyEnderecoFields, tipo_pessoa: v });
   };
   return (
     <>
@@ -173,12 +195,24 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           </Select>
         </div>
       </div>
+      {form.tipo === "externo" && (
+        <div>
+          <Label>Tipo de pessoa</Label>
+          <Select value={form.tipo_pessoa} onValueChange={(v) => onTipoPessoaChange(v as "juridica" | "fisica")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
+              <SelectItem value="fisica">Pessoa Física</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="rounded border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3">
         <Label>% comissão padrão *</Label>
         <Input type="number" step="0.01" className="text-lg font-semibold" value={form.percentual_padrao} onChange={(e) => setForm({ ...form, percentual_padrao: e.target.value })} required />
         <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">⚠️ Este percentual será utilizado no contrato. Confirme antes de salvar.</p>
       </div>
-      {form.tipo === "externo" && (
+      {form.tipo === "externo" && form.tipo_pessoa === "juridica" && (
         <div className="space-y-3 rounded border p-3 bg-muted/30">
           <div>
             <Label>CNPJ</Label>
@@ -203,6 +237,36 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
             <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} maxLength={2} /></div>
           </div>
           <div><Label>Nome do sócio responsável</Label><Input value={form.nome_socio} onChange={(e) => setForm({ ...form, nome_socio: e.target.value })} /></div>
+        </div>
+      )}
+      {form.tipo === "externo" && form.tipo_pessoa === "fisica" && (
+        <div className="space-y-3 rounded border p-3 bg-muted/30">
+          <div>
+            <Label>CPF</Label>
+            <div className="flex gap-2">
+              <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" />
+              <Button type="button" variant="outline" onClick={buscarCpf} disabled={buscandoCpf}>
+                <Search className="h-4 w-4 mr-1" />{buscandoCpf ? "Buscando…" : "Buscar"}
+              </Button>
+            </div>
+          </div>
+          <div><Label>Nome completo</Label><Input value={form.nome_completo} onChange={(e) => setForm({ ...form, nome_completo: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>RG</Label><Input value={form.rg} onChange={(e) => setForm({ ...form, rg: e.target.value })} /></div>
+            <div><Label>Data de nascimento</Label><Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} /></div>
+            <div><Label>Número</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} /></div>
+            <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></div>
+            <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} maxLength={2} /></div>
+          </div>
         </div>
       )}
     </>
