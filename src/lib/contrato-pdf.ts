@@ -10,6 +10,7 @@ export type EmpresaContrato = {
   estado?: string | null;
   cep?: string | null;
   nome_socio?: string | null;
+  logo_base64?: string | null;
 };
 
 export type RepContrato = {
@@ -63,30 +64,105 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 25;
   const maxW = pageW - margin * 2;
-  doc.setFont("times", "normal");
-  doc.setFontSize(11);
+
+  // Arial não está embutida no jsPDF; helvetica é a substituta padrão equivalente.
+  const FONT = "helvetica";
+  const FONT_SIZE = 12;
+  // Espaçamento 1,5: altura da linha em mm para fonte 12pt (≈4.23mm) × 1.5
+  const LINE_H = (FONT_SIZE * 0.3528) * 1.5;
+
+  doc.setFont(FONT, "normal");
+  doc.setFontSize(FONT_SIZE);
+  doc.setLineHeightFactor(1.5);
 
   let y = margin;
-  const lineH = 5.5;
 
-  const ensure = (need = lineH) => {
+  const ensure = (need = LINE_H) => {
     if (y + need > pageH - margin) {
       doc.addPage();
       y = margin;
     }
   };
 
-  const writeParagraph = (text: string, opts: { bold?: boolean; align?: "left" | "center" | "justify"; spacing?: number } = {}) => {
-    doc.setFont("times", opts.bold ? "bold" : "normal");
-    const lines = doc.splitTextToSize(text, maxW) as string[];
-    for (const ln of lines) {
+  // ---- Cabeçalho com logo ----
+  if (empresa.logo_base64) {
+    try {
+      const raw = empresa.logo_base64;
+      const dataUrl = raw.startsWith("data:") ? raw : `data:image/png;base64,${raw}`;
+      const fmt = /image\/(jpe?g)/i.test(dataUrl) ? "JPEG" : "PNG";
+      const logoW = 60; // largura máxima 60mm
+      // estima altura proporcional (assume 1:1 se não conseguir medir)
+      const props = (doc as any).getImageProperties?.(dataUrl);
+      const ratio = props && props.width && props.height ? props.height / props.width : 0.5;
+      const logoH = Math.min(35, logoW * ratio);
+      doc.addImage(dataUrl, fmt, (pageW - logoW) / 2, y, logoW, logoH);
+      y += logoH + 6;
+    } catch {
+      // ignore erros de logo
+    }
+  }
+
+  // Título
+  doc.setFont(FONT, "bold");
+  doc.setFontSize(12);
+  doc.text("CONTRATO REPRESENTAÇÃO COMERCIAL AUTÔNOMA", pageW / 2, y, { align: "center" });
+  y += LINE_H * 2;
+  doc.setFont(FONT, "normal");
+
+  const writeParagraph = (
+    text: string,
+    opts: { boldTitle?: string; align?: "left" | "center" | "justify"; spacing?: number } = {}
+  ) => {
+    const align = opts.align ?? "justify";
+
+    if (opts.boldTitle) {
+      // título da cláusula em negrito, depois corpo justificado
+      const titulo = opts.boldTitle;
+      const corpo = text;
+      doc.setFont(FONT, "bold");
+      const tituloLines = doc.splitTextToSize(titulo + " - ", maxW) as string[];
+      const tituloW = doc.getTextWidth(titulo + " - ");
+      // Se couber em uma linha simples, escrevemos o título em negrito e o corpo logo após
       ensure();
-      if (opts.align === "center") {
+      doc.text(titulo + " -", margin, y);
+      doc.setFont(FONT, "normal");
+      const firstLineMax = maxW - tituloW;
+      // split do corpo: primeira linha curta + restante normal
+      const allLines = doc.splitTextToSize(corpo, maxW) as string[];
+      // estratégia simples: nova linha para o corpo (mais legível e estável)
+      void tituloLines; void firstLineMax;
+      y += LINE_H;
+      for (let i = 0; i < allLines.length; i++) {
+        const ln = allLines[i];
+        ensure();
+        const isLast = i === allLines.length - 1;
+        if (align === "justify" && !isLast && ln.trim().includes(" ")) {
+          doc.text(ln, margin, y, { align: "justify", maxWidth: maxW });
+        } else if (align === "center") {
+          doc.text(ln, pageW / 2, y, { align: "center" });
+        } else {
+          doc.text(ln, margin, y);
+        }
+        y += LINE_H;
+      }
+      y += opts.spacing ?? 2;
+      return;
+    }
+
+    doc.setFont(FONT, "normal");
+    const lines = doc.splitTextToSize(text, maxW) as string[];
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i];
+      ensure();
+      const isLast = i === lines.length - 1;
+      if (align === "center") {
         doc.text(ln, pageW / 2, y, { align: "center" });
+      } else if (align === "justify" && !isLast && ln.trim().includes(" ")) {
+        doc.text(ln, margin, y, { align: "justify", maxWidth: maxW });
       } else {
         doc.text(ln, margin, y);
       }
-      y += lineH;
+      y += LINE_H;
     }
     y += opts.spacing ?? 2;
   };
@@ -103,8 +179,6 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   const repRegiao = rep.regiao || "[REGIÃO DO REPRESENTANTE]";
   const repSocio = isPF ? (rep.nome_completo || rep.nome) : (rep.nome_socio || "[NOME DO SÓCIO DO REPRESENTANTE]");
   const pct = Number(rep.percentual_padrao ?? 0).toFixed(2).replace(".", ",");
-
-  writeParagraph("CONTRATO REPRESENTAÇÃO COMERCIAL AUTÔNOMA", { bold: true, align: "center", spacing: 6 });
 
   const aberturaRep = isPF
     ? `${repNome}, ${repDocLabel} Nº ${repDoc}, End.: ${repEnd}, doravante denominado(a) REPRESENTANTE`
@@ -138,27 +212,27 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   ];
 
   for (const [titulo, texto] of clausulas) {
-    writeParagraph(`${titulo} - ${texto}`);
+    writeParagraph(texto, { boldTitle: titulo, spacing: 3 });
   }
 
   writeParagraph(
     "E por estarem assim justos e contratados, REPRESENTADA e REPRESENTANTE firmam o presente instrumento em 2 (duas) vias de igual teor, perante as testemunhas que com elas subscrevem abaixo, para que produza todos os efeitos de Direito.",
-    { spacing: 6 }
+    { spacing: 8 }
   );
 
-  writeParagraph(`Local e data: São Caetano do Sul, ${dataPorExtenso()}.`, { spacing: 14 });
+  writeParagraph(`Local e data: São Caetano do Sul, ${dataPorExtenso()}.`, { align: "left", spacing: 20 });
 
-  // Assinaturas
+  // Assinaturas - centralizadas com espaço de rubrica
+  ensure(35);
   const sigW = (maxW - 20) / 2;
-  ensure(30);
   doc.line(margin, y, margin + sigW, y);
   doc.line(margin + sigW + 20, y, margin + sigW + 20 + sigW, y);
-  y += 5;
-  doc.setFont("times", "bold");
+  y += LINE_H;
+  doc.setFont(FONT, "bold");
   doc.text("REPRESENTADA", margin + sigW / 2, y, { align: "center" });
   doc.text("REPRESENTANTE", margin + sigW + 20 + sigW / 2, y, { align: "center" });
-  y += 5;
-  doc.setFont("times", "normal");
+  y += LINE_H;
+  doc.setFont(FONT, "normal");
   doc.text(empresaSocio, margin + sigW / 2, y, { align: "center" });
   doc.text(repSocio, margin + sigW + 20 + sigW / 2, y, { align: "center" });
 

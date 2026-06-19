@@ -397,7 +397,7 @@ function EmpresaTab() {
   });
   const [form, setForm] = useState({
     cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
-    nome_socio: "", email: "", telefone: "",
+    nome_socio: "", email: "", telefone: "", logo_base64: "" as string,
   });
   const [loaded, setLoaded] = useState(false);
   const [buscando, setBuscando] = useState(false);
@@ -410,9 +410,20 @@ function EmpresaTab() {
       bairro: empresa.bairro ?? "", cidade: empresa.cidade ?? "",
       estado: empresa.estado ?? "", cep: empresa.cep ?? "",
       nome_socio: empresa.nome_socio ?? "", email: empresa.email ?? "", telefone: empresa.telefone ?? "",
+      logo_base64: (empresa as any).logo_base64 ?? "",
     });
     setLoaded(true);
   }
+
+  const onLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(png|jpe?g)$/i.test(file.type)) return toast.error("Envie um arquivo PNG ou JPG.");
+    if (file.size > 2 * 1024 * 1024) return toast.error("Logo deve ter no máximo 2MB.");
+    const reader = new FileReader();
+    reader.onload = () => setForm((f) => ({ ...f, logo_base64: String(reader.result || "") }));
+    reader.readAsDataURL(file);
+  };
 
   const buscar = async () => {
     if (!form.cnpj.trim()) return toast.error("Informe o CNPJ.");
@@ -483,6 +494,17 @@ function EmpresaTab() {
                 <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                 <div><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
               </div>
+            </div>
+            <div className="border-t pt-4 space-y-2">
+              <Label>Logo da empresa (PNG ou JPG)</Label>
+              <Input type="file" accept="image/png,image/jpeg" onChange={onLogoUpload} />
+              {form.logo_base64 && (
+                <div className="flex items-center gap-3">
+                  <img src={form.logo_base64} alt="Logo" className="h-20 max-w-[200px] object-contain border rounded" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, logo_base64: "" })}>Remover</Button>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Será exibido no topo do contrato em PDF (largura máxima 60mm).</p>
             </div>
             <Button type="submit" disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Button>
           </form>
