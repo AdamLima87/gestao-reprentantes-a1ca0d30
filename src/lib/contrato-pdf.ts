@@ -143,13 +143,53 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
     }
   };
 
+  const renderBlock = (text: string, indentMM = 0) => {
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return;
+    const w1 = maxW - indentMM;
+    let firstLine = "";
+    let i = 0;
+    while (i < words.length) {
+      const test = firstLine ? firstLine + " " + words[i] : words[i];
+      if (doc.getTextWidth(test) > w1 && firstLine) break;
+      firstLine = test;
+      i++;
+    }
+    ensure();
+    const restWords = words.slice(i);
+    const isLastFirst = restWords.length === 0;
+    if (!isLastFirst && firstLine.includes(" ")) {
+      drawJustifiedLine(firstLine, margin + indentMM, y, w1);
+    } else {
+      doc.text(firstLine, margin + indentMM, y);
+    }
+    y += LINE_H;
+    if (restWords.length) {
+      const lines = wrapLines(restWords.join(" "), maxW);
+      for (let k = 0; k < lines.length; k++) {
+        ensure();
+        const isLast = k === lines.length - 1;
+        if (!isLast && lines[k].includes(" ")) {
+          drawJustifiedLine(lines[k], margin, y, maxW);
+        } else {
+          doc.text(lines[k], margin, y);
+        }
+        y += LINE_H;
+      }
+    }
+  };
+
+  const splitParagrafos = (text: string): string[] => {
+    const re = /\s+(?=Parágrafo\s+(?:\d+[ºo°]|[ÚUúu]nico)\b)/g;
+    return text.split(re);
+  };
+
   const writeParagraph = (
     text: string,
     opts: { boldTitle?: string; align?: "left" | "center" | "justify"; spacing?: number } = {}
   ) => {
     const align = opts.align ?? "justify";
 
-    // Título em negrito (em linha própria)
     if (opts.boldTitle) {
       ensure();
       doc.setFont(FONT, "bold");
@@ -160,19 +200,24 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
       doc.setFont(FONT, "normal");
     }
 
-    const lines = wrapLines(text, maxW);
-    for (let i = 0; i < lines.length; i++) {
-      const ln = lines[i];
-      ensure();
-      const isLast = i === lines.length - 1;
-      if (align === "center") {
-        doc.text(ln, pageW / 2, y, { align: "center" });
-      } else if (align === "justify" && !isLast && ln.includes(" ")) {
-        drawJustifiedLine(ln, margin, y, maxW);
-      } else {
-        doc.text(ln, margin, y);
+    if (align !== "justify") {
+      const lines = wrapLines(text, maxW);
+      for (let i = 0; i < lines.length; i++) {
+        ensure();
+        if (align === "center") {
+          doc.text(lines[i], pageW / 2, y, { align: "center" });
+        } else {
+          doc.text(lines[i], margin, y);
+        }
+        y += LINE_H;
       }
-      y += LINE_H;
+    } else {
+      const segments = splitParagrafos(text);
+      renderBlock(segments[0], 0);
+      for (let s = 1; s < segments.length; s++) {
+        y += 1;
+        renderBlock(segments[s], 8);
+      }
     }
     y += opts.spacing ?? 2;
   };
@@ -222,7 +267,7 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   ];
 
   for (const [titulo, texto] of clausulas) {
-    writeParagraph(texto, { boldTitle: titulo, spacing: 3 });
+    writeParagraph(texto, { boldTitle: titulo, spacing: 5 });
   }
 
   writeParagraph(
@@ -233,18 +278,24 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   writeParagraph(`Local e data: São Caetano do Sul, ${dataPorExtenso()}.`, { align: "left", spacing: 20 });
 
   // Assinaturas - centralizadas com espaço de rubrica
-  ensure(35);
+  ensure(45);
   const sigW = (maxW - 20) / 2;
+  const leftCx = margin + sigW / 2;
+  const rightCx = margin + sigW + 20 + sigW / 2;
   doc.line(margin, y, margin + sigW, y);
   doc.line(margin + sigW + 20, y, margin + sigW + 20 + sigW, y);
   y += LINE_H;
   doc.setFont(FONT, "bold");
-  doc.text("REPRESENTADA", margin + sigW / 2, y, { align: "center" });
-  doc.text("REPRESENTANTE", margin + sigW + 20 + sigW / 2, y, { align: "center" });
-  y += LINE_H;
+  doc.setFontSize(FONT_SIZE);
+  doc.text(empresaRazao, leftCx, y, { align: "center" });
+  doc.text(repNome, rightCx, y, { align: "center" });
+  y += LINE_H * 0.7;
   doc.setFont(FONT, "normal");
-  doc.text(empresaSocio, margin + sigW / 2, y, { align: "center" });
-  doc.text(repSocio, margin + sigW + 20 + sigW / 2, y, { align: "center" });
+  doc.setFontSize(9);
+  doc.text(`${empresaSocio} — Sócio Administrador`, leftCx, y, { align: "center" });
+  const repLegenda = isPF ? "Representante" : `${repSocio} — Representante`;
+  doc.text(repLegenda, rightCx, y, { align: "center" });
+  doc.setFontSize(FONT_SIZE);
 
   const slug = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
   const dt = new Date().toISOString().slice(0, 10);
