@@ -267,7 +267,7 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   ];
 
   for (const [titulo, texto] of clausulas) {
-    writeParagraph(texto, { boldTitle: titulo, spacing: 3 });
+    writeParagraph(texto, { boldTitle: titulo, spacing: 5 });
   }
 
   writeParagraph(
