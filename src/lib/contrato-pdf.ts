@@ -278,18 +278,24 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   writeParagraph(`Local e data: São Caetano do Sul, ${dataPorExtenso()}.`, { align: "left", spacing: 20 });
 
   // Assinaturas - centralizadas com espaço de rubrica
-  ensure(35);
+  ensure(45);
   const sigW = (maxW - 20) / 2;
+  const leftCx = margin + sigW / 2;
+  const rightCx = margin + sigW + 20 + sigW / 2;
   doc.line(margin, y, margin + sigW, y);
   doc.line(margin + sigW + 20, y, margin + sigW + 20 + sigW, y);
   y += LINE_H;
   doc.setFont(FONT, "bold");
-  doc.text("REPRESENTADA", margin + sigW / 2, y, { align: "center" });
-  doc.text("REPRESENTANTE", margin + sigW + 20 + sigW / 2, y, { align: "center" });
-  y += LINE_H;
+  doc.setFontSize(FONT_SIZE);
+  doc.text(empresaRazao, leftCx, y, { align: "center" });
+  doc.text(repNome, rightCx, y, { align: "center" });
+  y += LINE_H * 0.7;
   doc.setFont(FONT, "normal");
-  doc.text(empresaSocio, margin + sigW / 2, y, { align: "center" });
-  doc.text(repSocio, margin + sigW + 20 + sigW / 2, y, { align: "center" });
+  doc.setFontSize(9);
+  doc.text(`${empresaSocio} — Sócio Administrador`, leftCx, y, { align: "center" });
+  const repLegenda = isPF ? "Representante" : `${repSocio} — Representante`;
+  doc.text(repLegenda, rightCx, y, { align: "center" });
+  doc.setFontSize(FONT_SIZE);
 
   const slug = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
   const dt = new Date().toISOString().slice(0, 10);
