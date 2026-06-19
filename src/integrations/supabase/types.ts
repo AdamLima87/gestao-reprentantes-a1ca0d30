@@ -158,6 +158,57 @@ export type Database = {
           },
         ]
       }
+      configuracoes_empresa: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          nome_socio: string | null
+          numero: string | null
+          razao_social: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome_socio?: string | null
+          numero?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome_socio?: string | null
+          numero?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       metas: {
         Row: {
           ano: number
@@ -332,28 +383,55 @@ export type Database = {
       representantes: {
         Row: {
           ativo: boolean
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
           criado_em: string
+          endereco: string | null
+          estado: string | null
           id: string
           nome: string
+          nome_socio: string | null
+          numero: string | null
           percentual_padrao: number
+          razao_social: string | null
           regiao: string | null
           tipo: Database["public"]["Enums"]["rep_tipo"]
         }
         Insert: {
           ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
           criado_em?: string
+          endereco?: string | null
+          estado?: string | null
           id?: string
           nome: string
+          nome_socio?: string | null
+          numero?: string | null
           percentual_padrao?: number
+          razao_social?: string | null
           regiao?: string | null
           tipo?: Database["public"]["Enums"]["rep_tipo"]
         }
         Update: {
           ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
           criado_em?: string
+          endereco?: string | null
+          estado?: string | null
           id?: string
           nome?: string
+          nome_socio?: string | null
+          numero?: string | null
           percentual_padrao?: number
+          razao_social?: string | null
           regiao?: string | null
           tipo?: Database["public"]["Enums"]["rep_tipo"]
         }
