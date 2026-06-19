@@ -15,6 +15,7 @@ export type EmpresaContrato = {
 export type RepContrato = {
   nome: string;
   regiao?: string | null;
+  tipo_pessoa?: "juridica" | "fisica" | null;
   razao_social?: string | null;
   cnpj?: string | null;
   endereco?: string | null;
@@ -24,6 +25,10 @@ export type RepContrato = {
   estado?: string | null;
   cep?: string | null;
   nome_socio?: string | null;
+  cpf?: string | null;
+  nome_completo?: string | null;
+  rg?: string | null;
+  data_nascimento?: string | null;
   percentual_padrao: number;
 };
 
