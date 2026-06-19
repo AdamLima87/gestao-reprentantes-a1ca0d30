@@ -495,6 +495,17 @@ function EmpresaTab() {
                 <div><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
               </div>
             </div>
+            <div className="border-t pt-4 space-y-2">
+              <Label>Logo da empresa (PNG ou JPG)</Label>
+              <Input type="file" accept="image/png,image/jpeg" onChange={onLogoUpload} />
+              {form.logo_base64 && (
+                <div className="flex items-center gap-3">
+                  <img src={form.logo_base64} alt="Logo" className="h-20 max-w-[200px] object-contain border rounded" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, logo_base64: "" })}>Remover</Button>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Será exibido no topo do contrato em PDF (largura máxima 60mm).</p>
+            </div>
             <Button type="submit" disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Button>
           </form>
         )}
