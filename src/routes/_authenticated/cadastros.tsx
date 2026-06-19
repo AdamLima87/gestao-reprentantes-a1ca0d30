@@ -397,7 +397,7 @@ function EmpresaTab() {
   });
   const [form, setForm] = useState({
     cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
-    nome_socio: "", email: "", telefone: "",
+    nome_socio: "", email: "", telefone: "", logo_base64: "" as string,
   });
   const [loaded, setLoaded] = useState(false);
   const [buscando, setBuscando] = useState(false);
@@ -410,9 +410,20 @@ function EmpresaTab() {
       bairro: empresa.bairro ?? "", cidade: empresa.cidade ?? "",
       estado: empresa.estado ?? "", cep: empresa.cep ?? "",
       nome_socio: empresa.nome_socio ?? "", email: empresa.email ?? "", telefone: empresa.telefone ?? "",
+      logo_base64: (empresa as any).logo_base64 ?? "",
     });
     setLoaded(true);
   }
+
+  const onLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(png|jpe?g)$/i.test(file.type)) return toast.error("Envie um arquivo PNG ou JPG.");
+    if (file.size > 2 * 1024 * 1024) return toast.error("Logo deve ter no máximo 2MB.");
+    const reader = new FileReader();
+    reader.onload = () => setForm((f) => ({ ...f, logo_base64: String(reader.result || "") }));
+    reader.readAsDataURL(file);
+  };
 
   const buscar = async () => {
     if (!form.cnpj.trim()) return toast.error("Informe o CNPJ.");
