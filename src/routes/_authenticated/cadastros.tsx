@@ -15,6 +15,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { createUser } from "@/lib/admin-users.functions";
+import { fetchCnpj } from "@/lib/brasilapi";
+import { gerarContratoPDF } from "@/lib/contrato-pdf";
+import { FileText, Pencil, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
   component: CadastrosPage,
@@ -35,6 +38,7 @@ function CadastrosPage() {
           <TabsTrigger value="cconfig">% por cliente</TabsTrigger>
           <TabsTrigger value="metas">Metas</TabsTrigger>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
+          <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="importar">Importar</TabsTrigger>
         </TabsList>
         <TabsContent value="clientes"><ClientesTab /></TabsContent>
@@ -42,6 +46,7 @@ function CadastrosPage() {
         <TabsContent value="cconfig"><CConfigTab /></TabsContent>
         <TabsContent value="metas"><MetasTab /></TabsContent>
         <TabsContent value="usuarios"><UsuariosTab /></TabsContent>
+        <TabsContent value="empresa"><EmpresaTab /></TabsContent>
         <TabsContent value="importar"><ImportarTab /></TabsContent>
       </Tabs>
     </div>
@@ -120,22 +125,138 @@ function ClientesTab() {
 }
 
 // ============== REPS ==============
+type RepFormState = {
+  nome: string; regiao: string; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
+  cnpj: string; razao_social: string; endereco: string; numero: string; bairro: string; cidade: string; estado: string; cep: string; nome_socio: string;
+};
+const emptyRepForm: RepFormState = {
+  nome: "", regiao: "", tipo: "externo", percentual_padrao: "5.0", ativo: true,
+  cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
+};
+
+function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: RepFormState) => void }) {
+  const [buscando, setBuscando] = useState(false);
+  const buscarCnpj = async () => {
+    if (!form.cnpj.trim()) return toast.error("Informe o CNPJ.");
+    setBuscando(true);
+    try {
+      const d = await fetchCnpj(form.cnpj);
+      setForm({
+        ...form,
+        razao_social: d.razao_social,
+        endereco: d.logradouro,
+        numero: d.numero,
+        bairro: d.bairro,
+        cidade: d.municipio,
+        estado: d.uf,
+        cep: d.cep,
+      });
+      toast.success("Dados preenchidos pela BrasilAPI.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao consultar CNPJ.");
+    } finally {
+      setBuscando(false);
+    }
+  };
+  return (
+    <>
+      <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Região</Label><Input value={form.regiao} onChange={(e) => setForm({ ...form, regiao: e.target.value })} /></div>
+        <div><Label>Tipo</Label>
+          <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as "externo" | "interno" })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="externo">Externo</SelectItem>
+              <SelectItem value="interno">Interno</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="rounded border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3">
+        <Label>% comissão padrão *</Label>
+        <Input type="number" step="0.01" className="text-lg font-semibold" value={form.percentual_padrao} onChange={(e) => setForm({ ...form, percentual_padrao: e.target.value })} required />
+        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">⚠️ Este percentual será utilizado no contrato. Confirme antes de salvar.</p>
+      </div>
+      {form.tipo === "externo" && (
+        <div className="space-y-3 rounded border p-3 bg-muted/30">
+          <div>
+            <Label>CNPJ</Label>
+            <div className="flex gap-2">
+              <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0001-00" />
+              <Button type="button" variant="outline" onClick={buscarCnpj} disabled={buscando}>
+                <Search className="h-4 w-4 mr-1" />{buscando ? "Buscando…" : "Buscar"}
+              </Button>
+            </div>
+          </div>
+          <div><Label>Razão Social</Label><Input value={form.razao_social} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} /></div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} /></div>
+            <div><Label>Número</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} /></div>
+            <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></div>
+            <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} maxLength={2} /></div>
+          </div>
+          <div><Label>Nome do sócio responsável</Label><Input value={form.nome_socio} onChange={(e) => setForm({ ...form, nome_socio: e.target.value })} /></div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function RepsTab() {
   const qc = useQueryClient();
   const { data: reps } = useQuery({ queryKey: ["reps-adm"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
+  const { data: empresa } = useQuery({ queryKey: ["empresa-cfg"], queryFn: async () => (await supabase.from("configuracoes_empresa").select("*").limit(1).maybeSingle()).data });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ nome: "", regiao: "", tipo: "externo" as "externo" | "interno", percentual_padrao: "5.0", ativo: true });
+  const [form, setForm] = useState<RepFormState>(emptyRepForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const payload = (f: RepFormState) => {
+    const isExt = f.tipo === "externo";
+    return {
+      nome: f.nome, regiao: f.regiao || null, tipo: f.tipo,
+      percentual_padrao: Number(f.percentual_padrao), ativo: f.ativo,
+      cnpj: isExt ? (f.cnpj || null) : null,
+      razao_social: isExt ? (f.razao_social || null) : null,
+      endereco: isExt ? (f.endereco || null) : null,
+      numero: isExt ? (f.numero || null) : null,
+      bairro: isExt ? (f.bairro || null) : null,
+      cidade: isExt ? (f.cidade || null) : null,
+      estado: isExt ? (f.estado || null) : null,
+      cep: isExt ? (f.cep || null) : null,
+      nome_socio: isExt ? (f.nome_socio || null) : null,
+    };
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("representantes").insert({
-      nome: form.nome, regiao: form.regiao || null, tipo: form.tipo,
-      percentual_padrao: Number(form.percentual_padrao), ativo: form.ativo,
-    });
+    const data = payload(form);
+    const { error } = editingId
+      ? await supabase.from("representantes").update(data).eq("id", editingId)
+      : await supabase.from("representantes").insert(data);
     if (error) return toast.error(error.message);
-    toast.success("Representante criado!");
-    setOpen(false); setForm({ nome: "", regiao: "", tipo: "externo", percentual_padrao: "5.0", ativo: true });
+    toast.success(editingId ? "Representante atualizado!" : "Representante criado!");
+    setOpen(false); setEditingId(null); setForm(emptyRepForm);
     qc.invalidateQueries({ queryKey: ["reps-adm"] });
+  };
+
+  const openNovo = () => { setEditingId(null); setForm(emptyRepForm); setOpen(true); };
+  const openEdit = (r: any) => {
+    setEditingId(r.id);
+    setForm({
+      nome: r.nome ?? "", regiao: r.regiao ?? "", tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
+      cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
+      endereco: r.endereco ?? "", numero: r.numero ?? "", bairro: r.bairro ?? "",
+      cidade: r.cidade ?? "", estado: r.estado ?? "", cep: r.cep ?? "", nome_socio: r.nome_socio ?? "",
+    });
+    setOpen(true);
   };
 
   const toggleAtivo = async (id: string, v: boolean) => {
@@ -143,29 +264,24 @@ function RepsTab() {
     qc.invalidateQueries({ queryKey: ["reps-adm"] });
   };
 
+  const gerarContrato = (r: any) => {
+    if (!empresa) {
+      toast.error("Configure os dados da empresa primeiro (aba Empresa).");
+      return;
+    }
+    gerarContratoPDF(empresa, { ...r, percentual_padrao: Number(r.percentual_padrao ?? 0) });
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Representantes</CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button>+ Novo</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Novo representante</DialogTitle></DialogHeader>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); setForm(emptyRepForm); } }}>
+          <DialogTrigger asChild><Button onClick={openNovo}>+ Novo</Button></DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>{editingId ? "Editar representante" : "Novo representante"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
-              <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Região</Label><Input value={form.regiao} onChange={(e) => setForm({ ...form, regiao: e.target.value })} /></div>
-                <div><Label>Tipo</Label>
-                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as "externo" | "interno" })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="externo">Externo</SelectItem>
-                      <SelectItem value="interno">Interno</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div><Label>% padrão</Label><Input type="number" step="0.01" value={form.percentual_padrao} onChange={(e) => setForm({ ...form, percentual_padrao: e.target.value })} /></div>
+              <RepFormFields form={form} setForm={setForm} />
               <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
             </form>
           </DialogContent>
@@ -173,7 +289,7 @@ function RepsTab() {
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Região</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Região</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
             {(reps ?? []).map((r) => (
               <TableRow key={r.id}>
@@ -182,10 +298,122 @@ function RepsTab() {
                 <TableCell>{r.tipo}</TableCell>
                 <TableCell>{Number(r.percentual_padrao).toFixed(2)}%</TableCell>
                 <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
+                    {r.tipo === "externo" && (
+                      <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
+                    )}
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============== EMPRESA ==============
+function EmpresaTab() {
+  const qc = useQueryClient();
+  const { data: empresa, isLoading } = useQuery({
+    queryKey: ["empresa-cfg"],
+    queryFn: async () => (await supabase.from("configuracoes_empresa").select("*").limit(1).maybeSingle()).data,
+  });
+  const [form, setForm] = useState({
+    cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "",
+    nome_socio: "", email: "", telefone: "",
+  });
+  const [loaded, setLoaded] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  if (empresa && !loaded) {
+    setForm({
+      cnpj: empresa.cnpj ?? "", razao_social: empresa.razao_social ?? "",
+      endereco: empresa.endereco ?? "", numero: empresa.numero ?? "",
+      bairro: empresa.bairro ?? "", cidade: empresa.cidade ?? "",
+      estado: empresa.estado ?? "", cep: empresa.cep ?? "",
+      nome_socio: empresa.nome_socio ?? "", email: empresa.email ?? "", telefone: empresa.telefone ?? "",
+    });
+    setLoaded(true);
+  }
+
+  const buscar = async () => {
+    if (!form.cnpj.trim()) return toast.error("Informe o CNPJ.");
+    setBuscando(true);
+    try {
+      const d = await fetchCnpj(form.cnpj);
+      setForm({
+        ...form,
+        razao_social: d.razao_social,
+        endereco: d.logradouro,
+        numero: d.numero,
+        bairro: d.bairro,
+        cidade: d.municipio,
+        estado: d.uf,
+        cep: d.cep,
+      });
+      toast.success("Dados preenchidos pela BrasilAPI.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao consultar CNPJ.");
+    } finally { setBuscando(false); }
+  };
+
+  const salvar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSalvando(true);
+    const payload = { ...form };
+    const res = empresa
+      ? await supabase.from("configuracoes_empresa").update(payload).eq("id", empresa.id)
+      : await supabase.from("configuracoes_empresa").insert(payload);
+    setSalvando(false);
+    if (res.error) return toast.error(res.error.message);
+    toast.success("Dados da empresa salvos!");
+    qc.invalidateQueries({ queryKey: ["empresa-cfg"] });
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Dados da empresa (REPRESENTADA)</CardTitle></CardHeader>
+      <CardContent>
+        {isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : (
+          <form onSubmit={salvar} className="space-y-4 max-w-3xl">
+            <div>
+              <Label>CNPJ</Label>
+              <div className="flex gap-2">
+                <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0001-00" />
+                <Button type="button" variant="outline" onClick={buscar} disabled={buscando}>
+                  <Search className="h-4 w-4 mr-1" />{buscando ? "Buscando…" : "Buscar"}
+                </Button>
+              </div>
+            </div>
+            <div><Label>Razão Social</Label><Input value={form.razao_social} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} /></div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} /></div>
+              <div><Label>Número</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} /></div>
+              <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></div>
+              <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} maxLength={2} /></div>
+            </div>
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-sm font-medium">Dados preenchidos manualmente</p>
+              <div><Label>Nome do sócio administrador *</Label><Input value={form.nome_socio} onChange={(e) => setForm({ ...form, nome_socio: e.target.value })} required /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
+              </div>
+            </div>
+            <Button type="submit" disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Button>
+          </form>
+        )}
       </CardContent>
     </Card>
   );
