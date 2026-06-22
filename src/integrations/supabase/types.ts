@@ -101,10 +101,13 @@ export type Database = {
         Row: {
           ano_ref: number
           base_calculo: number
+          comprovante_url: string | null
           criado_em: string
           id: string
           mes_ref: number
           nfe_id: string
+          observacao_pagamento: string | null
+          pago_em: string | null
           pedido_id: string
           percentual_aplicado: number
           representante_id: string | null
@@ -114,10 +117,13 @@ export type Database = {
         Insert: {
           ano_ref: number
           base_calculo: number
+          comprovante_url?: string | null
           criado_em?: string
           id?: string
           mes_ref: number
           nfe_id: string
+          observacao_pagamento?: string | null
+          pago_em?: string | null
           pedido_id: string
           percentual_aplicado: number
           representante_id?: string | null
@@ -127,10 +133,13 @@ export type Database = {
         Update: {
           ano_ref?: number
           base_calculo?: number
+          comprovante_url?: string | null
           criado_em?: string
           id?: string
           mes_ref?: number
           nfe_id?: string
+          observacao_pagamento?: string | null
+          pago_em?: string | null
           pedido_id?: string
           percentual_aplicado?: number
           representante_id?: string | null
