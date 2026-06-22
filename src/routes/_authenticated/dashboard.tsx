@@ -16,8 +16,9 @@ const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function Dashboard() {
-  const { roles } = useAuth();
+  const { roles, representanteId } = useAuth();
   const allowed = roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const isRepOnly = roles.includes("representante") && !allowed;
   const now = new Date();
   const mes = now.getMonth() + 1;
   const ano = now.getFullYear();
