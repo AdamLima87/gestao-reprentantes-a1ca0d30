@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+
 import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrasilMap } from "@/components/BrasilMap";
