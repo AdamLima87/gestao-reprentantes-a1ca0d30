@@ -103,6 +103,9 @@ function Dashboard() {
         </Card>
       </div>
 
+      <ClientesEmRiscoCard representanteId={isRepOnly ? representanteId : null} restringir={isRepOnly} />
+
+
       <Card>
         <CardHeader><CardTitle>Pedidos por status</CardTitle></CardHeader>
         <CardContent>
