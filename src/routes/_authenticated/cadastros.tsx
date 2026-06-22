@@ -899,27 +899,21 @@ function FileDropInput({ onFile, filename }: { onFile: (f: File) => void; filena
 function ImportarTab() {
   return (
     <div className="space-y-4">
-      <InnerTabs defaultValue="imp-cli">
-        <InnerTabsList className="flex-wrap h-auto">
-          <InnerTabsTrigger value="imp-cli">Importar Clientes</InnerTabsTrigger>
-          <InnerTabsTrigger value="imp-ped">Importar Pedidos</InnerTabsTrigger>
-          <InnerTabsTrigger value="edit-cli">Editar Clientes</InnerTabsTrigger>
-          <InnerTabsTrigger value="edit-ped">Editar Pedidos</InnerTabsTrigger>
-        </InnerTabsList>
-        <InnerTabsContent value="imp-cli" className="mt-4"><ImportClientesSection /></InnerTabsContent>
-        <InnerTabsContent value="imp-ped" className="mt-4"><ImportPedidosSection /></InnerTabsContent>
-        <InnerTabsContent value="edit-cli" className="mt-4"><EditClientesSection /></InnerTabsContent>
-        <InnerTabsContent value="edit-ped" className="mt-4"><EditPedidosSection /></InnerTabsContent>
-      </InnerTabs>
+      <Tabs defaultValue="imp-cli">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="imp-cli">Importar Clientes</TabsTrigger>
+          <TabsTrigger value="imp-ped">Importar Pedidos</TabsTrigger>
+          <TabsTrigger value="edit-cli">Editar Clientes</TabsTrigger>
+          <TabsTrigger value="edit-ped">Editar Pedidos</TabsTrigger>
+        </TabsList>
+        <TabsContent value="imp-cli" className="mt-4"><ImportClientesSection /></TabsContent>
+        <TabsContent value="imp-ped" className="mt-4"><ImportPedidosSection /></TabsContent>
+        <TabsContent value="edit-cli" className="mt-4"><EditClientesSection /></TabsContent>
+        <TabsContent value="edit-ped" className="mt-4"><EditPedidosSection /></TabsContent>
+      </Tabs>
     </div>
   );
 }
-
-// Inner tabs alias (same component, kept for readability)
-const InnerTabs = Tabs;
-const InnerTabsList = TabsList;
-const InnerTabsTrigger = TabsTrigger;
-const InnerTabsContent = TabsContent;
 
 // ---------- Importar Clientes ----------
 type ClienteRow = { nome: string; cnpj: string; estado: string; nome_representante: string; ativo: string };
