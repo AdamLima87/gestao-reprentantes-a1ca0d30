@@ -902,8 +902,11 @@ function ImportClientesSection() {
         else warnings.push(`Linha ${line}: representante "${r.nome_representante}" não encontrado — cliente importado sem representante.`);
       }
       const ativo = !["nao", "não", "false", "0", "n"].includes(r.ativo.toLowerCase());
+      const estado = r.estado ? r.estado.toUpperCase() : null;
+      const regiao = regiaoDoEstado(estado);
+      if (estado && !regiao) warnings.push(`Linha ${line}: estado "${r.estado}" não reconhecido — região não preenchida.`);
       const { error } = await supabase.from("clientes").insert({
-        nome: r.nome, cnpj: r.cnpj || null, regiao: r.regiao || null,
+        nome: r.nome, cnpj: r.cnpj || null, estado, regiao,
         representante_id, ativo,
       });
       if (error) { errors.push({ line, reason: error.message }); continue; }
