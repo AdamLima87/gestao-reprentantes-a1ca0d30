@@ -90,7 +90,6 @@ function ClientesTab() {
             <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
-              <div className="grid grid-cols-2 gap-3">
               <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
