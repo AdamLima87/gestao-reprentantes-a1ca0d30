@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { createUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, Tabs as TabsIcon } from "lucide-react";
+import { Tabs as InnerTabs, TabsContent as InnerTabsContent, TabsList as InnerTabsList, TabsTrigger as InnerTabsTrigger } from "@/components/ui/tabs";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
