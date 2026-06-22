@@ -30,7 +30,7 @@ function NfePage() {
   const { data: pedidos } = useQuery({
     queryKey: ["pedidos-disponiveis"],
     enabled: canCreate,
-    queryFn: async () => (await supabase.from("pedidos").select("id, numero_pedido, valor_produtos, clientes(nome)").not("status", "in", "(cancelado)").order("criado_em", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("pedidos").select("id, numero_pedido, valor_produtos, clientes(nome)").in("status", ["pedido", "producao", "faturado"]).order("criado_em", { ascending: false })).data ?? [],
   });
 
   return (
