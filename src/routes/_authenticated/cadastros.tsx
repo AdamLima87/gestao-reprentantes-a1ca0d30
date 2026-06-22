@@ -825,7 +825,11 @@ function UsuariosTab() {
             <form onSubmit={submitNew} className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
               <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
-              <div><Label>Senha provisória *</Label><Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={6} /></div>
+              <div>
+                <Label>Senha provisória *</Label>
+                <Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={10} />
+                <PasswordStrengthMeter value={form.senha} />
+              </div>
               <div><Label>Perfil *</Label>
                 <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as typeof form.role })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
