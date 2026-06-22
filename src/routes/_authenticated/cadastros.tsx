@@ -855,8 +855,8 @@ function ImportarTab() {
 }
 
 // ---------- Importar Clientes ----------
-type ClienteRow = { nome: string; cnpj: string; regiao: string; nome_representante: string; ativo: string };
-const CLIENTE_HEADERS: (keyof ClienteRow)[] = ["nome", "cnpj", "regiao", "nome_representante", "ativo"];
+type ClienteRow = { nome: string; cnpj: string; estado: string; nome_representante: string; ativo: string };
+const CLIENTE_HEADERS: (keyof ClienteRow)[] = ["nome", "cnpj", "estado", "nome_representante", "ativo"];
 
 function ImportClientesSection() {
   const qc = useQueryClient();
