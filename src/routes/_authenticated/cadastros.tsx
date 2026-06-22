@@ -877,7 +877,7 @@ function ImportClientesSection() {
     setRows(parsed.slice(1).map((r) => ({
       nome: (r[idx.nome] ?? "").trim(),
       cnpj: (r[idx.cnpj] ?? "").trim(),
-      regiao: (r[idx.regiao] ?? "").trim(),
+      estado: (r[idx.estado] ?? "").trim().toUpperCase(),
       nome_representante: (r[idx.nome_representante] ?? "").trim(),
       ativo: (r[idx.ativo] ?? "").trim(),
     })));
