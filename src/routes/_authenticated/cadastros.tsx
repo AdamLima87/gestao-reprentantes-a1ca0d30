@@ -18,7 +18,7 @@ import { createUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search } from "lucide-react";
-import { BR_STATES, NOME_TO_UF } from "@/lib/estados-brasil";
+import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
   component: CadastrosPage,
@@ -60,17 +60,18 @@ function ClientesTab() {
   const { data: clientes } = useQuery({ queryKey: ["clientes-adm"], queryFn: async () => (await supabase.from("clientes").select("*, representantes(nome)").order("nome")).data ?? [] });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ nome: "", cnpj: "", regiao: "", representante_id: "", ativo: true });
+  const [form, setForm] = useState({ nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", ativo: true });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase.from("clientes").insert({
-      nome: form.nome, cnpj: form.cnpj || null, regiao: form.regiao || null,
+      nome: form.nome, cnpj: form.cnpj || null,
+      estado: form.estado || null, regiao: form.regiao || null,
       representante_id: form.representante_id || null, ativo: form.ativo,
     });
     if (error) return toast.error(error.message);
     toast.success("Cliente criado!");
-    setOpen(false); setForm({ nome: "", cnpj: "", regiao: "", representante_id: "", ativo: true });
+    setOpen(false); setForm({ nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", ativo: true });
     qc.invalidateQueries({ queryKey: ["clientes-adm"] });
   };
 
@@ -89,9 +90,16 @@ function ClientesTab() {
             <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+              <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
-                <div><Label>Região</Label><Input value={form.regiao} onChange={(e) => setForm({ ...form, regiao: e.target.value })} /></div>
+                <div>
+                  <Label>Estado</Label>
+                  <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v, regiao: regiaoDoEstado(v) ?? "" })}>
+                    <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                    <SelectContent>{BR_STATES.map((s) => <SelectItem key={s.sigla} value={s.sigla}>{s.sigla} — {s.nome}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Região</Label><Input value={form.regiao} readOnly placeholder="—" /></div>
               </div>
               <div><Label>Representante</Label>
                 <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
@@ -847,8 +855,8 @@ function ImportarTab() {
 }
 
 // ---------- Importar Clientes ----------
-type ClienteRow = { nome: string; cnpj: string; regiao: string; nome_representante: string; ativo: string };
-const CLIENTE_HEADERS: (keyof ClienteRow)[] = ["nome", "cnpj", "regiao", "nome_representante", "ativo"];
+type ClienteRow = { nome: string; cnpj: string; estado: string; nome_representante: string; ativo: string };
+const CLIENTE_HEADERS: (keyof ClienteRow)[] = ["nome", "cnpj", "estado", "nome_representante", "ativo"];
 
 function ImportClientesSection() {
   const qc = useQueryClient();
@@ -869,7 +877,7 @@ function ImportClientesSection() {
     setRows(parsed.slice(1).map((r) => ({
       nome: (r[idx.nome] ?? "").trim(),
       cnpj: (r[idx.cnpj] ?? "").trim(),
-      regiao: (r[idx.regiao] ?? "").trim(),
+      estado: (r[idx.estado] ?? "").trim().toUpperCase(),
       nome_representante: (r[idx.nome_representante] ?? "").trim(),
       ativo: (r[idx.ativo] ?? "").trim(),
     })));
@@ -894,8 +902,11 @@ function ImportClientesSection() {
         else warnings.push(`Linha ${line}: representante "${r.nome_representante}" não encontrado — cliente importado sem representante.`);
       }
       const ativo = !["nao", "não", "false", "0", "n"].includes(r.ativo.toLowerCase());
+      const estado = r.estado ? r.estado.toUpperCase() : null;
+      const regiao = regiaoDoEstado(estado);
+      if (estado && !regiao) warnings.push(`Linha ${line}: estado "${r.estado}" não reconhecido — região não preenchida.`);
       const { error } = await supabase.from("clientes").insert({
-        nome: r.nome, cnpj: r.cnpj || null, regiao: r.regiao || null,
+        nome: r.nome, cnpj: r.cnpj || null, estado, regiao,
         representante_id, ativo,
       });
       if (error) { errors.push({ line, reason: error.message }); continue; }
@@ -916,7 +927,7 @@ function ImportClientesSection() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button type="button" variant="outline"
-            onClick={() => downloadCSV("modelo-clientes.csv", CLIENTE_HEADERS as string[], ["ACME LTDA", "00.000.000/0001-00", "Sul", "João Silva", "sim"])}>
+            onClick={() => downloadCSV("modelo-clientes.csv", CLIENTE_HEADERS as string[], ["ACME LTDA", "00.000.000/0001-00", "SP", "João Silva", "sim"])}>
             Baixar modelo CSV
           </Button>
           <Input type="file" accept=".csv,text/csv" className="max-w-sm"

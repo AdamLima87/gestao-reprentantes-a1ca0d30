@@ -19,6 +19,7 @@ export type Database = {
           ativo: boolean
           cnpj: string | null
           criado_em: string
+          estado: string | null
           id: string
           nome: string
           regiao: string | null
@@ -29,6 +30,7 @@ export type Database = {
           ativo?: boolean
           cnpj?: string | null
           criado_em?: string
+          estado?: string | null
           id?: string
           nome: string
           regiao?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           ativo?: boolean
           cnpj?: string | null
           criado_em?: string
+          estado?: string | null
           id?: string
           nome?: string
           regiao?: string | null
