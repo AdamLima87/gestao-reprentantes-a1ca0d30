@@ -88,6 +88,7 @@ function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
+    registrarTentativaLogin({ data: { email, sucesso: !error } }).catch(() => {});
     if (error) {
       registerFailure();
       return toast.error(error.message);
