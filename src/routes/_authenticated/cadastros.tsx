@@ -1363,7 +1363,7 @@ function EditClientesSection() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {BR_STATES.map((s) => <SelectItem key={s.uf} value={s.uf}>{s.uf} — {s.nome}</SelectItem>)}
+                {BR_STATES.map((s) => <SelectItem key={s.sigla} value={s.sigla}>{s.sigla} — {s.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
