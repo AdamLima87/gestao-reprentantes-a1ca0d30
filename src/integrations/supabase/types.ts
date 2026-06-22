@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       clientes: {
         Row: {
+          atendimento_interno: boolean
           ativo: boolean
           cnpj: string | null
           criado_em: string
@@ -27,6 +28,7 @@ export type Database = {
           ultima_compra_at: string | null
         }
         Insert: {
+          atendimento_interno?: boolean
           ativo?: boolean
           cnpj?: string | null
           criado_em?: string
@@ -38,6 +40,7 @@ export type Database = {
           ultima_compra_at?: string | null
         }
         Update: {
+          atendimento_interno?: boolean
           ativo?: boolean
           cnpj?: string | null
           criado_em?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS atendimento_interno boolean NOT NULL DEFAULT false;
