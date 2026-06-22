@@ -60,17 +60,18 @@ function ClientesTab() {
   const { data: clientes } = useQuery({ queryKey: ["clientes-adm"], queryFn: async () => (await supabase.from("clientes").select("*, representantes(nome)").order("nome")).data ?? [] });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ nome: "", cnpj: "", regiao: "", representante_id: "", ativo: true });
+  const [form, setForm] = useState({ nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", ativo: true });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase.from("clientes").insert({
-      nome: form.nome, cnpj: form.cnpj || null, regiao: form.regiao || null,
+      nome: form.nome, cnpj: form.cnpj || null,
+      estado: form.estado || null, regiao: form.regiao || null,
       representante_id: form.representante_id || null, ativo: form.ativo,
     });
     if (error) return toast.error(error.message);
     toast.success("Cliente criado!");
-    setOpen(false); setForm({ nome: "", cnpj: "", regiao: "", representante_id: "", ativo: true });
+    setOpen(false); setForm({ nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", ativo: true });
     qc.invalidateQueries({ queryKey: ["clientes-adm"] });
   };
 
