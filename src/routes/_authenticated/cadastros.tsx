@@ -19,6 +19,7 @@ import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks } from "lucide-react";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
+import { maskCNPJ } from "@/lib/masks";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
   component: CadastrosPage,
@@ -90,7 +91,7 @@ function ClientesTab() {
             <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
-              <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
+              <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: maskCNPJ(e.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={18} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Estado</Label>
@@ -235,7 +236,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           <div>
             <Label>CNPJ</Label>
             <div className="flex gap-2">
-              <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0001-00" />
+              <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: maskCNPJ(e.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={18} />
               <Button type="button" variant="outline" onClick={buscarCnpj} disabled={buscando}>
                 <Search className="h-4 w-4 mr-1" />{buscando ? "Buscando…" : "Buscar"}
               </Button>
@@ -493,7 +494,7 @@ function EmpresaTab() {
             <div>
               <Label>CNPJ</Label>
               <div className="flex gap-2">
-                <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0001-00" />
+                <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: maskCNPJ(e.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={18} />
                 <Button type="button" variant="outline" onClick={buscar} disabled={buscando}>
                   <Search className="h-4 w-4 mr-1" />{buscando ? "Buscando…" : "Buscar"}
                 </Button>
