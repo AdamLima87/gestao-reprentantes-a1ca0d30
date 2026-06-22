@@ -814,7 +814,11 @@ function UsuariosTab() {
     }
   };
 
+  const { roles: currentRoles } = useAuth();
+  const isAdmin = currentRoles.includes("admin");
+
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Usuários do sistema</CardTitle>
