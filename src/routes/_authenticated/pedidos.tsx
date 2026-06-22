@@ -46,6 +46,7 @@ function PedidosPage() {
   const [filterAno, setFilterAno] = useState<string>(String(now.getFullYear()));
 
   const [editing, setEditing] = useState<any | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   const { data: reps } = useQuery({
     queryKey: ["reps"],
