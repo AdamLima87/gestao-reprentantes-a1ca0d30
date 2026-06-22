@@ -227,6 +227,33 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          criado_em: string
+          email: string
+          id: string
+          ip: string | null
+          sucesso: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          criado_em?: string
+          email: string
+          id?: string
+          ip?: string | null
+          sucesso: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          criado_em?: string
+          email?: string
+          id?: string
+          ip?: string | null
+          sucesso?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       metas: {
         Row: {
           ano: number

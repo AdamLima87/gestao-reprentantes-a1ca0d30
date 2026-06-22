@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { registrarTentativaLogin } from "@/lib/login-audit.functions";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar — Gestão de Representantes" }] }),
@@ -87,6 +88,7 @@ function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
+    registrarTentativaLogin({ data: { email, sucesso: !error } }).catch(() => {});
     if (error) {
       registerFailure();
       return toast.error(error.message);

@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { createUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle } from "lucide-react";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
 import { maskCNPJ } from "@/lib/masks";
@@ -814,7 +814,11 @@ function UsuariosTab() {
     }
   };
 
+  const { roles: currentRoles } = useAuth();
+  const isAdmin = currentRoles.includes("admin");
+
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Usuários do sistema</CardTitle>
@@ -887,6 +891,81 @@ function UsuariosTab() {
                 </TableRow>
               );
             })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+    {isAdmin && <AuditoriaAcessos />}
+    </div>
+  );
+}
+
+function AuditoriaAcessos() {
+  const { data: tentativas } = useQuery({
+    queryKey: ["login-attempts"],
+    queryFn: async () => (await supabase
+      .from("login_attempts")
+      .select("id, email, sucesso, criado_em, ip")
+      .order("criado_em", { ascending: false })
+      .limit(50)).data ?? [],
+    refetchInterval: 30000,
+  });
+
+  // Conta falhas consecutivas por email nas últimas 24h (sobre os 50 registros carregados)
+  const limite24h = Date.now() - 24 * 60 * 60 * 1000;
+  const falhasConsecutivas = new Map<string, number>();
+  const ordenadoAsc = [...(tentativas ?? [])].reverse();
+  for (const t of ordenadoAsc) {
+    if (new Date(t.criado_em).getTime() < limite24h) continue;
+    if (t.sucesso) {
+      falhasConsecutivas.set(t.email, 0);
+    } else {
+      falhasConsecutivas.set(t.email, (falhasConsecutivas.get(t.email) ?? 0) + 1);
+    }
+  }
+  const emailsSuspeitos = new Set(
+    Array.from(falhasConsecutivas.entries()).filter(([, n]) => n > 3).map(([e]) => e),
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Auditoria de acessos</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data/Hora</TableHead>
+              <TableHead>E-mail</TableHead>
+              <TableHead>IP</TableHead>
+              <TableHead>Resultado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(tentativas ?? []).map((t) => {
+              const suspeito = !t.sucesso && emailsSuspeitos.has(t.email);
+              return (
+                <TableRow key={t.id} className={suspeito ? "bg-red-50 dark:bg-red-950/30" : ""}>
+                  <TableCell>{new Date(t.criado_em).toLocaleString("pt-BR")}</TableCell>
+                  <TableCell className="flex items-center gap-2">
+                    {suspeito && <AlertTriangle className="h-4 w-4 text-red-600" />}
+                    {t.email}
+                  </TableCell>
+                  <TableCell>{t.ip ?? "—"}</TableCell>
+                  <TableCell>
+                    {t.sucesso ? (
+                      <Badge className="bg-green-600 hover:bg-green-600 text-white">Sucesso</Badge>
+                    ) : (
+                      <Badge variant="destructive">Falha</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {(tentativas ?? []).length === 0 && (
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Nenhuma tentativa registrada.</TableCell></TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
