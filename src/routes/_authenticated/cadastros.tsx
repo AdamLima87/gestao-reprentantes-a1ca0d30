@@ -19,6 +19,7 @@ import { createUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks } from "lucide-react";
+import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
 import { maskCNPJ } from "@/lib/masks";
 
@@ -786,6 +787,10 @@ function UsuariosTab() {
 
   const submitNew = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isPasswordOk(form.senha)) {
+      toast.error("A senha não atende aos requisitos mínimos.");
+      return;
+    }
     setSaving(true);
     try {
       await callCreate({
@@ -820,7 +825,11 @@ function UsuariosTab() {
             <form onSubmit={submitNew} className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
               <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
-              <div><Label>Senha provisória *</Label><Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={6} /></div>
+              <div>
+                <Label>Senha provisória *</Label>
+                <Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={10} />
+                <PasswordStrengthMeter value={form.senha} />
+              </div>
               <div><Label>Perfil *</Label>
                 <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as typeof form.role })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
