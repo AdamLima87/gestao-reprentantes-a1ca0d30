@@ -62,7 +62,8 @@ function ClientesTab() {
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const emptyForm = { nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", ativo: true };
+  const [filtro, setFiltro] = useState<"todos" | "com_rep" | "interno" | "sem_vinculo">("todos");
+  const emptyForm = { nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", atendimento_interno: false, ativo: true };
   const [form, setForm] = useState(emptyForm);
 
   const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
@@ -74,6 +75,7 @@ function ClientesTab() {
       estado: c.estado ?? "",
       regiao: c.regiao ?? (c.estado ? regiaoDoEstado(c.estado) ?? "" : ""),
       representante_id: c.representante_id ?? "",
+      atendimento_interno: !!c.atendimento_interno,
       ativo: !!c.ativo,
     });
     setOpen(true);
@@ -87,6 +89,7 @@ function ClientesTab() {
       estado: form.estado || null,
       regiao: form.regiao || null,
       representante_id: form.representante_id || null,
+      atendimento_interno: form.atendimento_interno,
       ativo: form.ativo,
     };
     const { error } = editing
@@ -103,6 +106,19 @@ function ClientesTab() {
     await supabase.from("clientes").update({ ativo: v }).eq("id", id);
     qc.invalidateQueries({ queryKey: ["clientes-adm"] });
   };
+
+  const abreviar = (nome: string) => {
+    const parts = nome.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0];
+    return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+  };
+
+  const filtrados = (clientes ?? []).filter((c: any) => {
+    if (filtro === "com_rep") return !!c.representante_id;
+    if (filtro === "interno") return !!c.atendimento_interno;
+    if (filtro === "sem_vinculo") return !c.representante_id && !c.atendimento_interno;
+    return true;
+  });
 
   return (
     <Card>
@@ -126,10 +142,21 @@ function ClientesTab() {
                 <div><Label>Região</Label><Input value={form.regiao} readOnly placeholder="—" /></div>
               </div>
               <div><Label>Representante</Label>
-                <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
+                <Select
+                  value={form.representante_id}
+                  onValueChange={(v) => setForm({ ...form, representante_id: v, atendimento_interno: v ? false : form.atendimento_interno })}
+                >
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}</SelectContent>
                 </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={form.atendimento_interno}
+                  disabled={!!form.representante_id}
+                  onCheckedChange={(v) => setForm({ ...form, atendimento_interno: v, representante_id: v ? "" : form.representante_id })}
+                />
+                <Label className="!mt-0">Atendimento interno</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
@@ -141,15 +168,32 @@ function ClientesTab() {
         </Dialog>
       </CardHeader>
       <CardContent>
+        <div className="mb-3 flex flex-wrap gap-2">
+          {([
+            ["todos", "Todos"],
+            ["com_rep", "Com representante"],
+            ["interno", "Atendimento interno"],
+            ["sem_vinculo", "Sem vínculo"],
+          ] as const).map(([k, label]) => (
+            <Button key={k} size="sm" variant={filtro === k ? "default" : "outline"} onClick={() => setFiltro(k)}>{label}</Button>
+          ))}
+        </div>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Região</TableHead><TableHead>Rep</TableHead><TableHead>Última compra</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Região</TableHead><TableHead>Representante</TableHead><TableHead>Atendimento</TableHead><TableHead>Última compra</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(clientes ?? []).map((c) => (
+            {filtrados.map((c: any) => (
               <TableRow key={c.id}>
                 <TableCell>{c.nome}</TableCell>
                 <TableCell>{c.cnpj ? maskCNPJ(c.cnpj) : "—"}</TableCell>
                 <TableCell>{c.regiao ?? "—"}</TableCell>
                 <TableCell>{c.representantes?.nome ?? "—"}</TableCell>
+                <TableCell>
+                  {c.atendimento_interno ? (
+                    <Badge className="bg-blue-600 hover:bg-blue-600 text-white">Interno</Badge>
+                  ) : c.representantes?.nome ? (
+                    <Badge variant="secondary">{abreviar(c.representantes.nome)}</Badge>
+                  ) : "—"}
+                </TableCell>
                 <TableCell>{c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                 <TableCell><Switch checked={c.ativo} onCheckedChange={(v) => toggleAtivo(c.id, v)} /></TableCell>
                 <TableCell><Button size="sm" variant="outline" onClick={() => openEdit(c)}>Editar</Button></TableCell>
