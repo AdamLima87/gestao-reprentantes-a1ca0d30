@@ -351,7 +351,7 @@ function ComissoesPage() {
                 variant="outline"
                 onClick={() => {
                   const repNome = (reps ?? []).find((r) => r.id === repFilter)?.nome ?? "Representante";
-                  gerarExtratoPDF(repNome, mes, ano, filtered, totalVisivel);
+                  gerarExtratoPDF(repNome, mes, ano, filtered, totalPendente, totalPago);
                 }}
                 disabled={filtered.length === 0}
               >
