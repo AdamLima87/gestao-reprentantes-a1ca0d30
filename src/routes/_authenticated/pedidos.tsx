@@ -217,7 +217,7 @@ function PedidosPage() {
                           <Button size="sm" variant="outline" onClick={() => setEditing(p)}>Editar</Button>
                         )}
                         {isAdmin && p.status !== "cancelado" && (
-                          <Button size="sm" variant="destructive" onClick={() => cancel(p.id)}>Cancelar</Button>
+                          <Button size="sm" variant="destructive" onClick={() => setCancelingId(p.id)}>Cancelar</Button>
                         )}
                         {isAdmin && (
                           <Button size="sm" variant="destructive" onClick={() => remove(p.id)}>Excluir</Button>
