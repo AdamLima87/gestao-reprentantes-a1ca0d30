@@ -16,7 +16,10 @@ export const createUser = createServerFn({ method: "POST" })
       if (!input.email || !input.senha || !input.nome || !input.role) {
         throw new Error("Campos obrigatórios faltando.");
       }
-      if (input.senha.length < 6) throw new Error("Senha deve ter ao menos 6 caracteres.");
+      if (input.senha.length < 10) throw new Error("Senha deve ter ao menos 10 caracteres.");
+      if (!/[A-Z]/.test(input.senha)) throw new Error("Senha deve conter ao menos uma letra maiúscula.");
+      if (!/[a-z]/.test(input.senha)) throw new Error("Senha deve conter ao menos uma letra minúscula.");
+      if (!/[0-9]/.test(input.senha)) throw new Error("Senha deve conter ao menos um número.");
       return input;
     },
   )
