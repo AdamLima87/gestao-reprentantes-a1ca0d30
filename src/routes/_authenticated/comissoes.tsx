@@ -34,37 +34,120 @@ const TIPO_LABEL: Record<string, string> = {
   interno_recorrente: "Vend. Interno - Recorrente",
 };
 
-function gerarExtratoPDF(repNome: string, mes: number, ano: number, rows: any[], total: number) {
-  const doc = new jsPDF({ orientation: "landscape" });
-  doc.setFontSize(16);
-  doc.text("Gestão de Representantes", 14, 15);
-  doc.setFontSize(12);
-  doc.text(`Extrato de Comissões — ${repNome}`, 14, 23);
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Período: ${String(mes).padStart(2, "0")}/${ano}`, 14, 30);
-  doc.setTextColor(0);
+async function gerarExtratoPDF(
+  repNome: string,
+  mes: number,
+  ano: number,
+  rows: any[],
+  totalPendente: number,
+  totalPago: number,
+) {
+  const { data: empresa } = await supabase
+    .from("configuracoes_empresa")
+    .select("razao_social, logo_base64")
+    .limit(1)
+    .maybeSingle();
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+
+  // Cabeçalho — logo + nome empresa
+  let cursorY = margin;
+  let textX = margin;
+  if (empresa?.logo_base64) {
+    try {
+      const fmt = empresa.logo_base64.startsWith("data:image/png") ? "PNG" : "JPEG";
+      doc.addImage(empresa.logo_base64, fmt, margin, cursorY, 20, 20);
+      textX = margin + 25;
+    } catch {
+      /* ignora logo inválido */
+    }
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text(empresa?.razao_social ?? "Brazil Amortecedores", textX, cursorY + 7);
+  doc.setFontSize(13);
+  doc.text("EXTRATO DE COMISSÕES", textX, cursorY + 15);
+
+  cursorY += 24;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(`Representante: ${repNome}`, margin, cursorY);
+  const periodo = `Período: ${String(mes).padStart(2, "0")}/${ano}`;
+  doc.text(periodo, pageWidth - margin, cursorY, { align: "right" });
+
+  cursorY += 4;
+  doc.setDrawColor(200);
+  doc.line(margin, cursorY, pageWidth - margin, cursorY);
+
+  // Tabela
+  const totalBase = rows.reduce((s, c: any) => s + Number(c.base_calculo || 0), 0);
+  const totalComissao = rows.reduce((s, c: any) => s + Number(c.valor_comissao || 0), 0);
+
   autoTable(doc, {
-    head: [["Pedido", "Cliente", "NF-e", "Valor Base", "Tipo", "%", "Comissão", "Status"]],
-    body: rows.map((c) => [
+    startY: cursorY + 4,
+    margin: { left: margin, right: margin },
+    head: [["Nº Pedido", "Cliente", "Nº NF-e", "Data NF-e", "Base (R$)", "Tipo", "%", "Comissão (R$)"]],
+    body: rows.map((c: any) => [
       c.pedidos?.numero_pedido ?? "—",
       c.pedidos?.clientes?.nome ?? "—",
       c.nfe?.numero_nfe ?? "—",
+      c.nfe?.data_emissao
+        ? new Date(c.nfe.data_emissao).toLocaleDateString("pt-BR")
+        : c.criado_em
+          ? new Date(c.criado_em).toLocaleDateString("pt-BR")
+          : "—",
       fmtBRLUtil(c.base_calculo),
       TIPO_LABEL[c.tipo] ?? c.tipo,
       `${Number(c.percentual_aplicado).toFixed(2)}%`,
       fmtBRLUtil(c.valor_comissao),
-      c.pago_em ? `Pago ${c.pago_em}` : "Pendente",
     ]),
-    startY: 35,
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [40, 40, 40] },
+    foot: [[
+      { content: `Total de NF-es: ${rows.length}`, colSpan: 4, styles: { halign: "left", fontStyle: "bold" } },
+      { content: fmtBRLUtil(totalBase), styles: { fontStyle: "bold" } },
+      "",
+      "",
+      { content: fmtBRLUtil(totalComissao), styles: { fontStyle: "bold" } },
+    ]],
+    styles: { font: "helvetica", fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+    footStyles: { fillColor: [240, 240, 240], textColor: 20 },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
   });
-  const finalY = (doc as any).lastAutoTable?.finalY ?? 40;
-  doc.setFontSize(13);
+
+  let afterTableY = (doc as any).lastAutoTable?.finalY ?? cursorY + 10;
+  afterTableY += 8;
+
+  // Blocos de totais
+  const blockWidth = (pageWidth - margin * 2 - 6) / 2;
+  doc.setDrawColor(180);
+  doc.setFillColor(255, 247, 230);
+  doc.rect(margin, afterTableY, blockWidth, 14, "FD");
+  doc.setTextColor(180, 90, 0);
   doc.setFont("helvetica", "bold");
-  doc.text(`Total: ${fmtBRLUtil(total)}`, 14, finalY + 12);
-  doc.save(`extrato-${repNome.replace(/\s+/g, "_")}-${String(mes).padStart(2, "0")}-${ano}.pdf`);
+  doc.setFontSize(11);
+  doc.text(`Total pendente: ${fmtBRLUtil(totalPendente)}`, margin + 4, afterTableY + 9);
+
+  doc.setFillColor(232, 245, 233);
+  doc.rect(margin + blockWidth + 6, afterTableY, blockWidth, 14, "FD");
+  doc.setTextColor(30, 110, 50);
+  doc.text(`Total pago: ${fmtBRLUtil(totalPago)}`, margin + blockWidth + 10, afterTableY + 9);
+  doc.setTextColor(0);
+
+  // Rodapé
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  const geradoEm = new Date().toLocaleString("pt-BR");
+  doc.text(`Documento gerado em ${geradoEm}`, margin, pageHeight - margin + 5);
+  doc.text("Brazil Amortecedores — gestao-reprentantes.lovable.app", pageWidth - margin, pageHeight - margin + 5, { align: "right" });
+
+  const slug = repNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_");
+  doc.save(`extrato_${slug}_${String(mes).padStart(2, "0")}_${ano}.pdf`);
 }
 
 function previsaoPagamento(mes: number, ano: number) {
