@@ -91,8 +91,16 @@ function ClientesTab() {
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
-                <div><Label>Região</Label><Input value={form.regiao} onChange={(e) => setForm({ ...form, regiao: e.target.value })} /></div>
+              <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Estado</Label>
+                  <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v, regiao: regiaoDoEstado(v) ?? "" })}>
+                    <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                    <SelectContent>{BR_STATES.map((s) => <SelectItem key={s.sigla} value={s.sigla}>{s.sigla} — {s.nome}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Região</Label><Input value={form.regiao} readOnly placeholder="—" /></div>
               </div>
               <div><Label>Representante</Label>
                 <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
