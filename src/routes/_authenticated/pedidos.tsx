@@ -81,11 +81,15 @@ function PedidosPage() {
     qc.invalidateQueries({ queryKey: ["pedidos"] });
   };
 
-  const cancel = async (id: string) => {
-    if (!confirm("Cancelar este pedido?")) return;
+  const confirmCancel = async () => {
+    if (!cancelingId) return;
+    const id = cancelingId;
+    setCancelingId(null);
     const { error } = await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", id);
     if (error) return toast.error(error.message);
+    toast.success("Pedido cancelado. Comissões vinculadas foram removidas.");
     qc.invalidateQueries({ queryKey: ["pedidos"] });
+    qc.invalidateQueries({ queryKey: ["comissoes"] });
   };
 
   const toggleJeff = async (id: string, v: boolean) => {
