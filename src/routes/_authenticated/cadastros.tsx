@@ -927,7 +927,7 @@ function ImportClientesSection() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button type="button" variant="outline"
-            onClick={() => downloadCSV("modelo-clientes.csv", CLIENTE_HEADERS as string[], ["ACME LTDA", "00.000.000/0001-00", "Sul", "João Silva", "sim"])}>
+            onClick={() => downloadCSV("modelo-clientes.csv", CLIENTE_HEADERS as string[], ["ACME LTDA", "00.000.000/0001-00", "SP", "João Silva", "sim"])}>
             Baixar modelo CSV
           </Button>
           <Input type="file" accept=".csv,text/csv" className="max-w-sm"
