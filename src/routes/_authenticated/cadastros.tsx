@@ -61,19 +61,42 @@ function ClientesTab() {
   const { data: clientes } = useQuery({ queryKey: ["clientes-adm"], queryFn: async () => (await supabase.from("clientes").select("*, representantes(nome)").order("nome")).data ?? [] });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", ativo: true });
+  const [editing, setEditing] = useState<any | null>(null);
+  const emptyForm = { nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", ativo: true };
+  const [form, setForm] = useState(emptyForm);
+
+  const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
+  const openEdit = (c: any) => {
+    setEditing(c);
+    setForm({
+      nome: c.nome ?? "",
+      cnpj: c.cnpj ? maskCNPJ(c.cnpj) : "",
+      estado: c.estado ?? "",
+      regiao: c.regiao ?? (c.estado ? regiaoDoEstado(c.estado) ?? "" : ""),
+      representante_id: c.representante_id ?? "",
+      ativo: !!c.ativo,
+    });
+    setOpen(true);
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("clientes").insert({
-      nome: form.nome, cnpj: form.cnpj || null,
-      estado: form.estado || null, regiao: form.regiao || null,
-      representante_id: form.representante_id || null, ativo: form.ativo,
-    });
+    const payload = {
+      nome: form.nome,
+      cnpj: form.cnpj || null,
+      estado: form.estado || null,
+      regiao: form.regiao || null,
+      representante_id: form.representante_id || null,
+      ativo: form.ativo,
+    };
+    const { error } = editing
+      ? await supabase.from("clientes").update(payload).eq("id", editing.id)
+      : await supabase.from("clientes").insert(payload);
     if (error) return toast.error(error.message);
-    toast.success("Cliente criado!");
-    setOpen(false); setForm({ nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", ativo: true });
+    toast.success(editing ? "Cliente atualizado!" : "Cliente criado!");
+    setOpen(false); setEditing(null); setForm(emptyForm);
     qc.invalidateQueries({ queryKey: ["clientes-adm"] });
+    qc.invalidateQueries({ queryKey: ["clientes"] });
   };
 
   const toggleAtivo = async (id: string, v: boolean) => {
@@ -85,10 +108,10 @@ function ClientesTab() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Clientes</CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button>+ Novo</Button></DialogTrigger>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+          <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
               <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: maskCNPJ(e.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={18} /></div>
@@ -108,14 +131,18 @@ function ClientesTab() {
                   <SelectContent>{(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+              <div className="flex items-center gap-2">
+                <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
+                <Label className="!mt-0">Ativo</Label>
+              </div>
+              <DialogFooter><Button type="submit">{editing ? "Salvar alterações" : "Salvar"}</Button></DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Região</TableHead><TableHead>Rep</TableHead><TableHead>Última compra</TableHead><TableHead>Ativo</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Região</TableHead><TableHead>Rep</TableHead><TableHead>Última compra</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
             {(clientes ?? []).map((c) => (
               <TableRow key={c.id}>
@@ -125,6 +152,7 @@ function ClientesTab() {
                 <TableCell>{c.representantes?.nome ?? "—"}</TableCell>
                 <TableCell>{c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                 <TableCell><Switch checked={c.ativo} onCheckedChange={(v) => toggleAtivo(c.id, v)} /></TableCell>
+                <TableCell><Button size="sm" variant="outline" onClick={() => openEdit(c)}>Editar</Button></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -133,6 +161,7 @@ function ClientesTab() {
     </Card>
   );
 }
+
 
 // ============== REPS ==============
 type RepFormState = {
