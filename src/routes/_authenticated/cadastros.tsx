@@ -787,6 +787,10 @@ function UsuariosTab() {
 
   const submitNew = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isPasswordOk(form.senha)) {
+      toast.error("A senha não atende aos requisitos mínimos.");
+      return;
+    }
     setSaving(true);
     try {
       await callCreate({
