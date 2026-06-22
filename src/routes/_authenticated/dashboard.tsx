@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrasilMap } from "@/components/BrasilMap";
 import { NOME_TO_UF } from "@/lib/estados-brasil";
@@ -14,8 +16,9 @@ const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function Dashboard() {
-  const { roles } = useAuth();
+  const { roles, representanteId } = useAuth();
   const allowed = roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const isRepOnly = roles.includes("representante") && !allowed;
   const now = new Date();
   const mes = now.getMonth() + 1;
   const ano = now.getFullYear();
@@ -100,6 +103,9 @@ function Dashboard() {
         </Card>
       </div>
 
+      <ClientesEmRiscoCard representanteId={isRepOnly ? representanteId : null} restringir={isRepOnly} />
+
+
       <Card>
         <CardHeader><CardTitle>Pedidos por status</CardTitle></CardHeader>
         <CardContent>
@@ -158,5 +164,68 @@ function Dashboard() {
         );
       })()}
     </div>
+  );
+}
+
+function ClientesEmRiscoCard({ representanteId, restringir }: { representanteId: string | null; restringir: boolean }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["clientes-em-risco", restringir ? representanteId : "all"],
+    queryFn: async () => {
+      const limMax = new Date(); limMax.setDate(limMax.getDate() - 90);
+      const limMin = new Date(); limMin.setDate(limMin.getDate() - 120);
+      let q = supabase
+        .from("clientes")
+        .select("id, nome, ultima_compra_at, representante_id, representantes(nome)")
+        .eq("ativo", true)
+        .not("ultima_compra_at", "is", null)
+        .gte("ultima_compra_at", limMin.toISOString())
+        .lte("ultima_compra_at", limMax.toISOString())
+        .order("ultima_compra_at", { ascending: true });
+      if (restringir && representanteId) q = q.eq("representante_id", representanteId);
+      return (await q).data ?? [];
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Clientes em risco de inatividade</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        ) : (data ?? []).length === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-green-700">
+            <CheckCircle2 className="h-5 w-5" />
+            Nenhum cliente em risco de inatividade no momento.
+          </div>
+        ) : (
+          <ul className="divide-y">
+            {(data ?? []).map((c: any) => {
+              const ultima = new Date(c.ultima_compra_at);
+              const dias = Math.floor((Date.now() - ultima.getTime()) / 86400000);
+              const restantes = Math.max(0, 120 - dias);
+              const pct = Math.min(100, (dias / 120) * 100);
+              const cor = dias < 100 ? "bg-green-500" : dias < 110 ? "bg-yellow-500" : "bg-red-500";
+              return (
+                <li key={c.id} className="py-3 flex flex-col gap-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">{c.nome}</span>
+                    <span className="text-muted-foreground">{restantes} {restantes === 1 ? "dia" : "dias"} restantes</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Rep: {c.representantes?.nome ?? "—"}</span>
+                    <span>Última compra: {ultima.toLocaleDateString("pt-BR")}</span>
+                  </div>
+                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                    <div className={`h-full ${cor} transition-all`} style={{ width: `${pct}%` }} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

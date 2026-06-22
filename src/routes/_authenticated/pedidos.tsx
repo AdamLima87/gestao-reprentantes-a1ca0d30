@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ function PedidosPage() {
   const [filterAno, setFilterAno] = useState<string>(String(now.getFullYear()));
 
   const [editing, setEditing] = useState<any | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   const { data: reps } = useQuery({
     queryKey: ["reps"],
@@ -79,11 +81,15 @@ function PedidosPage() {
     qc.invalidateQueries({ queryKey: ["pedidos"] });
   };
 
-  const cancel = async (id: string) => {
-    if (!confirm("Cancelar este pedido?")) return;
+  const confirmCancel = async () => {
+    if (!cancelingId) return;
+    const id = cancelingId;
+    setCancelingId(null);
     const { error } = await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", id);
     if (error) return toast.error(error.message);
+    toast.success("Pedido cancelado. Comissões vinculadas foram removidas.");
     qc.invalidateQueries({ queryKey: ["pedidos"] });
+    qc.invalidateQueries({ queryKey: ["comissoes"] });
   };
 
   const toggleJeff = async (id: string, v: boolean) => {
@@ -211,7 +217,7 @@ function PedidosPage() {
                           <Button size="sm" variant="outline" onClick={() => setEditing(p)}>Editar</Button>
                         )}
                         {isAdmin && p.status !== "cancelado" && (
-                          <Button size="sm" variant="destructive" onClick={() => cancel(p.id)}>Cancelar</Button>
+                          <Button size="sm" variant="destructive" onClick={() => setCancelingId(p.id)}>Cancelar</Button>
                         )}
                         {isAdmin && (
                           <Button size="sm" variant="destructive" onClick={() => remove(p.id)}>Excluir</Button>
@@ -241,6 +247,23 @@ function PedidosPage() {
           }}
         />
       )}
+
+      <AlertDialog open={!!cancelingId} onOpenChange={(o) => { if (!o) setCancelingId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao cancelar este pedido, todas as comissões vinculadas serão removidas automaticamente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
