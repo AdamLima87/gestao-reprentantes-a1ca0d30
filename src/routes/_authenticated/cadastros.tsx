@@ -120,7 +120,7 @@ function ClientesTab() {
             {(clientes ?? []).map((c) => (
               <TableRow key={c.id}>
                 <TableCell>{c.nome}</TableCell>
-                <TableCell>{c.cnpj ?? "—"}</TableCell>
+                <TableCell>{c.cnpj ? maskCNPJ(c.cnpj) : "—"}</TableCell>
                 <TableCell>{c.regiao ?? "—"}</TableCell>
                 <TableCell>{c.representantes?.nome ?? "—"}</TableCell>
                 <TableCell>{c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
