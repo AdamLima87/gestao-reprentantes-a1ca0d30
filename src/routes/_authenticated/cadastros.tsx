@@ -834,8 +834,20 @@ function parseCSV(text: string): string[][] {
   return rows.filter((r) => r.length > 1 || (r[0] && r[0].trim() !== ""));
 }
 
+function csvEscape(v: unknown): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  if (/[;"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
 function downloadCSV(filename: string, headers: string[], sample: string[]) {
-  const csv = `${headers.join(";")}\n${sample.join(";")}\n`;
+  downloadCSVRows(filename, headers, [sample]);
+}
+
+function downloadCSVRows(filename: string, headers: string[], rows: (string | number | null | undefined)[][]) {
+  const lines = [headers.map(csvEscape).join(";")];
+  for (const r of rows) lines.push(r.map(csvEscape).join(";"));
+  const csv = lines.join("\n") + "\n";
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -845,14 +857,69 @@ function downloadCSV(filename: string, headers: string[], sample: string[]) {
   URL.revokeObjectURL(url);
 }
 
-function ImportarTab() {
+// ---------- Step UI helpers ----------
+function StepCard({ n, icon, title, children }: { n: number; icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-6">
-      <ImportClientesSection />
-      <ImportPedidosSection />
+    <Card className="border-l-4 border-l-primary/60">
+      <CardContent className="pt-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+            {n}
+          </div>
+          <div className="flex-1 min-w-0 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-primary">{icon}</span>
+              <h3 className="font-semibold">{title}</h3>
+            </div>
+            <div className="text-sm space-y-3">{children}</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FileDropInput({ onFile, filename }: { onFile: (f: File) => void; filename?: string }) {
+  return (
+    <div className="space-y-2">
+      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-6 cursor-pointer hover:border-primary transition-colors bg-muted/30">
+        <Upload className="h-6 w-6 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">{filename ? `Selecionado: ${filename}` : "Arraste o arquivo aqui ou clique para selecionar"}</span>
+        <span className="text-xs text-muted-foreground">Apenas arquivos .CSV</span>
+        <Input type="file" accept=".csv,text/csv" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+        <Button type="button" variant="default" className="mt-2" asChild>
+          <span>Buscar planilha no meu computador</span>
+        </Button>
+      </label>
     </div>
   );
 }
+
+function ImportarTab() {
+  return (
+    <div className="space-y-4">
+      <InnerTabs defaultValue="imp-cli">
+        <InnerTabsList className="flex-wrap h-auto">
+          <InnerTabsTrigger value="imp-cli">Importar Clientes</InnerTabsTrigger>
+          <InnerTabsTrigger value="imp-ped">Importar Pedidos</InnerTabsTrigger>
+          <InnerTabsTrigger value="edit-cli">Editar Clientes</InnerTabsTrigger>
+          <InnerTabsTrigger value="edit-ped">Editar Pedidos</InnerTabsTrigger>
+        </InnerTabsList>
+        <InnerTabsContent value="imp-cli" className="mt-4"><ImportClientesSection /></InnerTabsContent>
+        <InnerTabsContent value="imp-ped" className="mt-4"><ImportPedidosSection /></InnerTabsContent>
+        <InnerTabsContent value="edit-cli" className="mt-4"><EditClientesSection /></InnerTabsContent>
+        <InnerTabsContent value="edit-ped" className="mt-4"><EditPedidosSection /></InnerTabsContent>
+      </InnerTabs>
+    </div>
+  );
+}
+
+// Inner tabs alias (same component, kept for readability)
+const InnerTabs = Tabs;
+const InnerTabsList = TabsList;
+const InnerTabsTrigger = TabsTrigger;
+const InnerTabsContent = TabsContent;
 
 // ---------- Importar Clientes ----------
 type ClienteRow = { nome: string; cnpj: string; estado: string; nome_representante: string; ativo: string };
@@ -919,26 +986,37 @@ function ImportClientesSection() {
   };
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Importar Clientes</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="text-sm text-muted-foreground space-y-1">
-          <p><strong>Instruções:</strong> baixe o modelo, preencha e faça upload. Separador <code>;</code>. O campo <code>nome_representante</code> deve bater exatamente com um representante cadastrado (caso contrário, o cliente é criado sem representante).</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" variant="outline"
-            onClick={() => downloadCSV("modelo-clientes.csv", CLIENTE_HEADERS as string[], ["ACME LTDA", "00.000.000/0001-00", "SP", "João Silva", "sim"])}>
-            Baixar modelo CSV
-          </Button>
-          <Input type="file" accept=".csv,text/csv" className="max-w-sm"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-        </div>
+    <div className="space-y-4">
+      <StepCard n={1} icon={<Download className="h-5 w-5" />} title="Baixar planilha modelo">
+        <p className="text-muted-foreground">Modelo com o cabeçalho correto e uma linha de exemplo. Separador <code>;</code>.</p>
+        <Button className="bg-primary hover:bg-primary/90"
+          onClick={() => downloadCSV("modelo-clientes.csv", CLIENTE_HEADERS as string[], ["ACME LTDA", "00.000.000/0001-00", "SP", "João Silva", "sim"])}>
+          <Download className="h-4 w-4 mr-2" /> Baixar Planilha Modelo
+        </Button>
+      </StepCard>
 
+      <StepCard n={2} icon={<Save className="h-5 w-5" />} title="Salvar planilha no computador">
+        <p className="text-muted-foreground">Salve a planilha em local de fácil acesso. Ex.: Área de trabalho ou pasta Documentos.</p>
+      </StepCard>
+
+      <StepCard n={3} icon={<Edit3 className="h-5 w-5" />} title="Preencher as informações">
+        <p className="text-muted-foreground">Abra a planilha e insira as informações nas colunas corretas sem modificar o cabeçalho. Não salve em uma nova planilha pois isso pode causar erros na importação.</p>
+        <p className="text-xs text-muted-foreground">O campo <code>nome_representante</code> deve bater exatamente com um representante cadastrado.</p>
+      </StepCard>
+
+      <StepCard n={4} icon={<Upload className="h-5 w-5" />} title="Enviar planilha preenchida">
+        <FileDropInput onFile={handleFile} filename={filename} />
+      </StepCard>
+
+      <StepCard n={5} icon={<ListChecks className="h-5 w-5" />} title="Conferir e confirmar importação">
+        {rows.length === 0 && !result && <p className="text-muted-foreground">Aguardando upload da planilha…</p>}
         {rows.length > 0 && (
           <>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-sm">Prévia: <strong>{rows.length}</strong> linha(s) de <code>{filename}</code></p>
-              <Button onClick={confirmar} disabled={importing}>{importing ? "Importando…" : "Confirmar importação"}</Button>
+              <Button onClick={confirmar} disabled={importing} className="bg-primary hover:bg-primary/90">
+                {importing ? "Importando…" : "Confirmar importação"}
+              </Button>
             </div>
             <div className="max-h-72 overflow-auto border rounded">
               <Table>
@@ -953,9 +1031,8 @@ function ImportClientesSection() {
             </div>
           </>
         )}
-
         {result && (
-          <div className="border rounded p-4 space-y-2">
+          <div className="border rounded p-4 space-y-2 bg-muted/30">
             <p className="text-sm">✅ Importados: <strong>{result.ok}</strong> &nbsp;|&nbsp; ⚠️ Avisos: <strong>{result.warnings.length}</strong> &nbsp;|&nbsp; ❌ Erros: <strong>{result.errors.length}</strong></p>
             {result.warnings.length > 0 && (
               <ul className="text-xs text-amber-600 list-disc pl-5 max-h-40 overflow-auto">
@@ -969,8 +1046,8 @@ function ImportClientesSection() {
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </StepCard>
+    </div>
   );
 }
 
@@ -1085,29 +1162,38 @@ function ImportPedidosSection() {
   };
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Importar Pedidos</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="text-sm text-muted-foreground space-y-1">
-          <p><strong>Instruções:</strong> baixe o modelo, preencha e faça upload. Separador <code>;</code>, datas no formato AAAA-MM-DD.</p>
-          <p>Quando <code>nfe_emitida = sim</code>, o sistema cria também a NF-e vinculada usando <code>numero_nfe</code>, <code>valor_nfe</code>, <code>data_nfe</code> e <code>data_entrega_nfe</code>, e dispara o cálculo de comissões automaticamente.</p>
-          <p>Status válidos: <code>pedido</code>, <code>producao</code>, <code>faturado</code>, <code>entregue</code>, <code>cancelado</code>.</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" variant="outline"
-            onClick={() => downloadCSV("modelo-pedidos.csv", PEDIDO_HEADERS as string[],
-              ["PED-001", "CLI-100", "ACME LTDA", "João Silva", "2026-06-01", "2026-06-15", "1500.00", "6", "2026", "faturado", "nao", "sim", "NFE-123", "1500.00", "2026-06-02", "2026-06-10"])}>
-            Baixar modelo CSV
-          </Button>
-          <Input type="file" accept=".csv,text/csv" className="max-w-sm"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-        </div>
+    <div className="space-y-4">
+      <StepCard n={1} icon={<Download className="h-5 w-5" />} title="Baixar planilha modelo">
+        <p className="text-muted-foreground">Datas no formato AAAA-MM-DD. Quando <code>nfe_emitida = sim</code>, a NF-e é criada junto.</p>
+        <Button className="bg-primary hover:bg-primary/90"
+          onClick={() => downloadCSV("modelo-pedidos.csv", PEDIDO_HEADERS as string[],
+            ["PED-001", "CLI-100", "ACME LTDA", "João Silva", "2026-06-01", "2026-06-15", "1500.00", "6", "2026", "faturado", "nao", "sim", "NFE-123", "1500.00", "2026-06-02", "2026-06-10"])}>
+          <Download className="h-4 w-4 mr-2" /> Baixar Planilha Modelo
+        </Button>
+      </StepCard>
 
+      <StepCard n={2} icon={<Save className="h-5 w-5" />} title="Salvar planilha no computador">
+        <p className="text-muted-foreground">Salve a planilha em local de fácil acesso. Ex.: Área de trabalho ou pasta Documentos.</p>
+      </StepCard>
+
+      <StepCard n={3} icon={<Edit3 className="h-5 w-5" />} title="Preencher as informações">
+        <p className="text-muted-foreground">Abra a planilha e insira as informações nas colunas corretas sem modificar o cabeçalho. Não salve em uma nova planilha pois isso pode causar erros na importação.</p>
+        <p className="text-xs text-muted-foreground">Status válidos: <code>pedido</code>, <code>producao</code>, <code>faturado</code>, <code>entregue</code>, <code>cancelado</code>.</p>
+      </StepCard>
+
+      <StepCard n={4} icon={<Upload className="h-5 w-5" />} title="Enviar planilha preenchida">
+        <FileDropInput onFile={handleFile} filename={filename} />
+      </StepCard>
+
+      <StepCard n={5} icon={<ListChecks className="h-5 w-5" />} title="Conferir e confirmar importação">
+        {rows.length === 0 && !result && <p className="text-muted-foreground">Aguardando upload da planilha…</p>}
         {rows.length > 0 && (
           <>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-sm">Prévia: <strong>{rows.length}</strong> linha(s) de <code>{filename}</code></p>
-              <Button onClick={confirmar} disabled={importing}>{importing ? "Importando…" : "Confirmar importação"}</Button>
+              <Button onClick={confirmar} disabled={importing} className="bg-primary hover:bg-primary/90">
+                {importing ? "Importando…" : "Confirmar importação"}
+              </Button>
             </div>
             <div className="max-h-96 overflow-auto border rounded">
               <Table>
@@ -1134,9 +1220,8 @@ function ImportPedidosSection() {
             </div>
           </>
         )}
-
         {result && (
-          <div className="border rounded p-4 space-y-2">
+          <div className="border rounded p-4 space-y-2 bg-muted/30">
             <p className="text-sm">
               ✅ Pedidos importados: <strong>{result.pedidos}</strong> &nbsp;|&nbsp;
               📄 NF-es geradas: <strong>{result.nfes}</strong> &nbsp;|&nbsp;
@@ -1157,7 +1242,490 @@ function ImportPedidosSection() {
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </StepCard>
+    </div>
+  );
+}
+
+// ---------- Editar Clientes ----------
+const EDIT_CLIENTE_HEADERS = ["id", "nome", "cnpj", "estado", "nome_representante", "ativo"] as const;
+type EditClienteCol = (typeof EDIT_CLIENTE_HEADERS)[number];
+
+function EditClientesSection() {
+  const qc = useQueryClient();
+  const [filtroEstado, setFiltroEstado] = useState<string>("all");
+  const [filtroRep, setFiltroRep] = useState<string>("all");
+  const [filename, setFilename] = useState("");
+  const [current, setCurrent] = useState<Record<string, Record<string, string>>>({});
+  const [newRows, setNewRows] = useState<Record<string, string>[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<{ updated: number; errors: { id: string; reason: string }[] } | null>(null);
+
+  const { data: reps } = useQuery({
+    queryKey: ["reps-edit"],
+    queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [],
+  });
+
+  const baixar = async () => {
+    let q = supabase.from("clientes").select("id, nome, cnpj, estado, ativo, representante_id, representantes(nome)").order("nome");
+    if (filtroEstado !== "all") q = q.eq("estado", filtroEstado);
+    if (filtroRep !== "all") q = q.eq("representante_id", filtroRep);
+    const { data, error } = await q;
+    if (error) { toast.error(error.message); return; }
+    const rows = (data ?? []).map((c: any) => [
+      c.id, c.nome ?? "", c.cnpj ?? "", c.estado ?? "",
+      c.representantes?.nome ?? "", c.ativo ? "sim" : "nao",
+    ]);
+    downloadCSVRows("clientes-atuais.csv", EDIT_CLIENTE_HEADERS as unknown as string[], rows);
+    toast.success(`${rows.length} cliente(s) exportado(s).`);
+  };
+
+  const handleFile = async (file: File) => {
+    setResult(null); setFilename(file.name);
+    const parsed = parseCSV(await file.text());
+    if (parsed.length < 2) { toast.error("CSV vazio."); setNewRows([]); return; }
+    const header = parsed[0].map((h) => h.trim().toLowerCase());
+    const missing = EDIT_CLIENTE_HEADERS.filter((h) => header.indexOf(h) === -1);
+    if (missing.length) { toast.error(`Cabeçalhos ausentes: ${missing.join(", ")}`); setNewRows([]); return; }
+    const idx: Record<string, number> = {};
+    EDIT_CLIENTE_HEADERS.forEach((h) => { idx[h] = header.indexOf(h); });
+    const parsedRows = parsed.slice(1).map((r) => {
+      const o: Record<string, string> = {};
+      EDIT_CLIENTE_HEADERS.forEach((h) => { o[h] = (r[idx[h]] ?? "").trim(); });
+      return o;
+    }).filter((r) => r.id);
+    setNewRows(parsedRows);
+
+    const ids = parsedRows.map((r) => r.id);
+    const { data } = await supabase.from("clientes").select("id, nome, cnpj, estado, ativo, representante_id, representantes(nome)").in("id", ids);
+    const map: Record<string, Record<string, string>> = {};
+    (data ?? []).forEach((c: any) => {
+      map[c.id] = {
+        id: c.id, nome: c.nome ?? "", cnpj: c.cnpj ?? "", estado: c.estado ?? "",
+        nome_representante: c.representantes?.nome ?? "", ativo: c.ativo ? "sim" : "nao",
+      };
+    });
+    setCurrent(map);
+  };
+
+  const confirmar = async () => {
+    if (!newRows.length) return;
+    setImporting(true);
+    const errors: { id: string; reason: string }[] = [];
+    let updated = 0;
+    const { data: repsAll } = await supabase.from("representantes").select("id, nome");
+    const repByName = new Map((repsAll ?? []).map((r) => [r.nome.trim().toLowerCase(), r.id]));
+
+    for (const r of newRows) {
+      const cur = current[r.id];
+      if (!cur) { errors.push({ id: r.id, reason: "registro original não encontrado" }); continue; }
+      const changed = EDIT_CLIENTE_HEADERS.some((h) => h !== "id" && (cur[h] ?? "") !== (r[h] ?? ""));
+      if (!changed) continue;
+      const estado = r.estado ? r.estado.toUpperCase() : null;
+      const regiao = regiaoDoEstado(estado);
+      const ativo = !["nao", "não", "false", "0", "n"].includes((r.ativo ?? "").toLowerCase());
+      let representante_id: string | null = null;
+      if (r.nome_representante) {
+        representante_id = repByName.get(r.nome_representante.toLowerCase()) ?? null;
+        if (!representante_id) { errors.push({ id: r.id, reason: `Representante não encontrado: "${r.nome_representante}"` }); continue; }
+      }
+      const { error } = await supabase.from("clientes").update({
+        nome: r.nome, cnpj: r.cnpj || null, estado, regiao, representante_id, ativo,
+      }).eq("id", r.id);
+      if (error) { errors.push({ id: r.id, reason: error.message }); continue; }
+      updated++;
+    }
+    setResult({ updated, errors });
+    setImporting(false);
+    if (updated > 0) { toast.success(`${updated} cliente(s) atualizado(s).`); qc.invalidateQueries({ queryKey: ["clientes-adm"] }); }
+    if (errors.length) toast.error(`${errors.length} erro(s).`);
+  };
+
+  const diffRows = newRows.map((r) => {
+    const cur = current[r.id];
+    const changes: Record<string, { from: string; to: string }> = {};
+    if (cur) {
+      EDIT_CLIENTE_HEADERS.forEach((h) => {
+        if (h !== "id" && (cur[h] ?? "") !== (r[h] ?? "")) changes[h] = { from: cur[h] ?? "", to: r[h] ?? "" };
+      });
+    }
+    return { id: r.id, row: r, cur, changes };
+  });
+  const changedRows = diffRows.filter((d) => Object.keys(d.changes).length > 0);
+
+  return (
+    <div className="space-y-4">
+      <StepCard n={1} icon={<Download className="h-5 w-5" />} title="Baixar dados atuais">
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">Filtrar por estado</Label>
+            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {BR_STATES.map((s) => <SelectItem key={s.uf} value={s.uf}>{s.uf} — {s.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Filtrar por representante</Label>
+            <Select value={filtroRep} onValueChange={setFiltroRep}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Button onClick={baixar} className="bg-primary hover:bg-primary/90">
+          <Download className="h-4 w-4 mr-2" /> Baixar Planilha com os Dados Atuais
+        </Button>
+      </StepCard>
+
+      <StepCard n={2} icon={<Save className="h-5 w-5" />} title="Salvar planilha no computador">
+        <p className="text-muted-foreground">Salve a planilha em local de fácil acesso.</p>
+      </StepCard>
+
+      <StepCard n={3} icon={<Edit3 className="h-5 w-5" />} title="Editar as informações">
+        <p className="text-muted-foreground">Abra a planilha e edite as informações necessárias sem modificar o cabeçalho e sem alterar a coluna <code>id</code>. Não salve em uma nova planilha.</p>
+      </StepCard>
+
+      <StepCard n={4} icon={<Upload className="h-5 w-5" />} title="Enviar planilha editada">
+        <FileDropInput onFile={handleFile} filename={filename} />
+      </StepCard>
+
+      <StepCard n={5} icon={<ListChecks className="h-5 w-5" />} title="Conferir alterações e confirmar">
+        {newRows.length === 0 && !result && <p className="text-muted-foreground">Aguardando upload da planilha…</p>}
+        {newRows.length > 0 && (
+          <>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-sm">
+                <strong>{changedRows.length}</strong> linha(s) com alterações · <strong>{newRows.length - changedRows.length}</strong> sem mudança
+              </p>
+              <Button onClick={confirmar} disabled={importing || changedRows.length === 0} className="bg-primary hover:bg-primary/90">
+                {importing ? "Atualizando…" : "Confirmar edições"}
+              </Button>
+            </div>
+            <div className="max-h-96 overflow-auto border rounded">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">id</TableHead>
+                    {EDIT_CLIENTE_HEADERS.filter((h) => h !== "id").map((h) => <TableHead key={h} className="text-xs">{h}</TableHead>)}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {changedRows.slice(0, 100).map((d) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="text-xs font-mono">{d.id.slice(0, 8)}…</TableCell>
+                      {EDIT_CLIENTE_HEADERS.filter((h) => h !== "id").map((h) => {
+                        const isDiff = !!d.changes[h];
+                        return (
+                          <TableCell key={h} className={`text-xs ${isDiff ? "bg-yellow-100 dark:bg-yellow-900/40" : ""}`}>
+                            {isDiff ? (
+                              <div className="space-y-0.5">
+                                <div className="text-muted-foreground line-through">{d.changes[h].from || "—"}</div>
+                                <div className="font-medium">{d.changes[h].to || "—"}</div>
+                              </div>
+                            ) : (d.row[h] || "—")}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                  {changedRows.length === 0 && (
+                    <TableRow><TableCell colSpan={EDIT_CLIENTE_HEADERS.length} className="text-center text-muted-foreground text-xs py-4">Nenhuma alteração detectada.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              {changedRows.length > 100 && <p className="text-xs text-muted-foreground p-2">Exibindo primeiras 100 linhas alteradas…</p>}
+            </div>
+          </>
+        )}
+        {result && (
+          <div className="border rounded p-4 space-y-2 bg-muted/30">
+            <p className="text-sm">✅ Atualizados: <strong>{result.updated}</strong> &nbsp;|&nbsp; ❌ Erros: <strong>{result.errors.length}</strong></p>
+            {result.errors.length > 0 && (
+              <ul className="text-xs text-destructive list-disc pl-5 max-h-40 overflow-auto">
+                {result.errors.map((e, i) => <li key={i}>{e.id}: {e.reason}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </StepCard>
+    </div>
+  );
+}
+
+// ---------- Editar Pedidos ----------
+const EDIT_PEDIDO_HEADERS = [
+  "id", "numero_pedido", "numero_pedido_cliente", "nome_cliente", "nome_representante",
+  "data_pedido", "prazo_entrega", "valor_produtos", "mes_ref", "ano_ref",
+  "status", "vendedor_interno_participou",
+] as const;
+
+function EditPedidosSection() {
+  const qc = useQueryClient();
+  const [fMes, setFMes] = useState<string>("all");
+  const [fAno, setFAno] = useState<string>("all");
+  const [fStatus, setFStatus] = useState<string>("all");
+  const [fRep, setFRep] = useState<string>("all");
+  const [filename, setFilename] = useState("");
+  const [current, setCurrent] = useState<Record<string, Record<string, string>>>({});
+  const [newRows, setNewRows] = useState<Record<string, string>[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<{ updated: number; errors: { id: string; reason: string }[] } | null>(null);
+
+  const { data: reps } = useQuery({
+    queryKey: ["reps-edit"],
+    queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [],
+  });
+
+  const baixar = async () => {
+    let q = supabase.from("pedidos").select("id, numero_pedido, numero_pedido_cliente, data_pedido, prazo_entrega, valor_produtos, mes_ref, ano_ref, status, jefferson_participou, cliente_id, representante_id, clientes(nome), representantes(nome)").order("data_pedido", { ascending: false });
+    if (fMes !== "all") q = q.eq("mes_ref", Number(fMes));
+    if (fAno !== "all") q = q.eq("ano_ref", Number(fAno));
+    if (fStatus !== "all") q = q.eq("status", fStatus as any);
+    if (fRep !== "all") q = q.eq("representante_id", fRep);
+    const { data, error } = await q;
+    if (error) { toast.error(error.message); return; }
+    const rows = (data ?? []).map((p: any) => [
+      p.id, p.numero_pedido ?? "", p.numero_pedido_cliente ?? "",
+      p.clientes?.nome ?? "", p.representantes?.nome ?? "",
+      p.data_pedido ?? "", p.prazo_entrega ?? "",
+      p.valor_produtos ?? "", p.mes_ref ?? "", p.ano_ref ?? "",
+      p.status ?? "", p.jefferson_participou ? "sim" : "nao",
+    ]);
+    downloadCSVRows("pedidos-atuais.csv", EDIT_PEDIDO_HEADERS as unknown as string[], rows);
+    toast.success(`${rows.length} pedido(s) exportado(s).`);
+  };
+
+  const handleFile = async (file: File) => {
+    setResult(null); setFilename(file.name);
+    const parsed = parseCSV(await file.text());
+    if (parsed.length < 2) { toast.error("CSV vazio."); setNewRows([]); return; }
+    const header = parsed[0].map((h) => h.trim().toLowerCase());
+    const missing = EDIT_PEDIDO_HEADERS.filter((h) => header.indexOf(h) === -1);
+    if (missing.length) { toast.error(`Cabeçalhos ausentes: ${missing.join(", ")}`); setNewRows([]); return; }
+    const idx: Record<string, number> = {};
+    EDIT_PEDIDO_HEADERS.forEach((h) => { idx[h] = header.indexOf(h); });
+    const parsedRows = parsed.slice(1).map((r) => {
+      const o: Record<string, string> = {};
+      EDIT_PEDIDO_HEADERS.forEach((h) => { o[h] = (r[idx[h]] ?? "").trim(); });
+      return o;
+    }).filter((r) => r.id);
+    setNewRows(parsedRows);
+
+    const ids = parsedRows.map((r) => r.id);
+    const { data } = await supabase.from("pedidos").select("id, numero_pedido, numero_pedido_cliente, data_pedido, prazo_entrega, valor_produtos, mes_ref, ano_ref, status, jefferson_participou, clientes(nome), representantes(nome)").in("id", ids);
+    const map: Record<string, Record<string, string>> = {};
+    (data ?? []).forEach((p: any) => {
+      map[p.id] = {
+        id: p.id,
+        numero_pedido: p.numero_pedido ?? "",
+        numero_pedido_cliente: p.numero_pedido_cliente ?? "",
+        nome_cliente: p.clientes?.nome ?? "",
+        nome_representante: p.representantes?.nome ?? "",
+        data_pedido: p.data_pedido ?? "",
+        prazo_entrega: p.prazo_entrega ?? "",
+        valor_produtos: String(p.valor_produtos ?? ""),
+        mes_ref: String(p.mes_ref ?? ""),
+        ano_ref: String(p.ano_ref ?? ""),
+        status: p.status ?? "",
+        vendedor_interno_participou: p.jefferson_participou ? "sim" : "nao",
+      };
+    });
+    setCurrent(map);
+  };
+
+  const confirmar = async () => {
+    if (!newRows.length) return;
+    setImporting(true);
+    const errors: { id: string; reason: string }[] = [];
+    let updated = 0;
+    const { data: clientesAll } = await supabase.from("clientes").select("id, nome");
+    const { data: repsAll } = await supabase.from("representantes").select("id, nome");
+    const clienteByName = new Map((clientesAll ?? []).map((c) => [c.nome.trim().toLowerCase(), c.id]));
+    const repByName = new Map((repsAll ?? []).map((r) => [r.nome.trim().toLowerCase(), r.id]));
+
+    for (const r of newRows) {
+      const cur = current[r.id];
+      if (!cur) { errors.push({ id: r.id, reason: "registro original não encontrado" }); continue; }
+      const changed = EDIT_PEDIDO_HEADERS.some((h) => h !== "id" && (cur[h] ?? "") !== (r[h] ?? ""));
+      if (!changed) continue;
+
+      const cliente_id = clienteByName.get((r.nome_cliente ?? "").toLowerCase());
+      if (!cliente_id) { errors.push({ id: r.id, reason: `Cliente não encontrado: "${r.nome_cliente}"` }); continue; }
+      let representante_id: string | null = null;
+      if (r.nome_representante) {
+        representante_id = repByName.get(r.nome_representante.toLowerCase()) ?? null;
+        if (!representante_id) { errors.push({ id: r.id, reason: `Representante não encontrado: "${r.nome_representante}"` }); continue; }
+      }
+      const { error } = await supabase.from("pedidos").update({
+        numero_pedido: r.numero_pedido,
+        numero_pedido_cliente: r.numero_pedido_cliente || null,
+        cliente_id, representante_id,
+        data_pedido: r.data_pedido,
+        prazo_entrega: r.prazo_entrega || null,
+        valor_produtos: Number(r.valor_produtos || 0),
+        mes_ref: Number(r.mes_ref),
+        ano_ref: Number(r.ano_ref),
+        status: r.status as any,
+        jefferson_participou: isSim(r.vendedor_interno_participou),
+      }).eq("id", r.id);
+      if (error) { errors.push({ id: r.id, reason: error.message }); continue; }
+      updated++;
+    }
+    setResult({ updated, errors });
+    setImporting(false);
+    if (updated > 0) {
+      toast.success(`${updated} pedido(s) atualizado(s).`);
+      qc.invalidateQueries({ queryKey: ["pedidos"] });
+    }
+    if (errors.length) toast.error(`${errors.length} erro(s).`);
+  };
+
+  const diffRows = newRows.map((r) => {
+    const cur = current[r.id];
+    const changes: Record<string, { from: string; to: string }> = {};
+    if (cur) {
+      EDIT_PEDIDO_HEADERS.forEach((h) => {
+        if (h !== "id" && (cur[h] ?? "") !== (r[h] ?? "")) changes[h] = { from: cur[h] ?? "", to: r[h] ?? "" };
+      });
+    }
+    return { id: r.id, row: r, cur, changes };
+  });
+  const changedRows = diffRows.filter((d) => Object.keys(d.changes).length > 0);
+
+  const anoAtual = new Date().getFullYear();
+  const anos = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
+
+  return (
+    <div className="space-y-4">
+      <StepCard n={1} icon={<Download className="h-5 w-5" />} title="Baixar dados atuais">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <Label className="text-xs">Mês</Label>
+            <Select value={fMes} onValueChange={setFMes}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {Array.from({ length: 12 }).map((_, i) => <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Ano</Label>
+            <Select value={fAno} onValueChange={setFAno}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {anos.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Status</Label>
+            <Select value={fStatus} onValueChange={setFStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="pedido">Pedido</SelectItem>
+                <SelectItem value="producao">Produção</SelectItem>
+                <SelectItem value="faturado">Faturado</SelectItem>
+                <SelectItem value="entregue">Entregue</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Representante</Label>
+            <Select value={fRep} onValueChange={setFRep}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Button onClick={baixar} className="bg-primary hover:bg-primary/90">
+          <Download className="h-4 w-4 mr-2" /> Baixar Planilha com os Dados Atuais
+        </Button>
+      </StepCard>
+
+      <StepCard n={2} icon={<Save className="h-5 w-5" />} title="Salvar planilha no computador">
+        <p className="text-muted-foreground">Salve a planilha em local de fácil acesso.</p>
+      </StepCard>
+
+      <StepCard n={3} icon={<Edit3 className="h-5 w-5" />} title="Editar as informações">
+        <p className="text-muted-foreground">Abra a planilha e edite as informações necessárias sem modificar o cabeçalho e sem alterar a coluna <code>id</code>. Não salve em uma nova planilha.</p>
+      </StepCard>
+
+      <StepCard n={4} icon={<Upload className="h-5 w-5" />} title="Enviar planilha editada">
+        <FileDropInput onFile={handleFile} filename={filename} />
+      </StepCard>
+
+      <StepCard n={5} icon={<ListChecks className="h-5 w-5" />} title="Conferir alterações e confirmar">
+        {newRows.length === 0 && !result && <p className="text-muted-foreground">Aguardando upload da planilha…</p>}
+        {newRows.length > 0 && (
+          <>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-sm">
+                <strong>{changedRows.length}</strong> linha(s) com alterações · <strong>{newRows.length - changedRows.length}</strong> sem mudança
+              </p>
+              <Button onClick={confirmar} disabled={importing || changedRows.length === 0} className="bg-primary hover:bg-primary/90">
+                {importing ? "Atualizando…" : "Confirmar edições"}
+              </Button>
+            </div>
+            <div className="max-h-96 overflow-auto border rounded">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">id</TableHead>
+                    {EDIT_PEDIDO_HEADERS.filter((h) => h !== "id").map((h) => <TableHead key={h} className="text-xs">{h}</TableHead>)}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {changedRows.slice(0, 100).map((d) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="text-xs font-mono">{d.id.slice(0, 8)}…</TableCell>
+                      {EDIT_PEDIDO_HEADERS.filter((h) => h !== "id").map((h) => {
+                        const isDiff = !!d.changes[h];
+                        return (
+                          <TableCell key={h} className={`text-xs ${isDiff ? "bg-yellow-100 dark:bg-yellow-900/40" : ""}`}>
+                            {isDiff ? (
+                              <div className="space-y-0.5">
+                                <div className="text-muted-foreground line-through">{d.changes[h].from || "—"}</div>
+                                <div className="font-medium">{d.changes[h].to || "—"}</div>
+                              </div>
+                            ) : (d.row[h] || "—")}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                  {changedRows.length === 0 && (
+                    <TableRow><TableCell colSpan={EDIT_PEDIDO_HEADERS.length} className="text-center text-muted-foreground text-xs py-4">Nenhuma alteração detectada.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              {changedRows.length > 100 && <p className="text-xs text-muted-foreground p-2">Exibindo primeiras 100 linhas alteradas…</p>}
+            </div>
+          </>
+        )}
+        {result && (
+          <div className="border rounded p-4 space-y-2 bg-muted/30">
+            <p className="text-sm">✅ Atualizados: <strong>{result.updated}</strong> &nbsp;|&nbsp; ❌ Erros: <strong>{result.errors.length}</strong></p>
+            {result.errors.length > 0 && (
+              <ul className="text-xs text-destructive list-disc pl-5 max-h-40 overflow-auto">
+                {result.errors.map((e, i) => <li key={i}>{e.id}: {e.reason}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </StepCard>
+    </div>
   );
 }
