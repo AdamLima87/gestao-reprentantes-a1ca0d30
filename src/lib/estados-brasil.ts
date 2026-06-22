@@ -32,3 +32,15 @@ export const BR_STATES: BRState[] = [
 ];
 export const UF_TO_NOME: Record<string,string> = Object.fromEntries(BR_STATES.map(s=>[s.sigla,s.nome]));
 export const NOME_TO_UF: Record<string,string> = Object.fromEntries(BR_STATES.map(s=>[s.nome.toLowerCase(),s.sigla]));
+
+export const REGIAO_POR_UF: Record<string, string> = {
+  AM: "Norte", RR: "Norte", AP: "Norte", PA: "Norte", TO: "Norte", RO: "Norte", AC: "Norte",
+  MA: "Nordeste", PI: "Nordeste", CE: "Nordeste", RN: "Nordeste", PE: "Nordeste", PB: "Nordeste", SE: "Nordeste", AL: "Nordeste", BA: "Nordeste",
+  MT: "Centro-Oeste", MS: "Centro-Oeste", GO: "Centro-Oeste", DF: "Centro-Oeste",
+  SP: "Sudeste", RJ: "Sudeste", MG: "Sudeste", ES: "Sudeste",
+  PR: "Sul", SC: "Sul", RS: "Sul",
+};
+export function regiaoDoEstado(uf: string | null | undefined): string | null {
+  if (!uf) return null;
+  return REGIAO_POR_UF[uf.trim().toUpperCase()] ?? null;
+}
