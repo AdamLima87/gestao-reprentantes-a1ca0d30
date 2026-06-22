@@ -437,7 +437,7 @@ function RepsTab() {
       .select("*")
       .limit(1)
       .maybeSingle();
-    console.log("[gerarContrato] empresa:", empresaDb, "error:", error);
+    
     if (error || !empresaDb) {
       toast.error("Configure os dados da empresa primeiro (aba Empresa).");
       return;
