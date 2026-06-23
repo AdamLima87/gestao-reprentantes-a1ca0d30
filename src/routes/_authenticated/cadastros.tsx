@@ -865,13 +865,10 @@ function UsuariosTab() {
     queryFn: async () => await callList(),
   });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [] });
+  const callListPerms = useServerFn(listAllPermissions);
   const { data: allUserPerms } = useQuery({
     queryKey: ["user-permissions-all"],
-    queryFn: async () => (
-      await supabase
-        .from("user_permissions" as any)
-        .select("user_id, permissao, concedida")
-    ).data ?? [],
+    queryFn: async () => await callListPerms(),
   });
 
   const callCreate = useServerFn(createUser);
