@@ -797,7 +797,7 @@ function UsuariosTab() {
     nome: string;
     email: string;
     senha: string;
-    role: "admin" | "vendedor_interno" | "representante" | "financeiro";
+    role: "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor";
     representante_id: string;
   }>(null);
   const [savingEdit, setSavingEdit] = useState(false);
