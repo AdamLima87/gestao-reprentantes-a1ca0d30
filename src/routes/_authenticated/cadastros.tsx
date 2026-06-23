@@ -159,11 +159,20 @@ function ClientesTab() {
     return `${parts[0]} ${parts[parts.length - 1][0]}.`;
   };
 
+  const normalize = (s: string) => (s ?? "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const onlyDigits = (s: string) => (s ?? "").toString().replace(/\D/g, "");
+  const buscaNorm = normalize(busca.trim());
+  const buscaDigits = onlyDigits(busca);
+
   const filtrados = (clientes ?? []).filter((c: any) => {
-    if (filtro === "com_rep") return !!c.representante_id;
-    if (filtro === "interno") return !!c.atendimento_interno;
-    if (filtro === "sem_vinculo") return !c.representante_id && !c.atendimento_interno;
-    return true;
+    if (filtro === "com_rep" && !c.representante_id) return false;
+    if (filtro === "interno" && !c.atendimento_interno) return false;
+    if (filtro === "sem_vinculo" && (c.representante_id || c.atendimento_interno)) return false;
+    if (!buscaNorm) return true;
+    const nomeMatch = normalize(c.nome).includes(buscaNorm);
+    const repMatch = normalize(c.representantes?.nome ?? "").includes(buscaNorm);
+    const cnpjMatch = buscaDigits.length > 0 && onlyDigits(c.cnpj ?? "").includes(buscaDigits);
+    return nomeMatch || repMatch || cnpjMatch;
   });
 
   return (
