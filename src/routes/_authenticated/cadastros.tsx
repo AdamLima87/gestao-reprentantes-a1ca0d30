@@ -858,6 +858,7 @@ function UsuariosTab() {
 
   const roleLabel: Record<string, string> = {
     admin: "Admin",
+    gestor: "Gestor",
     vendedor_interno: "Vendedor interno",
     representante: "Representante",
     financeiro: "Financeiro",
