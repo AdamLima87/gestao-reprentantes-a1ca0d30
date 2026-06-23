@@ -964,6 +964,7 @@ function UsuariosTab() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </CardHeader>
       <CardContent>
         <Table>
