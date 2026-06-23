@@ -924,6 +924,7 @@ function UsuariosTab() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Usuários do sistema</CardTitle>
+        {can("criar_usuarios") && (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button>+ Novo usuário</Button></DialogTrigger>
           <DialogContent>
