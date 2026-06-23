@@ -1077,7 +1077,7 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
 
   return (
     <UiTooltipProvider>
-      <div className={`grid grid-cols-1 md:grid-cols-${Math.abs(diferenca) > 0.005 ? 4 : 3} gap-3`}>
+      <div className={`grid grid-cols-1 gap-3 ${Math.abs(diferenca) > 0.005 ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-xs uppercase">Total de NF-es emitidas</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold">{totalCount}</div></CardContent>
