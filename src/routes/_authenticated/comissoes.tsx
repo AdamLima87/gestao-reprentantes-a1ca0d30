@@ -254,6 +254,26 @@ function ComissoesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [recalcOpen, setRecalcOpen] = useState(false);
+  const recalcular = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("recalcular_comissoes_interno" as any);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    onSuccess: (rows) => {
+      if (!rows || rows.length === 0) {
+        toast.success("Todas as comissões já estão corretas.");
+      } else {
+        toast.success(`${rows.length} comissão(ões) recalculada(s) com sucesso.`);
+      }
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
+      qc.invalidateQueries({ queryKey: ["relatorios"] });
+      setRecalcOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
