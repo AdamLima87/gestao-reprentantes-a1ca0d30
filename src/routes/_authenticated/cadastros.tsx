@@ -755,6 +755,7 @@ function MetasTab() {
 // ============== USUÁRIOS ==============
 function UsuariosTab() {
   const qc = useQueryClient();
+  const { can } = usePermissions();
   const callList = useServerFn(listUsers);
   const callUpdate = useServerFn(updateUser);
   const callDelete = useServerFn(deleteUser);
@@ -764,6 +765,14 @@ function UsuariosTab() {
     queryFn: async () => await callList(),
   });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [] });
+  const { data: allUserPerms } = useQuery({
+    queryKey: ["user-permissions-all"],
+    queryFn: async () => (
+      await supabase
+        .from("user_permissions" as any)
+        .select("user_id, permissao, concedida")
+    ).data ?? [],
+  });
 
   const callCreate = useServerFn(createUser);
   const [open, setOpen] = useState(false);
