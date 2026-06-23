@@ -255,6 +255,7 @@ function ExternosTable({
   ano,
   repFiltro,
   repsOptions,
+  logoBase64,
 }: {
   data: ComissaoRow[];
   periodo: string;
@@ -262,6 +263,7 @@ function ExternosTable({
   ano: number;
   repFiltro: string;
   repsOptions: { id: string; nome: string }[];
+  logoBase64: string | null;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
