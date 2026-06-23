@@ -60,7 +60,7 @@ function NfePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nº NF-e</TableHead><TableHead>Data</TableHead><TableHead>Pedido</TableHead>
-                    <TableHead>Cliente</TableHead><TableHead>Rep</TableHead><TableHead>Valor</TableHead><TableHead>Mês/Ano ref</TableHead><TableHead>Obs.</TableHead>
+                    <TableHead>Cliente</TableHead><TableHead>Rep</TableHead><TableHead>Valor</TableHead><TableHead>Mês/Ano ref</TableHead><TableHead>Entrega</TableHead><TableHead>Obs.</TableHead><TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -73,6 +73,7 @@ function NfePage() {
                       <TableCell>{n.pedidos?.representantes?.nome}</TableCell>
                       <TableCell>{fmtBRL(n.valor_nfe)}</TableCell>
                       <TableCell>{String(n.mes_ref).padStart(2, "0")}/{n.ano_ref}</TableCell>
+                      <TableCell>{n.data_entrega ?? "—"}</TableCell>
                       <TableCell>
                         {n.observacao ? (
                           <Tooltip>
@@ -85,9 +86,22 @@ function NfePage() {
                           </Tooltip>
                         ) : null}
                       </TableCell>
+                      <TableCell className="text-right">
+                        {!n.data_entrega && canCreate && (
+                          <RegistrarEntregaDialog
+                            nfeId={n.id}
+                            pedidoId={n.pedido_id}
+                            onDone={() => {
+                              qc.invalidateQueries({ queryKey: ["nfes"] });
+                              qc.invalidateQueries({ queryKey: ["pedidos"] });
+                              qc.invalidateQueries({ queryKey: ["dashboard"] });
+                            }}
+                          />
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
-                  {(nfes ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhuma NF-e ainda.</TableCell></TableRow>}
+                  {(nfes ?? []).length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Nenhuma NF-e ainda.</TableCell></TableRow>}
                 </TableBody>
               </Table>
             )}
