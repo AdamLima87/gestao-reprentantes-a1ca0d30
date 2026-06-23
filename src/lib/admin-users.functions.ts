@@ -142,10 +142,12 @@ export const updateUser = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    const profPatch: { nome?: string; representante_id?: string | null } = {};
+    const profPatch: { nome?: string; representante_id?: string | null; must_change_password?: boolean } = {};
     if (data.nome !== undefined) profPatch.nome = data.nome;
     if (data.representante_id !== undefined)
       profPatch.representante_id = data.representante_id || null;
+    // Senha redefinida por um admin é considerada provisória e exige troca no próximo login.
+    if (data.senha) profPatch.must_change_password = true;
     if (Object.keys(profPatch).length > 0) {
       const { error } = await supabaseAdmin.from("profiles").update(profPatch).eq("id", data.userId);
       if (error) throw new Error(error.message);
