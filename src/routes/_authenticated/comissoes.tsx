@@ -43,6 +43,7 @@ async function gerarExtratoPDF(
   rows: any[],
   totalPendente: number,
   totalPago: number,
+  rep?: any,
 ) {
   const { data: empresa } = await supabase
     .from("configuracoes_empresa")
