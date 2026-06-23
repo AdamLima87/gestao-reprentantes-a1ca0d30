@@ -443,6 +443,7 @@ export type Database = {
           data_nascimento: string | null
           endereco: string | null
           estado: string | null
+          estados: string[]
           id: string
           nome: string
           nome_completo: string | null
@@ -466,6 +467,7 @@ export type Database = {
           data_nascimento?: string | null
           endereco?: string | null
           estado?: string | null
+          estados?: string[]
           id?: string
           nome: string
           nome_completo?: string | null
@@ -489,6 +491,7 @@ export type Database = {
           data_nascimento?: string | null
           endereco?: string | null
           estado?: string | null
+          estados?: string[]
           id?: string
           nome?: string
           nome_completo?: string | null
