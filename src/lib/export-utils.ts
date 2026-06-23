@@ -92,20 +92,21 @@ export async function exportPDF(
   }
 
 
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   if (brand) doc.setTextColor(BRAND.titleColor[0], BRAND.titleColor[1], BRAND.titleColor[2]);
   else doc.setTextColor(0);
 
   if (logo) {
-    doc.text(title, pageWidth / 2, cursorY + 2, { align: "center" });
-    cursorY += 8;
+    doc.text(title, pageWidth / 2, cursorY, { align: "center" });
+    cursorY += 7;
   } else {
     doc.text(title, 14, cursorY + 3);
     cursorY += 8;
   }
   doc.setFont("helvetica", "normal");
   doc.setTextColor(0);
+
 
   if (subtitle) {
     doc.setFontSize(10);
