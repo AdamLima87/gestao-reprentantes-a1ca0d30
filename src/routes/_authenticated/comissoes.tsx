@@ -326,17 +326,6 @@ function ComissoesPage() {
             >
               {recalcular.isPending ? "Recalculando…" : "Recalcular comissões"}
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (confirm("Isso apaga todas as comissões e recalcula a partir das NF-e existentes. Continuar?")) {
-                  reprocessar.mutate();
-                }
-              }}
-              disabled={reprocessar.isPending}
-            >
-              {reprocessar.isPending ? "Reprocessando…" : "Reprocessar comissões"}
-            </Button>
           </div>
         )}
       </div>
