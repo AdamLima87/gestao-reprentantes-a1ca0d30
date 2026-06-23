@@ -296,7 +296,7 @@ function ComissoesPage() {
 
   const { data: reps } = useQuery({
     queryKey: ["reps"],
-    queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [],
+    queryFn: async () => (await supabase.from("representantes").select("id, nome, banco, tipo_conta, agencia, conta_digito, chave_pix, titular_conta, cpf_cnpj_titular").order("nome")).data ?? [],
   });
 
   const { data, isLoading } = useQuery({
