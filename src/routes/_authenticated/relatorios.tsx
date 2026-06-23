@@ -146,12 +146,21 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
       const res = await supabase
         .from("comissoes")
         .select(
-          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(clientes(nome)))",
+          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(numero_pedido_cliente, clientes(nome)))",
         )
         .eq("mes_ref", mes)
         .eq("ano_ref", ano);
       return res.data ?? [];
     },
+  });
+
+  const { data: logoBase64 } = useQuery({
+    queryKey: ["empresa-logo"],
+    queryFn: async () => {
+      const res = await supabase.from("configuracoes_empresa").select("logo_base64").maybeSingle();
+      return res.data?.logo_base64 ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
