@@ -830,7 +830,7 @@ function UsuariosTab() {
 
   const openEdit = (u: any) => {
     const perms = emptyPerms();
-    for (const row of (allUserPerms ?? []) as Array<{ user_id: string; permissao: string; concedida: boolean }>) {
+    for (const row of (allUserPerms ?? []) as unknown as Array<{ user_id: string; permissao: string; concedida: boolean }>) {
       if (row.user_id === u.id && (PERMISSION_KEYS as readonly string[]).includes(row.permissao)) {
         perms[row.permissao as PermissionKey] = row.concedida ? "granted" : "blocked";
       }
