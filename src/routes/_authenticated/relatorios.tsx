@@ -294,6 +294,7 @@ function ExternosTable({
       .filter((c) => c.representante_id === repFiltro)
       .map((c) => ({
         numero: c.nfe?.numero_nfe ?? "—",
+        pedidoCliente: c.nfe?.pedidos?.numero_pedido_cliente ?? "—",
         emissao: c.nfe?.data_nfe ?? "",
         cliente: c.nfe?.pedidos?.clientes?.nome ?? "—",
         valor: Number(c.base_calculo),
