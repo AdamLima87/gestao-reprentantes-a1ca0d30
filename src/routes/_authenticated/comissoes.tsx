@@ -245,27 +245,28 @@ function ComissoesPage() {
   const qc = useQueryClient();
   const callReprocessar = useServerFn(reprocessarComissoes);
 
-  const reprocessar = useMutation({
-    mutationFn: async () => callReprocessar(),
-    onSuccess: (res: any) => {
-      toast.success(`Reprocessado: ${res?.comissoes_geradas ?? 0} comissões geradas.`);
-      qc.invalidateQueries({ queryKey: ["comissoes"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const [recalcOpen, setRecalcOpen] = useState(false);
   const recalcular = useMutation({
     mutationFn: async () => {
+      // 1) Reprocessar: recalcula comissões zeradas ou ausentes a partir das NF-e
+      const reproc: any = await callReprocessar();
+      const geradas = Number(reproc?.comissoes_geradas ?? 0);
+
+      // 2) Recálculo cronológico via RPC
       const { data, error } = await supabase.rpc("recalcular_comissoes_interno" as any);
       if (error) throw error;
-      return (data ?? []) as any[];
+      const recalc = (data ?? []) as any[];
+
+      return { geradas, recalculadas: recalc.length };
     },
-    onSuccess: (rows) => {
-      if (!rows || rows.length === 0) {
+    onSuccess: ({ geradas, recalculadas }) => {
+      const total = geradas + recalculadas;
+      if (total === 0) {
         toast.success("Todas as comissões já estão corretas.");
       } else {
-        toast.success(`${rows.length} comissão(ões) recalculada(s) com sucesso.`);
+        toast.success(
+          `${total} comissão(ões) corrigida(s) com sucesso (${geradas} geradas, ${recalculadas} reclassificadas).`,
+        );
       }
       qc.invalidateQueries({ queryKey: ["comissoes"] });
       qc.invalidateQueries({ queryKey: ["relatorios"] });
@@ -324,17 +325,6 @@ function ComissoesPage() {
               disabled={recalcular.isPending}
             >
               {recalcular.isPending ? "Recalculando…" : "Recalcular comissões"}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (confirm("Isso apaga todas as comissões e recalcula a partir das NF-e existentes. Continuar?")) {
-                  reprocessar.mutate();
-                }
-              }}
-              disabled={reprocessar.isPending}
-            >
-              {reprocessar.isPending ? "Reprocessando…" : "Reprocessar comissões"}
             </Button>
           </div>
         )}
