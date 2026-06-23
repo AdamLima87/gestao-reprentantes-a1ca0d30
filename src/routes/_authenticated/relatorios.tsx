@@ -536,7 +536,7 @@ function InternoTable({
     );
   }, [rows]);
 
-  const headers = ["NF", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%", "TOTAL COMISSÃO"];
+  const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%", "TOTAL COMISSÃO"];
 
   const totalGeral = totals.c15 + totals.c1 + totals.c05;
   const summaryLine = `Total 1,5% (novo/reativação): ${fmtBRL(totals.c15)}  |  Total 1% (recorrente): ${fmtBRL(totals.c1)}  |  Total 0,5% (sobre rep): ${fmtBRL(totals.c05)}  |  Total geral: ${fmtBRL(totalGeral)}`;
@@ -550,6 +550,7 @@ function InternoTable({
           const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
           return [
             r.numero,
+            r.pedidoCliente,
             formatarData(r.emissao),
             r.empresa,
             formatarData(r.entrega),
@@ -562,6 +563,7 @@ function InternoTable({
         }),
         [
           "TOTAL",
+          "",
           "",
           "",
           "",
@@ -584,6 +586,7 @@ function InternoTable({
           const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
           return [
             r.numero,
+            r.pedidoCliente,
             formatarData(r.emissao),
             r.empresa,
             formatarData(r.entrega),
@@ -599,6 +602,7 @@ function InternoTable({
           "",
           "",
           "",
+          "",
           fmtBRL(totals.valor),
           fmtBRL(totals.c15),
           fmtBRL(totals.c1),
@@ -607,6 +611,7 @@ function InternoTable({
         ],
       ],
       `Período: ${periodo}  |  ${summaryLine}`,
+      { brand: true, logoBase64 },
     );
 
   return (
