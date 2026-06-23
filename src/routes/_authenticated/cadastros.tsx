@@ -20,6 +20,7 @@ import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2 } from "lucide-react";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
+import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
 import { maskCNPJ } from "@/lib/masks";
 
