@@ -465,11 +465,13 @@ function InternoTable({
   periodo,
   mes,
   ano,
+  logoBase64,
 }: {
   data: ComissaoRow[];
   periodo: string;
   mes: number;
   ano: number;
+  logoBase64: string | null;
 }) {
   const internas = useMemo(
     () => data.filter((c) => (TIPOS_INTERNO as readonly string[]).includes(c.tipo)),
