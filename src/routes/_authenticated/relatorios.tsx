@@ -332,10 +332,10 @@ function ExternosTable({
     } else {
       exportCSV(
         `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
-        ["NF", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+        ["NF", "Nº Pedido Cliente", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
         [
-          ...detailRows.map((r) => [r.numero, formatarData(r.emissao), r.cliente, r.valor.toFixed(2), r.pct.toFixed(2), r.comissao.toFixed(2)]),
-          ["TOTAL", "", "", detTotalBase.toFixed(2), "", detTotalCom.toFixed(2)],
+          ...detailRows.map((r) => [r.numero, r.pedidoCliente, formatarData(r.emissao), r.cliente, r.valor.toFixed(2), r.pct.toFixed(2), r.comissao.toFixed(2)]),
+          ["TOTAL", "", "", "", detTotalBase.toFixed(2), "", detTotalCom.toFixed(2)],
         ],
       );
     }
@@ -350,16 +350,20 @@ function ExternosTable({
           ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, fmtBRL(r.base), fmtBRL(r.valor)]),
           ["TOTAL", "", totalNfe, fmtBRL(totalBase), fmtBRL(totalVal)],
         ],
+        undefined,
+        { brand: true, logoBase64 },
       );
     } else {
       exportPDF(
         `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
         `Comissões - ${repNome} - ${periodo}`,
-        ["NF", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+        ["NF", "Nº Pedido Cliente", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
         [
-          ...detailRows.map((r) => [r.numero, formatarData(r.emissao), r.cliente, fmtBRL(r.valor), `${r.pct.toFixed(2)}%`, fmtBRL(r.comissao)]),
-          ["TOTAL", "", "", fmtBRL(detTotalBase), "", fmtBRL(detTotalCom)],
+          ...detailRows.map((r) => [r.numero, r.pedidoCliente, formatarData(r.emissao), r.cliente, fmtBRL(r.valor), `${r.pct.toFixed(2)}%`, fmtBRL(r.comissao)]),
+          ["TOTAL", "", "", "", fmtBRL(detTotalBase), "", fmtBRL(detTotalCom)],
         ],
+        undefined,
+        { brand: true, logoBase64 },
       );
     }
   };
