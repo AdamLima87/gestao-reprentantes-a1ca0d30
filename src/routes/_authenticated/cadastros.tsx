@@ -984,9 +984,10 @@ function UsuariosTab() {
           .upsert(toUpsert, { onConflict: "user_id,permissao" });
       }
       qc.invalidateQueries({ queryKey: ["user-permissions-all"] });
+      qc.invalidateQueries({ queryKey: ["user-permissions", editing.userId] });
+      qc.invalidateQueries({ queryKey: ["users-adm"] });
       toast.success("Usuário atualizado!");
       setEditing(null);
-      qc.invalidateQueries({ queryKey: ["users-adm"] });
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao atualizar usuário.");
     } finally {
