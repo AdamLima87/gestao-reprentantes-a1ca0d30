@@ -243,23 +243,19 @@ function ExternosTable({
   periodo,
   mes,
   ano,
+  repFiltro,
+  repsOptions,
 }: {
   data: ComissaoRow[];
   periodo: string;
   mes: number;
   ano: number;
+  repFiltro: string;
+  repsOptions: { id: string; nome: string }[];
 }) {
-  const [repFiltro, setRepFiltro] = useState<string>("todos");
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const externos = useMemo(() => data.filter((c) => c.tipo === "externo"), [data]);
-
-  const repsOptions = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const c of externos) {
-      if (c.representante_id) m.set(c.representante_id, c.representantes?.nome ?? "—");
-    }
-    return [...m.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [externos]);
 
   const rows = useMemo(() => {
     const map = new Map<string, { rep: string; tipo: string; nfes: Set<string>; base: number; valor: number }>();
@@ -302,8 +298,16 @@ function ExternosTable({
   const detTotalCom = detailRows.reduce((s, r) => s + r.comissao, 0);
   const repNome = repsOptions.find((r) => r.id === repFiltro)?.nome ?? "";
 
+  const isDetail = repFiltro !== "todos";
+
+  useEffect(() => {
+    if (isDetail && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [repFiltro, isDetail]);
+
   const handleCSV = () => {
-    if (repFiltro === "todos") {
+    if (!isDetail) {
       exportCSV(
         `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
         ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
@@ -324,7 +328,7 @@ function ExternosTable({
     }
   };
   const handlePDF = () => {
-    if (repFiltro === "todos") {
+    if (!isDetail) {
       exportPDF(
         `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
         `Comissões por Representante - ${periodo}`,
@@ -347,27 +351,20 @@ function ExternosTable({
     }
   };
 
-  const isDetail = repFiltro !== "todos";
+  const modoLabel = isDetail
+    ? `Detalhamento — ${repNome} — ${periodo}`
+    : "Visão geral — agrupado por representante";
 
   return (
-    <Card>
+    <Card ref={cardRef}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Comissões por Representante</CardTitle>
         <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="w-72">
-          <Label className="text-xs">Representante</Label>
-          <Select value={repFiltro} onValueChange={setRepFiltro}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os representantes</SelectItem>
-              {repsOptions.map((r) => (
-                <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <p className="text-sm font-medium text-muted-foreground">{modoLabel}</p>
+
+
 
         {!isDetail && (rows.length === 0 ? (
           <p className="text-muted-foreground">Sem comissões externas no período.</p>
