@@ -293,15 +293,40 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
     <>
       <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Região (UF)</Label>
-          <Select value={form.regiao} onValueChange={(v) => setForm({ ...form, regiao: v })}>
-            <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+        <div>
+          <Label>Estados de cobertura</Label>
+          <Select
+            value=""
+            onValueChange={(v) => {
+              if (!v) return;
+              if (form.estados.includes(v)) return;
+              setForm({ ...form, estados: [...form.estados, v] });
+            }}
+          >
+            <SelectTrigger><SelectValue placeholder="Adicionar estado…" /></SelectTrigger>
             <SelectContent className="max-h-72">
-              {BR_STATES.map((s) => (
+              {BR_STATES.filter((s) => !form.estados.includes(s.sigla)).map((s) => (
                 <SelectItem key={s.sigla} value={s.sigla}>{s.sigla} — {s.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {form.estados.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {form.estados.map((uf) => (
+                <Badge key={uf} variant="secondary" className="gap-1 pr-1">
+                  {uf}
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, estados: form.estados.filter((x) => x !== uf) })}
+                    className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-muted-foreground/20"
+                    aria-label={`Remover ${uf}`}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
         <div><Label>Tipo</Label>
           <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as "externo" | "interno" })}>
@@ -313,6 +338,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           </Select>
         </div>
       </div>
+
       {form.tipo === "externo" && (
         <div>
           <Label>Tipo de pessoa</Label>
