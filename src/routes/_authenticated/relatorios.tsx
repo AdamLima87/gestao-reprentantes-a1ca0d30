@@ -244,7 +244,7 @@ type ComissaoRow = {
     numero_nfe?: string;
     data_nfe?: string;
     data_entrega?: string | null;
-    pedidos?: { clientes?: { nome?: string } | null } | null;
+    pedidos?: { numero_pedido_cliente?: string | null; clientes?: { nome?: string } | null } | null;
   } | null;
 };
 
