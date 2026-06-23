@@ -357,7 +357,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Data pedido</Label><Input type="date" value={form.data_pedido} onChange={(e) => setForm({ ...form, data_pedido: e.target.value })} /></div>
-            <div><Label>Prazo entrega</Label><Input type="date" value={form.prazo_entrega} onChange={(e) => setForm({ ...form, prazo_entrega: e.target.value })} /></div>
+            <div><Label>Prazo entrega <span className="text-xs text-muted-foreground">(15 dias úteis)</span></Label><Input type="date" value={form.prazo_entrega} readOnly className="bg-muted" /></div>
           </div>
           <div><Label>Valor produtos (R$)</Label><Input type="number" step="0.01" value={form.valor_produtos} onChange={(e) => setForm({ ...form, valor_produtos: e.target.value })} /></div>
           <div className="flex items-center gap-2">
