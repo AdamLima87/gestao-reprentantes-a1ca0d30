@@ -150,6 +150,44 @@ async function gerarExtratoPDF(
   doc.text(`Total pago: ${fmtBRLUtil(totalPago)}`, margin + blockWidth + 10, afterTableY + 9);
   doc.setTextColor(0);
 
+  // Dados de pagamento (se informados no cadastro do representante)
+  let pagamentoY = afterTableY + 14 + 8;
+  if (rep) {
+    const linhas: string[] = [];
+    if (rep.chave_pix) {
+      linhas.push(`PIX: ${rep.chave_pix}`);
+      if (rep.titular_conta) linhas.push(`Titular: ${rep.titular_conta}${rep.cpf_cnpj_titular ? ` — CPF/CNPJ: ${rep.cpf_cnpj_titular}` : ""}`);
+    } else if (rep.banco || rep.agencia || rep.conta_digito || rep.titular_conta) {
+      const partes: string[] = [];
+      if (rep.banco) partes.push(`Pagamento via: ${rep.banco}`);
+      if (rep.agencia) partes.push(`Ag: ${rep.agencia}`);
+      if (rep.conta_digito) partes.push(`Conta: ${rep.conta_digito}`);
+      if (rep.titular_conta) partes.push(`Titular: ${rep.titular_conta}`);
+      linhas.push(partes.join(" — "));
+      if (rep.cpf_cnpj_titular) linhas.push(`CPF/CNPJ do titular: ${rep.cpf_cnpj_titular}`);
+      if (rep.tipo_conta) {
+        const tipoLbl = rep.tipo_conta === "corrente" ? "Conta Corrente" : rep.tipo_conta === "poupanca" ? "Conta Poupança" : rep.tipo_conta === "pagamento" ? "Conta de Pagamento" : rep.tipo_conta;
+        linhas.push(`Tipo: ${tipoLbl}`);
+      }
+    }
+    if (linhas.length > 0) {
+      doc.setDrawColor(180);
+      doc.setFillColor(245, 250, 245);
+      const boxH = 8 + linhas.length * 5;
+      doc.rect(margin, pagamentoY, pageWidth - margin * 2, boxH, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(40, 80, 40);
+      doc.text("Dados de pagamento", margin + 4, pagamentoY + 6);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(40);
+      linhas.forEach((l, i) => doc.text(l, margin + 4, pagamentoY + 12 + i * 5));
+      doc.setTextColor(0);
+    }
+  }
+
+
   // Rodapé
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
