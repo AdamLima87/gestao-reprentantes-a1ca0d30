@@ -478,7 +478,7 @@ function RepsTab() {
                 <TableCell>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
-                    {r.tipo === "externo" && (
+                    {r.tipo === "externo" && can("gerar_contrato_pdf") && (
                       <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
                     )}
                   </div>
