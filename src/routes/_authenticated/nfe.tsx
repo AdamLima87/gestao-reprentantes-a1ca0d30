@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/nfe")({
@@ -19,8 +20,9 @@ export const Route = createFileRoute("/_authenticated/nfe")({
 const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function NfePage() {
-  const { roles } = useAuth();
-  const canCreate = roles.includes("admin") || roles.includes("vendedor_interno");
+  useAuth();
+  const { can } = usePermissions();
+  const canCreate = can("registrar_nfe");
   const qc = useQueryClient();
 
   const { data: nfes, isLoading } = useQuery({
