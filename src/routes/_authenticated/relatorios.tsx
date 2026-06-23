@@ -648,6 +648,7 @@ function InternoTable({
               <TableHeader>
                 <TableRow>
                   <TableHead>NF</TableHead>
+                  <TableHead>Nº Pedido Cliente</TableHead>
                   <TableHead>Emissão</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Entrega</TableHead>
@@ -664,6 +665,7 @@ function InternoTable({
                   return (
                     <TableRow key={r.nfeId}>
                       <TableCell className="font-medium">{r.numero}</TableCell>
+                      <TableCell>{r.pedidoCliente}</TableCell>
                       <TableCell>{formatarData(r.emissao)}</TableCell>
                       <TableCell>{r.empresa}</TableCell>
                       <TableCell>{formatarData(r.entrega)}</TableCell>
@@ -676,7 +678,7 @@ function InternoTable({
                   );
                 })}
                 <TableRow className="bg-muted/50 font-bold">
-                  <TableCell colSpan={4}>TOTAL</TableCell>
+                  <TableCell colSpan={5}>TOTAL</TableCell>
                   <TableCell className="text-right">{fmtBRL(totals.valor)}</TableCell>
                   <TableCell className="text-right">{fmtBRL(totals.c15)}</TableCell>
                   <TableCell className="text-right">{fmtBRL(totals.c1)}</TableCell>
