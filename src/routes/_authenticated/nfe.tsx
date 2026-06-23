@@ -26,7 +26,8 @@ export const Route = createFileRoute("/_authenticated/nfe")({
 const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function NfePage() {
-  useAuth();
+  const { roles } = useAuth();
+  const isAdmin = roles.includes("admin");
   const { can } = usePermissions();
   const canCreate = can("registrar_nfe");
   const qc = useQueryClient();
