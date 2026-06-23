@@ -132,11 +132,20 @@ function Dashboard() {
       {(() => {
         const counts: Record<string, number> = {};
         for (const r of data.reps as any[]) {
-          if (r.tipo !== "externo" || !r.ativo || !r.regiao) continue;
-          const raw = String(r.regiao).trim();
-          const uf = raw.length === 2 ? raw.toUpperCase() : (NOME_TO_UF[raw.toLowerCase()] ?? raw.toUpperCase());
-          counts[uf] = (counts[uf] ?? 0) + 1;
+          if (r.tipo !== "externo" || !r.ativo) continue;
+          const lista: string[] = Array.isArray(r.estados) && r.estados.length > 0
+            ? r.estados
+            : (r.regiao ? [String(r.regiao)] : []);
+          const ufs = new Set<string>();
+          for (const item of lista) {
+            const raw = String(item).trim();
+            if (!raw) continue;
+            const uf = raw.length === 2 ? raw.toUpperCase() : (NOME_TO_UF[raw.toLowerCase()] ?? raw.toUpperCase());
+            ufs.add(uf);
+          }
+          for (const uf of ufs) counts[uf] = (counts[uf] ?? 0) + 1;
         }
+
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
