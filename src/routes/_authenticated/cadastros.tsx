@@ -372,6 +372,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
 
 function RepsTab() {
   const qc = useQueryClient();
+  const { can } = usePermissions();
   const { data: reps } = useQuery({ queryKey: ["reps-adm"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const { data: empresa } = useQuery({ queryKey: ["empresa-cfg"], queryFn: async () => (await supabase.from("configuracoes_empresa").select("*").limit(1).maybeSingle()).data });
   const [open, setOpen] = useState(false);
