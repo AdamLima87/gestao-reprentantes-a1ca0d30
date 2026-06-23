@@ -130,7 +130,7 @@ function ClientesTab() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Clientes</CardTitle>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-          <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>
+          {can("cadastrar_clientes") && <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>}
           <DialogContent>
             <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
