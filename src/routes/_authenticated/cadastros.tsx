@@ -88,6 +88,7 @@ function ClientesTab() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [filtro, setFiltro] = useState<"todos" | "com_rep" | "interno" | "sem_vinculo">("todos");
+  const [busca, setBusca] = useState("");
   const emptyForm = { nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", atendimento_interno: false, ativo: true };
   const [form, setForm] = useState(emptyForm);
   const [buscandoCnpj, setBuscandoCnpj] = useState(false);
