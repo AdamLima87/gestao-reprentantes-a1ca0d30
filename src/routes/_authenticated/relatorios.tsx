@@ -423,6 +423,7 @@ function ExternosTable({
             <TableHeader>
               <TableRow>
                 <TableHead>NF</TableHead>
+                <TableHead>Nº Pedido Cliente</TableHead>
                 <TableHead>Data Emissão</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Valor Produto</TableHead>
@@ -434,6 +435,7 @@ function ExternosTable({
               {detailRows.map((r, i) => (
                 <TableRow key={i}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
+                  <TableCell>{r.pedidoCliente}</TableCell>
                   <TableCell>{formatarData(r.emissao)}</TableCell>
                   <TableCell>{r.cliente}</TableCell>
                   <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
@@ -442,7 +444,7 @@ function ExternosTable({
                 </TableRow>
               ))}
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={3}>TOTAL</TableCell>
+                <TableCell colSpan={4}>TOTAL</TableCell>
                 <TableCell className="text-right">{fmtBRL(detTotalBase)}</TableCell>
                 <TableCell></TableCell>
                 <TableCell className="text-right">{fmtBRL(detTotalCom)}</TableCell>
