@@ -156,6 +156,14 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
       observacao: valoresDiferem ? form.observacao.trim() : null,
     });
     if (error) return toast.error(error.message);
+    if (form.data_entrega) {
+      const { error: errPed } = await supabase
+        .from("pedidos")
+        .update({ status: "entregue" })
+        .eq("id", form.pedido_id)
+        .neq("status", "cancelado");
+      if (errPed) toast.error("NF-e salva, mas falha ao marcar pedido como entregue: " + errPed.message);
+    }
     toast.success("NF-e registrada! Comissões calculadas automaticamente.");
     setOpen(false);
     await new Promise((resolve) => setTimeout(resolve, 1000));
