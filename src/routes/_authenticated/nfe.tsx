@@ -17,6 +17,7 @@ import { MessageSquareText } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/nfe")({
   component: NfePage,
@@ -25,7 +26,8 @@ export const Route = createFileRoute("/_authenticated/nfe")({
 const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function NfePage() {
-  useAuth();
+  const { roles } = useAuth();
+  const isAdmin = roles.includes("admin");
   const { can } = usePermissions();
   const canCreate = can("registrar_nfe");
   const qc = useQueryClient();
@@ -88,17 +90,31 @@ function NfePage() {
                         ) : null}
                       </TableCell>
                       <TableCell className="text-right">
-                        {!n.data_entrega && canCreate && (
-                          <RegistrarEntregaDialog
-                            nfeId={n.id}
-                            pedidoId={n.pedido_id}
-                            onDone={() => {
-                              qc.invalidateQueries({ queryKey: ["nfes"] });
-                              qc.invalidateQueries({ queryKey: ["pedidos"] });
-                              qc.invalidateQueries({ queryKey: ["dashboard"] });
-                            }}
-                          />
-                        )}
+                        <div className="flex justify-end gap-2">
+                          {!n.data_entrega && canCreate && (
+                            <RegistrarEntregaDialog
+                              nfeId={n.id}
+                              pedidoId={n.pedido_id}
+                              onDone={() => {
+                                qc.invalidateQueries({ queryKey: ["nfes"] });
+                                qc.invalidateQueries({ queryKey: ["pedidos"] });
+                                qc.invalidateQueries({ queryKey: ["dashboard"] });
+                              }}
+                            />
+                          )}
+                          {isAdmin && (
+                            <ExcluirNfeDialog
+                              nfeId={n.id}
+                              numeroNfe={n.numero_nfe}
+                              onDone={() => {
+                                qc.invalidateQueries({ queryKey: ["nfes"] });
+                                qc.invalidateQueries({ queryKey: ["pedidos"] });
+                                qc.invalidateQueries({ queryKey: ["comissoes"] });
+                                qc.invalidateQueries({ queryKey: ["dashboard"] });
+                              }}
+                            />
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -286,6 +302,43 @@ function RegistrarEntregaDialog({ nfeId, pedidoId, onDone }: { nfeId: string; pe
             <Button type="submit" disabled={saving}>Confirmar entrega</Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ExcluirNfeDialog({ nfeId, numeroNfe, onDone }: { nfeId: string; numeroNfe: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmar = async () => {
+    setDeleting(true);
+    const { error } = await supabase.from("nfe").delete().eq("id", nfeId);
+    setDeleting(false);
+    if (error) return toast.error("Erro ao excluir NF-e: " + error.message);
+    toast.success("NF-e excluída. Pedido disponível para edição novamente.");
+    setOpen(false);
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Excluir NF-e">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Excluir NF-e {numeroNfe}</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Ao excluir esta NF-e, o pedido voltará para o status anterior e as comissões geradas por ela serão removidas automaticamente. Esta ação não pode ser desfeita.
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={deleting}>Cancelar</Button>
+          <Button variant="destructive" onClick={confirmar} disabled={deleting}>
+            {deleting ? "Excluindo…" : "Confirmar exclusão"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
