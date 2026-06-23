@@ -60,7 +60,7 @@ function NfePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nº NF-e</TableHead><TableHead>Data</TableHead><TableHead>Pedido</TableHead>
-                    <TableHead>Cliente</TableHead><TableHead>Rep</TableHead><TableHead>Valor</TableHead><TableHead>Mês/Ano ref</TableHead><TableHead>Obs.</TableHead>
+                    <TableHead>Cliente</TableHead><TableHead>Rep</TableHead><TableHead>Valor</TableHead><TableHead>Mês/Ano ref</TableHead><TableHead>Entrega</TableHead><TableHead>Obs.</TableHead><TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -73,6 +73,7 @@ function NfePage() {
                       <TableCell>{n.pedidos?.representantes?.nome}</TableCell>
                       <TableCell>{fmtBRL(n.valor_nfe)}</TableCell>
                       <TableCell>{String(n.mes_ref).padStart(2, "0")}/{n.ano_ref}</TableCell>
+                      <TableCell>{n.data_entrega ?? "—"}</TableCell>
                       <TableCell>
                         {n.observacao ? (
                           <Tooltip>
@@ -85,9 +86,22 @@ function NfePage() {
                           </Tooltip>
                         ) : null}
                       </TableCell>
+                      <TableCell className="text-right">
+                        {!n.data_entrega && canCreate && (
+                          <RegistrarEntregaDialog
+                            nfeId={n.id}
+                            pedidoId={n.pedido_id}
+                            onDone={() => {
+                              qc.invalidateQueries({ queryKey: ["nfes"] });
+                              qc.invalidateQueries({ queryKey: ["pedidos"] });
+                              qc.invalidateQueries({ queryKey: ["dashboard"] });
+                            }}
+                          />
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
-                  {(nfes ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhuma NF-e ainda.</TableCell></TableRow>}
+                  {(nfes ?? []).length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Nenhuma NF-e ainda.</TableCell></TableRow>}
                 </TableBody>
               </Table>
             )}
@@ -142,6 +156,14 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
       observacao: valoresDiferem ? form.observacao.trim() : null,
     });
     if (error) return toast.error(error.message);
+    if (form.data_entrega) {
+      const { error: errPed } = await supabase
+        .from("pedidos")
+        .update({ status: "entregue" })
+        .eq("id", form.pedido_id)
+        .neq("status", "cancelado");
+      if (errPed) toast.error("NF-e salva, mas falha ao marcar pedido como entregue: " + errPed.message);
+    }
     toast.success("NF-e registrada! Comissões calculadas automaticamente.");
     setOpen(false);
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -211,6 +233,56 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
           <div><Label>Data entrega</Label><Input type="date" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} /></div>
           <DialogFooter>
             <Button type="submit" disabled={valoresDiferem && !form.observacao.trim()}>Salvar e calcular comissões</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RegistrarEntregaDialog({ nfeId, pedidoId, onDone }: { nfeId: string; pedidoId: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data) {
+      toast.error("Informe a data de entrega.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("nfe").update({ data_entrega: data }).eq("id", nfeId);
+    if (error) {
+      setSaving(false);
+      return toast.error(error.message);
+    }
+    const { error: errPed } = await supabase
+      .from("pedidos")
+      .update({ status: "entregue" })
+      .eq("id", pedidoId)
+      .neq("status", "cancelado");
+    setSaving(false);
+    if (errPed) return toast.error("Entrega salva, mas falha ao atualizar pedido: " + errPed.message);
+    toast.success("Entrega registrada!");
+    setOpen(false);
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">Registrar entrega</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Registrar entrega</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <Label>Data de entrega *</Label>
+            <Input type="date" value={data} onChange={(e) => setData(e.target.value)} required />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={saving}>Confirmar entrega</Button>
           </DialogFooter>
         </form>
       </DialogContent>

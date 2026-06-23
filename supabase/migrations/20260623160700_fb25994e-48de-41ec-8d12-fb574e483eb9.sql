@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.marcar_pedido_entregue_on_nfe() FROM PUBLIC, anon, authenticated;
