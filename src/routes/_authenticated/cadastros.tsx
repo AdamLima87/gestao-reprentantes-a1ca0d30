@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { createUser, listUsers, updateUser, deleteUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2 } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
 import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
@@ -90,6 +90,26 @@ function ClientesTab() {
   const [filtro, setFiltro] = useState<"todos" | "com_rep" | "interno" | "sem_vinculo">("todos");
   const emptyForm = { nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", atendimento_interno: false, ativo: true };
   const [form, setForm] = useState(emptyForm);
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false);
+
+  const buscarCnpj = async () => {
+    if (!form.cnpj.trim()) return toast.error("Informe o CNPJ.");
+    setBuscandoCnpj(true);
+    try {
+      const d = await fetchCnpj(form.cnpj);
+      setForm((f) => ({
+        ...f,
+        nome: d.razao_social || f.nome,
+        estado: d.uf || f.estado,
+        regiao: d.uf ? (regiaoDoEstado(d.uf) ?? f.regiao) : f.regiao,
+      }));
+      toast.success("Razão social preenchida pela BrasilAPI.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "CNPJ não encontrado.");
+    } finally {
+      setBuscandoCnpj(false);
+    }
+  };
 
   const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (c: any) => {
@@ -155,7 +175,16 @@ function ClientesTab() {
             <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
-              <div><Label>CNPJ</Label><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: maskCNPJ(e.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={18} /></div>
+              <div>
+                <Label>CNPJ</Label>
+                <div className="flex gap-2">
+                  <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: maskCNPJ(e.target.value) })} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={18} />
+                  <Button type="button" variant="outline" onClick={buscarCnpj} disabled={buscandoCnpj}>
+                    {buscandoCnpj ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Search className="h-4 w-4 mr-1" />}
+                    {buscandoCnpj ? "Buscando…" : "Buscar"}
+                  </Button>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Estado</Label>
