@@ -146,12 +146,21 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
       const res = await supabase
         .from("comissoes")
         .select(
-          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(clientes(nome)))",
+          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(numero_pedido_cliente, clientes(nome)))",
         )
         .eq("mes_ref", mes)
         .eq("ano_ref", ano);
       return res.data ?? [];
     },
+  });
+
+  const { data: logoBase64 } = useQuery({
+    queryKey: ["empresa-logo"],
+    queryFn: async () => {
+      const res = await supabase.from("configuracoes_empresa").select("logo_base64").maybeSingle();
+      return res.data?.logo_base64 ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
@@ -211,10 +220,11 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
               ano={ano}
               repFiltro={repFiltro}
               repsOptions={repsOptions}
+              logoBase64={logoBase64 ?? null}
             />
           )}
           {(visao === "todos" || visao === "interno") && (
-            <InternoTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} />
+            <InternoTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
           )}
         </>
       )}
@@ -234,7 +244,7 @@ type ComissaoRow = {
     numero_nfe?: string;
     data_nfe?: string;
     data_entrega?: string | null;
-    pedidos?: { clientes?: { nome?: string } | null } | null;
+    pedidos?: { numero_pedido_cliente?: string | null; clientes?: { nome?: string } | null } | null;
   } | null;
 };
 
@@ -245,6 +255,7 @@ function ExternosTable({
   ano,
   repFiltro,
   repsOptions,
+  logoBase64,
 }: {
   data: ComissaoRow[];
   periodo: string;
@@ -252,6 +263,7 @@ function ExternosTable({
   ano: number;
   repFiltro: string;
   repsOptions: { id: string; nome: string }[];
+  logoBase64: string | null;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -282,6 +294,7 @@ function ExternosTable({
       .filter((c) => c.representante_id === repFiltro)
       .map((c) => ({
         numero: c.nfe?.numero_nfe ?? "—",
+        pedidoCliente: c.nfe?.pedidos?.numero_pedido_cliente ?? "—",
         emissao: c.nfe?.data_nfe ?? "",
         cliente: c.nfe?.pedidos?.clientes?.nome ?? "—",
         valor: Number(c.base_calculo),
@@ -319,10 +332,10 @@ function ExternosTable({
     } else {
       exportCSV(
         `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
-        ["NF", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+        ["NF", "Nº Pedido Cliente", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
         [
-          ...detailRows.map((r) => [r.numero, formatarData(r.emissao), r.cliente, r.valor.toFixed(2), r.pct.toFixed(2), r.comissao.toFixed(2)]),
-          ["TOTAL", "", "", detTotalBase.toFixed(2), "", detTotalCom.toFixed(2)],
+          ...detailRows.map((r) => [r.numero, r.pedidoCliente, formatarData(r.emissao), r.cliente, r.valor.toFixed(2), r.pct.toFixed(2), r.comissao.toFixed(2)]),
+          ["TOTAL", "", "", "", detTotalBase.toFixed(2), "", detTotalCom.toFixed(2)],
         ],
       );
     }
@@ -337,16 +350,20 @@ function ExternosTable({
           ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, fmtBRL(r.base), fmtBRL(r.valor)]),
           ["TOTAL", "", totalNfe, fmtBRL(totalBase), fmtBRL(totalVal)],
         ],
+        undefined,
+        { brand: true, logoBase64 },
       );
     } else {
       exportPDF(
         `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
         `Comissões - ${repNome} - ${periodo}`,
-        ["NF", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+        ["NF", "Nº Pedido Cliente", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
         [
-          ...detailRows.map((r) => [r.numero, formatarData(r.emissao), r.cliente, fmtBRL(r.valor), `${r.pct.toFixed(2)}%`, fmtBRL(r.comissao)]),
-          ["TOTAL", "", "", fmtBRL(detTotalBase), "", fmtBRL(detTotalCom)],
+          ...detailRows.map((r) => [r.numero, r.pedidoCliente, formatarData(r.emissao), r.cliente, fmtBRL(r.valor), `${r.pct.toFixed(2)}%`, fmtBRL(r.comissao)]),
+          ["TOTAL", "", "", "", fmtBRL(detTotalBase), "", fmtBRL(detTotalCom)],
         ],
+        undefined,
+        { brand: true, logoBase64 },
       );
     }
   };
@@ -406,6 +423,7 @@ function ExternosTable({
             <TableHeader>
               <TableRow>
                 <TableHead>NF</TableHead>
+                <TableHead>Nº Pedido Cliente</TableHead>
                 <TableHead>Data Emissão</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Valor Produto</TableHead>
@@ -417,6 +435,7 @@ function ExternosTable({
               {detailRows.map((r, i) => (
                 <TableRow key={i}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
+                  <TableCell>{r.pedidoCliente}</TableCell>
                   <TableCell>{formatarData(r.emissao)}</TableCell>
                   <TableCell>{r.cliente}</TableCell>
                   <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
@@ -425,7 +444,7 @@ function ExternosTable({
                 </TableRow>
               ))}
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={3}>TOTAL</TableCell>
+                <TableCell colSpan={4}>TOTAL</TableCell>
                 <TableCell className="text-right">{fmtBRL(detTotalBase)}</TableCell>
                 <TableCell></TableCell>
                 <TableCell className="text-right">{fmtBRL(detTotalCom)}</TableCell>
@@ -446,11 +465,13 @@ function InternoTable({
   periodo,
   mes,
   ano,
+  logoBase64,
 }: {
   data: ComissaoRow[];
   periodo: string;
   mes: number;
   ano: number;
+  logoBase64: string | null;
 }) {
   const internas = useMemo(
     () => data.filter((c) => (TIPOS_INTERNO as readonly string[]).includes(c.tipo)),
@@ -467,6 +488,7 @@ function InternoTable({
     type R = {
       nfeId: string;
       numero: string;
+      pedidoCliente: string;
       emissao: string;
       empresa: string;
       entrega: string;
@@ -480,6 +502,7 @@ function InternoTable({
       const r = map.get(c.nfe_id) ?? {
         nfeId: c.nfe_id,
         numero: c.nfe?.numero_nfe ?? "—",
+        pedidoCliente: c.nfe?.pedidos?.numero_pedido_cliente ?? "—",
         emissao: c.nfe?.data_nfe ?? "",
         empresa: c.nfe?.pedidos?.clientes?.nome ?? "—",
         entrega: c.nfe?.data_entrega ?? "",
@@ -513,7 +536,7 @@ function InternoTable({
     );
   }, [rows]);
 
-  const headers = ["NF", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%", "TOTAL COMISSÃO"];
+  const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%", "TOTAL COMISSÃO"];
 
   const totalGeral = totals.c15 + totals.c1 + totals.c05;
   const summaryLine = `Total 1,5% (novo/reativação): ${fmtBRL(totals.c15)}  |  Total 1% (recorrente): ${fmtBRL(totals.c1)}  |  Total 0,5% (sobre rep): ${fmtBRL(totals.c05)}  |  Total geral: ${fmtBRL(totalGeral)}`;
@@ -527,6 +550,7 @@ function InternoTable({
           const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
           return [
             r.numero,
+            r.pedidoCliente,
             formatarData(r.emissao),
             r.empresa,
             formatarData(r.entrega),
@@ -539,6 +563,7 @@ function InternoTable({
         }),
         [
           "TOTAL",
+          "",
           "",
           "",
           "",
@@ -561,6 +586,7 @@ function InternoTable({
           const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
           return [
             r.numero,
+            r.pedidoCliente,
             formatarData(r.emissao),
             r.empresa,
             formatarData(r.entrega),
@@ -576,6 +602,7 @@ function InternoTable({
           "",
           "",
           "",
+          "",
           fmtBRL(totals.valor),
           fmtBRL(totals.c15),
           fmtBRL(totals.c1),
@@ -584,6 +611,7 @@ function InternoTable({
         ],
       ],
       `Período: ${periodo}  |  ${summaryLine}`,
+      { brand: true, logoBase64 },
     );
 
   return (
@@ -620,6 +648,7 @@ function InternoTable({
               <TableHeader>
                 <TableRow>
                   <TableHead>NF</TableHead>
+                  <TableHead>Nº Pedido Cliente</TableHead>
                   <TableHead>Emissão</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Entrega</TableHead>
@@ -636,6 +665,7 @@ function InternoTable({
                   return (
                     <TableRow key={r.nfeId}>
                       <TableCell className="font-medium">{r.numero}</TableCell>
+                      <TableCell>{r.pedidoCliente}</TableCell>
                       <TableCell>{formatarData(r.emissao)}</TableCell>
                       <TableCell>{r.empresa}</TableCell>
                       <TableCell>{formatarData(r.entrega)}</TableCell>
@@ -648,7 +678,7 @@ function InternoTable({
                   );
                 })}
                 <TableRow className="bg-muted/50 font-bold">
-                  <TableCell colSpan={4}>TOTAL</TableCell>
+                  <TableCell colSpan={5}>TOTAL</TableCell>
                   <TableCell className="text-right">{fmtBRL(totals.valor)}</TableCell>
                   <TableCell className="text-right">{fmtBRL(totals.c15)}</TableCell>
                   <TableCell className="text-right">{fmtBRL(totals.c1)}</TableCell>

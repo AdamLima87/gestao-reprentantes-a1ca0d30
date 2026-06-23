@@ -19,28 +19,127 @@ export function exportCSV(filename: string, headers: string[], rows: (string | n
   URL.revokeObjectURL(url);
 }
 
+export type PdfBrandOptions = {
+  brand?: boolean;
+  logoBase64?: string | null;
+};
+
+// Brazil Amortecedores brand palette
+const BRAND = {
+  headerFill: [26, 107, 58] as [number, number, number], // #1a6b3a
+  totalFill: [15, 61, 32] as [number, number, number], // #0f3d20
+  altRowFill: [240, 247, 243] as [number, number, number], // #f0f7f3
+  borderColor: [52, 168, 90] as [number, number, number], // #34a85a
+  titleColor: [26, 107, 58] as [number, number, number], // #1a6b3a
+  footerColor: [110, 110, 110] as [number, number, number], // #6e6e6e
+};
+
+function detectImageFormat(b64: string): "PNG" | "JPEG" {
+  if (b64.startsWith("data:image/jpeg") || b64.startsWith("data:image/jpg")) return "JPEG";
+  return "PNG";
+}
+
 export function exportPDF(
   filename: string,
   title: string,
   headers: string[],
   rows: (string | number)[][],
   subtitle?: string,
+  options?: PdfBrandOptions,
 ) {
   const doc = new jsPDF({ orientation: "landscape" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const brand = options?.brand ?? false;
+
+  let cursorY = 12;
+  const logo = options?.logoBase64;
+
+  if (logo) {
+    try {
+      const fmt = detectImageFormat(logo);
+      const logoW = 50;
+      const logoH = 18;
+      const logoX = (pageWidth - logoW) / 2;
+      doc.addImage(logo, fmt, logoX, cursorY, logoW, logoH);
+      cursorY += logoH + 4;
+    } catch {
+      // ignore broken image
+    }
+  }
+
   doc.setFontSize(14);
-  doc.text(title, 14, 15);
+  doc.setFont("helvetica", "bold");
+  if (brand) doc.setTextColor(BRAND.titleColor[0], BRAND.titleColor[1], BRAND.titleColor[2]);
+  else doc.setTextColor(0);
+
+  if (logo) {
+    doc.text(title, pageWidth / 2, cursorY + 2, { align: "center" });
+    cursorY += 8;
+  } else {
+    doc.text(title, 14, cursorY + 3);
+    cursorY += 8;
+  }
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0);
+
   if (subtitle) {
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(subtitle, 14, 22);
+    const subY = cursorY + 2;
+    if (logo) doc.text(subtitle, pageWidth / 2, subY, { align: "center", maxWidth: pageWidth - 20 });
+    else doc.text(subtitle, 14, subY, { maxWidth: pageWidth - 20 });
     doc.setTextColor(0);
+    cursorY = subY + 4;
   }
+
+  const totalRowIndex = rows.length - 1;
+  const isTotalRow = (idx: number) =>
+    idx === totalRowIndex && rows[idx]?.[0] != null && String(rows[idx][0]).toUpperCase().startsWith("TOTAL");
+
   autoTable(doc, {
     head: [headers],
     body: rows.map((r) => r.map((c) => String(c ?? ""))),
-    startY: subtitle ? 26 : 20,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [40, 40, 40] },
+    startY: cursorY + 2,
+    margin: { bottom: 18, top: 12 },
+    styles: brand
+      ? {
+          fontSize: 8,
+          lineColor: BRAND.borderColor,
+          lineWidth: 0.1,
+          textColor: [40, 40, 40],
+        }
+      : { fontSize: 8 },
+    headStyles: brand
+      ? {
+          fillColor: BRAND.headerFill,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          halign: "center",
+        }
+      : { fillColor: [40, 40, 40] },
+    alternateRowStyles: brand ? { fillColor: BRAND.altRowFill } : undefined,
+    didParseCell: (data) => {
+      if (!brand) return;
+      if (data.section === "body" && isTotalRow(data.row.index)) {
+        data.cell.styles.fillColor = BRAND.totalFill;
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = "bold";
+      }
+    },
+    didDrawPage: () => {
+      if (!brand) return;
+      const y = pageHeight - 12;
+      doc.setDrawColor(BRAND.borderColor[0], BRAND.borderColor[1], BRAND.borderColor[2]);
+      doc.setLineWidth(0.3);
+      doc.line(10, y, pageWidth - 10, y);
+      doc.setFontSize(8);
+      doc.setTextColor(BRAND.footerColor[0], BRAND.footerColor[1], BRAND.footerColor[2]);
+      doc.text("Brazil Amortecedores", 10, y + 5);
+      const now = new Date().toLocaleString("pt-BR");
+      doc.text(`Gerado em ${now}`, pageWidth - 10, y + 5, { align: "right" });
+      doc.setTextColor(0);
+    },
   });
   doc.save(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
 }
