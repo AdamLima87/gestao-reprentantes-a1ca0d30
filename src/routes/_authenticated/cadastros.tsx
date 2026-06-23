@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { createUser, listUsers, updateUser, deleteUser } from "@/lib/admin-users.functions";
+import { createUser, listUsers, updateUser, deleteUser, listAllPermissions } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2 } from "lucide-react";
@@ -865,13 +865,10 @@ function UsuariosTab() {
     queryFn: async () => await callList(),
   });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [] });
+  const callListPerms = useServerFn(listAllPermissions);
   const { data: allUserPerms } = useQuery({
     queryKey: ["user-permissions-all"],
-    queryFn: async () => (
-      await supabase
-        .from("user_permissions" as any)
-        .select("user_id, permissao, concedida")
-    ).data ?? [],
+    queryFn: async () => await callListPerms(),
   });
 
   const callCreate = useServerFn(createUser);
@@ -987,9 +984,10 @@ function UsuariosTab() {
           .upsert(toUpsert, { onConflict: "user_id,permissao" });
       }
       qc.invalidateQueries({ queryKey: ["user-permissions-all"] });
+      qc.invalidateQueries({ queryKey: ["user-permissions", editing.userId] });
+      qc.invalidateQueries({ queryKey: ["users-adm"] });
       toast.success("Usuário atualizado!");
       setEditing(null);
-      qc.invalidateQueries({ queryKey: ["users-adm"] });
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao atualizar usuário.");
     } finally {

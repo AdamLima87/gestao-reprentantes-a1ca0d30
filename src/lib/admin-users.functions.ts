@@ -149,8 +149,11 @@ export const updateUser = createServerFn({ method: "POST" })
     // Senha redefinida por um admin é considerada provisória e exige troca no próximo login.
     if (data.senha) profPatch.must_change_password = true;
     if (Object.keys(profPatch).length > 0) {
-      const { error } = await supabaseAdmin.from("profiles").update(profPatch).eq("id", data.userId);
-      if (error) throw new Error(error.message);
+      const { error: profErr } = await supabaseAdmin.from("profiles").update(profPatch).eq("id", data.userId);
+      if (profErr) {
+        console.error("[updateUser] profiles error:", profErr);
+        throw new Error("Erro ao atualizar perfil: " + profErr.message);
+      }
     }
 
     if (data.role) {
@@ -179,4 +182,16 @@ export const deleteUser = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const listAllPermissions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("user_permissions")
+      .select("user_id, permissao, concedida");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{ user_id: string; permissao: string; concedida: boolean }>;
   });
