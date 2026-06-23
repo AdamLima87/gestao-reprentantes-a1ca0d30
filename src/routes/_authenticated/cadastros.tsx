@@ -816,8 +816,8 @@ function UsuariosTab() {
   const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
-    if (editing.senha && !isPasswordOk(editing.senha)) {
-      toast.error("Nova senha não atende aos requisitos mínimos.");
+    if (editing.senha && editing.senha.length < 6) {
+      toast.error("Nova senha provisória deve ter ao menos 6 caracteres.");
       return;
     }
     setSavingEdit(true);
