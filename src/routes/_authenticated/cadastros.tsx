@@ -177,10 +177,30 @@ function ClientesTab() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle>Clientes</CardTitle>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-          {can("cadastrar_clientes") && <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>}
+        <div className="flex items-center gap-3">
+          <div className="relative" style={{ width: 320 }}>
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Pesquisar por nome, CNPJ ou representante..."
+              className="pl-8 pr-8"
+            />
+            {busca && (
+              <button
+                type="button"
+                aria-label="Limpar pesquisa"
+                onClick={() => setBusca("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            {can("cadastrar_clientes") && <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>}
           <DialogContent>
             <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
