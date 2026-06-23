@@ -1,5 +1,6 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, FileText, Receipt, DollarSign, Settings, LogOut, BarChart3 } from "lucide-react";
@@ -23,6 +24,7 @@ const NAV: NavItem[] = [
 
 export function AppLayout() {
   const { roles, nome, user } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -31,7 +33,18 @@ export function AppLayout() {
     navigate({ to: "/login", replace: true });
   };
 
-  const visible = NAV.filter((n) => roles.some((r) => n.allow.includes(r)));
+  const isAdmin = roles.includes("admin");
+  const podeVerCadastros =
+    isAdmin ||
+    can("cadastrar_clientes") ||
+    can("cadastrar_representantes") ||
+    can("importar_planilhas") ||
+    can("criar_usuarios");
+
+  const visible = NAV.filter((n) => {
+    if (n.to === "/cadastros") return podeVerCadastros;
+    return roles.some((r) => n.allow.includes(r));
+  });
   const roleLabel = roles[0] ?? "—";
 
   const initials = (nome || user?.email || "?")
