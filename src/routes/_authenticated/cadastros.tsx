@@ -15,10 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { createUser } from "@/lib/admin-users.functions";
+import { createUser, listUsers, updateUser, deleteUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2 } from "lucide-react";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
 import { maskCNPJ } from "@/lib/masks";
@@ -743,36 +743,15 @@ function MetasTab() {
 // ============== USUÁRIOS ==============
 function UsuariosTab() {
   const qc = useQueryClient();
-  const { data: profiles } = useQuery({
-    queryKey: ["profiles-adm"],
-    queryFn: async () => (await supabase.from("profiles").select("*, representantes(nome)").order("criado_em", { ascending: false })).data ?? [],
-  });
-  const { data: roles } = useQuery({
-    queryKey: ["roles-adm"],
-    queryFn: async () => (await supabase.from("user_roles").select("user_id, role")).data ?? [],
+  const callList = useServerFn(listUsers);
+  const callUpdate = useServerFn(updateUser);
+  const callDelete = useServerFn(deleteUser);
+
+  const { data: users } = useQuery({
+    queryKey: ["users-adm"],
+    queryFn: async () => await callList(),
   });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [] });
-
-  const rolesByUser = new Map<string, string[]>();
-  (roles ?? []).forEach((r) => {
-    const arr = rolesByUser.get(r.user_id) ?? [];
-    arr.push(r.role);
-    rolesByUser.set(r.user_id, arr);
-  });
-
-  const updateRole = async (userId: string, currentRoles: string[], newRole: string) => {
-    if (currentRoles.includes(newRole)) return;
-    await supabase.from("user_roles").delete().eq("user_id", userId);
-    await supabase.from("user_roles").insert({ user_id: userId, role: newRole as "admin" });
-    qc.invalidateQueries({ queryKey: ["roles-adm"] });
-    toast.success("Perfil atualizado.");
-  };
-
-  const updateRep = async (userId: string, repId: string) => {
-    await supabase.from("profiles").update({ representante_id: repId === "none" ? null : repId }).eq("id", userId);
-    qc.invalidateQueries({ queryKey: ["profiles-adm"] });
-    toast.success("Representante vinculado.");
-  };
 
   const callCreate = useServerFn(createUser);
   const [open, setOpen] = useState(false);
@@ -805,8 +784,7 @@ function UsuariosTab() {
       toast.success("Usuário criado!");
       setOpen(false);
       setForm({ nome: "", email: "", senha: "", role: "representante", representante_id: "none" });
-      qc.invalidateQueries({ queryKey: ["profiles-adm"] });
-      qc.invalidateQueries({ queryKey: ["roles-adm"] });
+      qc.invalidateQueries({ queryKey: ["users-adm"] });
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao criar usuário.");
     } finally {
@@ -814,8 +792,76 @@ function UsuariosTab() {
     }
   };
 
+  const [editing, setEditing] = useState<null | {
+    userId: string;
+    nome: string;
+    email: string;
+    senha: string;
+    role: "admin" | "vendedor_interno" | "representante" | "financeiro";
+    representante_id: string;
+  }>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEdit = (u: any) => {
+    setEditing({
+      userId: u.id,
+      nome: u.nome ?? "",
+      email: u.email ?? "",
+      senha: "",
+      role: (u.roles?.[0] ?? "representante") as any,
+      representante_id: u.representante_id ?? "none",
+    });
+  };
+
+  const submitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    if (editing.senha && !isPasswordOk(editing.senha)) {
+      toast.error("Nova senha não atende aos requisitos mínimos.");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await callUpdate({
+        data: {
+          userId: editing.userId,
+          nome: editing.nome,
+          email: editing.email,
+          senha: editing.senha || null,
+          role: editing.role,
+          representante_id: editing.representante_id === "none" ? null : editing.representante_id,
+        },
+      });
+      toast.success("Usuário atualizado!");
+      setEditing(null);
+      qc.invalidateQueries({ queryKey: ["users-adm"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao atualizar usuário.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async (u: any) => {
+    if (!confirm(`Excluir o usuário ${u.nome || u.email}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await callDelete({ data: { userId: u.id } });
+      toast.success("Usuário excluído.");
+      qc.invalidateQueries({ queryKey: ["users-adm"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao excluir usuário.");
+    }
+  };
+
   const { roles: currentRoles } = useAuth();
   const isAdmin = currentRoles.includes("admin");
+
+  const roleLabel: Record<string, string> = {
+    admin: "Admin",
+    vendedor_interno: "Vendedor interno",
+    representante: "Representante",
+    financeiro: "Financeiro",
+  };
 
   return (
     <div className="space-y-4">
@@ -861,44 +907,82 @@ function UsuariosTab() {
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Perfil</TableHead><TableHead>Vinculado a representante</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow>
+            <TableHead>Nome</TableHead>
+            <TableHead>E-mail</TableHead>
+            <TableHead>Perfil</TableHead>
+            <TableHead>Representante vinculado</TableHead>
+            <TableHead className="w-32 text-right">Ações</TableHead>
+          </TableRow></TableHeader>
           <TableBody>
-            {(profiles ?? []).map((p) => {
-              const userRoles = rolesByUser.get(p.id) ?? [];
-              return (
-                <TableRow key={p.id}>
-                  <TableCell>{p.nome || "—"}</TableCell>
-                  <TableCell>
-                    <Select value={userRoles[0] ?? ""} onValueChange={(v) => updateRole(p.id, userRoles, v)}>
-                      <SelectTrigger className="w-48"><SelectValue placeholder="—" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
-                        <SelectItem value="representante">Representante</SelectItem>
-                        <SelectItem value="financeiro">Financeiro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Select value={p.representante_id ?? "none"} onValueChange={(v) => updateRep(p.id, v)}>
-                      <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— Nenhum —</SelectItem>
-                        {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {(users ?? []).map((u: any) => (
+              <TableRow key={u.id}>
+                <TableCell>{u.nome || "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{u.email || "—"}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{roleLabel[u.roles?.[0]] ?? "—"}</Badge>
+                </TableCell>
+                <TableCell>{u.representante_nome ?? "—"}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(u)} title="Editar">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDelete(u)} title="Excluir">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </CardContent>
     </Card>
+
+    <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Editar usuário</DialogTitle></DialogHeader>
+        {editing && (
+          <form onSubmit={submitEdit} className="space-y-3">
+            <div><Label>Nome *</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} required /></div>
+            <div><Label>E-mail *</Label><Input type="email" value={editing.email} onChange={(e) => setEditing({ ...editing, email: e.target.value })} required /></div>
+            <div>
+              <Label>Nova senha (opcional)</Label>
+              <Input type="text" value={editing.senha} onChange={(e) => setEditing({ ...editing, senha: e.target.value })} placeholder="Deixe em branco para manter" />
+              {editing.senha && <PasswordStrengthMeter value={editing.senha} />}
+            </div>
+            <div><Label>Perfil *</Label>
+              <Select value={editing.role} onValueChange={(v) => setEditing({ ...editing, role: v as typeof editing.role })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
+                  <SelectItem value="representante">Representante</SelectItem>
+                  <SelectItem value="financeiro">Financeiro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Representante vinculado</Label>
+              <Select value={editing.representante_id} onValueChange={(v) => setEditing({ ...editing, representante_id: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Nenhum —</SelectItem>
+                  {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter><Button type="submit" disabled={savingEdit}>{savingEdit ? "Salvando…" : "Salvar alterações"}</Button></DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+
     {isAdmin && <AuditoriaAcessos />}
     </div>
   );
 }
+
 
 function AuditoriaAcessos() {
   const { data: tentativas } = useQuery({
