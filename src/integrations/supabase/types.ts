@@ -433,12 +433,17 @@ export type Database = {
       }
       representantes: {
         Row: {
+          agencia: string | null
           ativo: boolean
           bairro: string | null
+          banco: string | null
           cep: string | null
+          chave_pix: string | null
           cidade: string | null
           cnpj: string | null
+          conta_digito: string | null
           cpf: string | null
+          cpf_cnpj_titular: string | null
           criado_em: string
           data_nascimento: string | null
           endereco: string | null
@@ -454,15 +459,22 @@ export type Database = {
           regiao: string | null
           rg: string | null
           tipo: Database["public"]["Enums"]["rep_tipo"]
+          tipo_conta: string | null
           tipo_pessoa: string
+          titular_conta: string | null
         }
         Insert: {
+          agencia?: string | null
           ativo?: boolean
           bairro?: string | null
+          banco?: string | null
           cep?: string | null
+          chave_pix?: string | null
           cidade?: string | null
           cnpj?: string | null
+          conta_digito?: string | null
           cpf?: string | null
+          cpf_cnpj_titular?: string | null
           criado_em?: string
           data_nascimento?: string | null
           endereco?: string | null
@@ -478,15 +490,22 @@ export type Database = {
           regiao?: string | null
           rg?: string | null
           tipo?: Database["public"]["Enums"]["rep_tipo"]
+          tipo_conta?: string | null
           tipo_pessoa?: string
+          titular_conta?: string | null
         }
         Update: {
+          agencia?: string | null
           ativo?: boolean
           bairro?: string | null
+          banco?: string | null
           cep?: string | null
+          chave_pix?: string | null
           cidade?: string | null
           cnpj?: string | null
+          conta_digito?: string | null
           cpf?: string | null
+          cpf_cnpj_titular?: string | null
           criado_em?: string
           data_nascimento?: string | null
           endereco?: string | null
@@ -502,7 +521,9 @@ export type Database = {
           regiao?: string | null
           rg?: string | null
           tipo?: Database["public"]["Enums"]["rep_tipo"]
+          tipo_conta?: string | null
           tipo_pessoa?: string
+          titular_conta?: string | null
         }
         Relationships: []
       }
