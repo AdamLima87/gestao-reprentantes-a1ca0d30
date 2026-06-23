@@ -98,11 +98,7 @@ async function gerarExtratoPDF(
       c.pedidos?.numero_pedido ?? "—",
       c.pedidos?.clientes?.nome ?? "—",
       c.nfe?.numero_nfe ?? "—",
-      c.nfe?.data_emissao
-        ? new Date(c.nfe.data_emissao).toLocaleDateString("pt-BR")
-        : c.criado_em
-          ? new Date(c.criado_em).toLocaleDateString("pt-BR")
-          : "—",
+      formatarData(c.nfe?.data_emissao ?? c.criado_em),
       fmtBRLUtil(c.base_calculo),
       TIPO_LABEL[c.tipo] ?? c.tipo,
       `${Number(c.percentual_aplicado).toFixed(2)}%`,
