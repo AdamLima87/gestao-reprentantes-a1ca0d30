@@ -250,6 +250,7 @@ function ClientesTab() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="mb-3 flex flex-wrap gap-2">
