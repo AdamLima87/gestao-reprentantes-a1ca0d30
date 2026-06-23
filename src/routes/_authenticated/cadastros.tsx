@@ -454,7 +454,7 @@ function RepsTab() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Representantes</CardTitle>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); setForm(emptyRepForm); } }}>
-          <DialogTrigger asChild><Button onClick={openNovo}>+ Novo</Button></DialogTrigger>
+          {can("cadastrar_representantes") && <DialogTrigger asChild><Button onClick={openNovo}>+ Novo</Button></DialogTrigger>}
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editingId ? "Editar representante" : "Novo representante"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
