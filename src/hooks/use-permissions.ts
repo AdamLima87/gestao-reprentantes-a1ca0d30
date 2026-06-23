@@ -83,7 +83,7 @@ export function usePermissions(userId?: string | null): PermissionsState {
       .then(({ data }) => {
         if (!active) return;
         const map: Record<string, boolean> = {};
-        for (const row of (data ?? []) as Array<{ permissao: string; concedida: boolean }>) {
+        for (const row of (data ?? []) as unknown as Array<{ permissao: string; concedida: boolean }>) {
           map[row.permissao] = row.concedida;
         }
         setOverrides(map);
