@@ -430,8 +430,9 @@ function RepsTab() {
     const isExt = f.tipo === "externo";
     const isPJ = isExt && f.tipo_pessoa === "juridica";
     const isPF = isExt && f.tipo_pessoa === "fisica";
+    const regiaoPrincipal = f.estados[0] ? (regiaoDoEstado(f.estados[0]) ?? f.estados[0]) : null;
     return {
-      nome: f.nome, regiao: f.regiao || null, tipo: f.tipo,
+      nome: f.nome, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
       percentual_padrao: Number(f.percentual_padrao), ativo: f.ativo,
       tipo_pessoa: isExt ? f.tipo_pessoa : "juridica",
       cnpj: isPJ ? (f.cnpj || null) : null,
@@ -449,6 +450,7 @@ function RepsTab() {
       cep: isExt ? (f.cep || null) : null,
     };
   };
+
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
