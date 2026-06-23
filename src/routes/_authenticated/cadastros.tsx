@@ -512,6 +512,13 @@ function RepsTab() {
       cidade: isExt ? (f.cidade || null) : null,
       estado: isExt ? (f.estado || null) : null,
       cep: isExt ? (f.cep || null) : null,
+      banco: f.banco || null,
+      tipo_conta: f.tipo_conta || null,
+      agencia: f.agencia || null,
+      conta_digito: f.conta_digito || null,
+      chave_pix: f.chave_pix || null,
+      titular_conta: f.titular_conta || null,
+      cpf_cnpj_titular: f.cpf_cnpj_titular || null,
     };
   };
 
