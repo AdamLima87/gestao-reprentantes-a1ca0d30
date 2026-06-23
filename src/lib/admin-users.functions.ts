@@ -183,3 +183,15 @@ export const deleteUser = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const listAllPermissions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("user_permissions")
+      .select("user_id, permissao, concedida");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{ user_id: string; permissao: string; concedida: boolean }>;
+  });
