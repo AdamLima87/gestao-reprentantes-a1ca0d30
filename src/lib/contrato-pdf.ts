@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { BR_STATES } from "@/lib/estados-brasil";
 
 export type EmpresaContrato = {
   razao_social?: string | null;
@@ -16,6 +17,7 @@ export type EmpresaContrato = {
 export type RepContrato = {
   nome: string;
   regiao?: string | null;
+  estados?: string[] | null;
   tipo_pessoa?: "juridica" | "fisica" | null;
   razao_social?: string | null;
   cnpj?: string | null;
@@ -231,7 +233,19 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
   const repDocLabel = isPF ? "CPF" : "CNPJ";
   const repDoc = isPF ? (rep.cpf || "[CPF DO REPRESENTANTE]") : (rep.cnpj || "[CNPJ DO REPRESENTANTE]");
   const repEnd = enderecoCompleto(rep) || "[ENDEREÇO COMPLETO DO REPRESENTANTE]";
-  const repRegiao = rep.regiao || "[REGIÃO DO REPRESENTANTE]";
+  const siglaToNome = (sigla: string) =>
+    BR_STATES.find((s) => s.sigla === sigla.toUpperCase())?.nome || sigla;
+  const estadosArr = (rep.estados || []).filter(Boolean);
+  let repAreaAtuacao: string;
+  if (estadosArr.length === 0) {
+    repAreaAtuacao = `no Estado de ${rep.regiao || "[REGIÃO DO REPRESENTANTE]"}`;
+  } else if (estadosArr.length === 1) {
+    repAreaAtuacao = `no Estado de ${siglaToNome(estadosArr[0])}`;
+  } else {
+    const nomes = estadosArr.map(siglaToNome);
+    const ultimo = nomes.pop()!;
+    repAreaAtuacao = `nos Estados de ${nomes.join(", ")} e ${ultimo}`;
+  }
   const repSocio = isPF ? (rep.nome_completo || rep.nome) : (rep.nome_socio || "[NOME DO SÓCIO DO REPRESENTANTE]");
   const pct = Number(rep.percentual_padrao ?? 0).toFixed(2).replace(".", ",");
 
@@ -248,7 +262,7 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
     ["CLÁUSULA SEGUNDA", "O presente contrato terá prazo de 12 (doze) meses de duração, sem qualquer vínculo empregatício com a REPRESENTADA, podendo ser renovado se for interesse das partes envolvidas."],
     ["CLÁUSULA TERCEIRA", "A REPRESENTADA nomeia o REPRESENTANTE ora designado para agenciamento de propostas ou pedidos de compra de produtos industrializados ou mesmo os comercializados por ela, destinados aos clientes considerados ativos do representante. Parágrafo 1º - Os produtos terão seus preços especificados nas Listas de Preço e Políticas Comerciais enviadas ao REPRESENTANTE e serão revistos sempre que necessário a critério da REPRESENTADA. Parágrafo 2º - Os contratantes poderão de comum acordo e por escrito, incluir ou excluir produtos na lista de preço."],
     ["CLÁUSULA QUARTA", "O REPRESENTANTE promoverá a venda desses produtos, agenciando as propostas junto aos clientes cadastrados por ele, de acordo com a Política Comercial em vigor, assim como as orientações e circulares emitidas pela REPRESENTADA. Parágrafo Único: O REPRESENTANTE não poderá, salvo autorização expressa da REPRESENTADA, conceder descontos, abatimentos ou dilações de prazos, nem agir em desacordo com as instruções recebidas por ela."],
-    ["CLÁUSULA QUINTA", `O REPRESENTANTE desempenhará suas atividades de representação comercial promovendo a venda dos produtos da REPRESENTADA, no Estado de ${repRegiao}, além da área inicialmente estabelecida no contrato principal, poderá atuar comercialmente em outras regiões do território nacional, desde que identificada oportunidade de negócio decorrente de relacionamento comercial pré-existente, contato direto com compradores, clientes ou potenciais clientes, ou mediante autorização prévia da REPRESENTADA.`],
+    ["CLÁUSULA QUINTA", `O REPRESENTANTE desempenhará suas atividades de representação comercial promovendo a venda dos produtos da REPRESENTADA, ${repAreaAtuacao}, além da área inicialmente estabelecida no contrato principal, poderá atuar comercialmente em outras regiões do território nacional, desde que identificada oportunidade de negócio decorrente de relacionamento comercial pré-existente, contato direto com compradores, clientes ou potenciais clientes, ou mediante autorização prévia da REPRESENTADA.`],
     ["CLÁUSULA SEXTA", "Os pedidos efetivados pelo REPRESENTANTE deverão ser enviados a REPRESENTADA com antecedência mínima de 10 (dez) dias da data de entrega dos produtos, através de e-mail a fim de que as mercadorias comercializadas possam ser providenciadas em tempo hábil. Parágrafo 1º – A REPRESENTADA poderá, conforme critérios administrativos e comerciais internos, rejeitar o pedido efetuado pelo REPRESENTANTE, informando-o por escrito de tal decisão, reservando-se o direito de não revelar os motivos da recusa. Parágrafo 2º - O REPRESENTANTE está ciente de que o prazo estabelecido na cláusula sexta deve ser rigorosamente respeitado para que os produtos sejam entregues na data aprazada, comprometendo-se a informar os compradores quando houver alteração na data de entrega em razão da não observância do prazo estipulado na cláusula sexta."],
     ["CLÁUSULA SÉTIMA", `O REPRESENTANTE fará jus ao recebimento de uma comissão no valor correspondente a ${pct}% sobre o total das vendas efetivamente realizadas. O pagamento dessa comissão será efetuado até o dia 10 do mês subsequente ao mês em que for realizado o faturamento das vendas.`],
     ["CLÁUSULA OITAVA", "O REPRESENTANTE poderá exercer suas atividades para outra empresa, ou efetuar negócio em seu nome por conta própria, desde que não se trate de atividade que resulte concorrência à REPRESENTADA. Parágrafo Único – Estabelece-se expressa proibição de atuar, direta ou indiretamente, com produtos concorrentes aos da REPRESENTADA, em cujo caso se procederá à automática rescisão por justa causa do presente contrato."],
@@ -277,25 +291,31 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
 
   writeParagraph(`Local e data: São Caetano do Sul, ${dataPorExtenso()}.`, { align: "left", spacing: 20 });
 
-  // Assinaturas - centralizadas com espaço de rubrica
-  ensure(45);
-  const sigW = (maxW - 20) / 2;
-  const leftCx = margin + sigW / 2;
-  const rightCx = margin + sigW + 20 + sigW / 2;
-  doc.line(margin, y, margin + sigW, y);
-  doc.line(margin + sigW + 20, y, margin + sigW + 20 + sigW, y);
-  y += LINE_H;
-  doc.setFont(FONT, "bold");
-  doc.setFontSize(FONT_SIZE);
-  doc.text(empresaRazao, leftCx, y, { align: "center" });
-  doc.text(repNome, rightCx, y, { align: "center" });
-  y += LINE_H * 0.7;
-  doc.setFont(FONT, "normal");
-  doc.setFontSize(9);
-  doc.text(`${empresaSocio} — Sócio Administrador`, leftCx, y, { align: "center" });
+  // Assinaturas - empilhadas verticalmente, centralizadas
+  const sigW = 90; // largura da linha de assinatura
+  const cx = pageW / 2;
+  const lineX1 = cx - sigW / 2;
+  const lineX2 = cx + sigW / 2;
+
+  const renderAssinatura = (nomePrincipal: string, legenda: string) => {
+    ensure(LINE_H * 3);
+    doc.line(lineX1, y, lineX2, y);
+    y += LINE_H;
+    doc.setFont(FONT, "bold");
+    doc.setFontSize(FONT_SIZE);
+    doc.text(nomePrincipal, cx, y, { align: "center" });
+    y += LINE_H * 0.8;
+    doc.setFont(FONT, "normal");
+    doc.setFontSize(9);
+    doc.text(legenda, cx, y, { align: "center" });
+    doc.setFontSize(FONT_SIZE);
+  };
+
+  ensure(60);
+  renderAssinatura(empresaRazao, `${empresaSocio} — Sócio Administrador`);
+  y += 15; // espaço de 15mm entre os blocos
   const repLegenda = isPF ? "Representante" : `${repSocio} — Representante`;
-  doc.text(repLegenda, rightCx, y, { align: "center" });
-  doc.setFontSize(FONT_SIZE);
+  renderAssinatura(repNome, repLegenda);
 
   const slug = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
   const dt = new Date().toISOString().slice(0, 10);
