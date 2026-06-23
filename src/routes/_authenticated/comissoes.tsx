@@ -60,11 +60,23 @@ async function gerarExtratoPDF(
   // Cabeçalho — logo + nome empresa
   let cursorY = margin;
   let textX = margin;
+  let headerBottom = cursorY + 24;
   if (empresa?.logo_base64) {
     try {
       const fmt = empresa.logo_base64.startsWith("data:image/png") ? "PNG" : "JPEG";
-      doc.addImage(empresa.logo_base64, fmt, margin, cursorY, 20, 20);
-      textX = margin + 25;
+      const props = (doc as any).getImageProperties?.(empresa.logo_base64);
+      const ratio = props && props.width && props.height ? props.height / props.width : 0.5;
+      const MAX_W = 45;
+      const MAX_H = 20;
+      let logoW = MAX_W;
+      let logoH = logoW * ratio;
+      if (logoH > MAX_H) {
+        logoH = MAX_H;
+        logoW = logoH / ratio;
+      }
+      doc.addImage(empresa.logo_base64, fmt, margin, cursorY, logoW, logoH);
+      textX = margin + logoW + 5;
+      headerBottom = Math.max(headerBottom, cursorY + logoH + 4);
     } catch {
       /* ignora logo inválido */
     }
@@ -75,7 +87,8 @@ async function gerarExtratoPDF(
   doc.setFontSize(13);
   doc.text("EXTRATO DE COMISSÕES", textX, cursorY + 15);
 
-  cursorY += 24;
+  cursorY = headerBottom;
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   doc.text(`Representante: ${repNome}`, margin, cursorY);

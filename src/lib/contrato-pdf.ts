@@ -92,17 +92,23 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
       const raw = empresa.logo_base64;
       const dataUrl = raw.startsWith("data:") ? raw : `data:image/png;base64,${raw}`;
       const fmt = /image\/(jpe?g)/i.test(dataUrl) ? "JPEG" : "PNG";
-      const logoW = 60; // largura máxima 60mm
-      // estima altura proporcional (assume 1:1 se não conseguir medir)
       const props = (doc as any).getImageProperties?.(dataUrl);
       const ratio = props && props.width && props.height ? props.height / props.width : 0.5;
-      const logoH = Math.min(35, logoW * ratio);
+      const MAX_W = 45;
+      const MAX_H = 20;
+      let logoW = MAX_W;
+      let logoH = logoW * ratio;
+      if (logoH > MAX_H) {
+        logoH = MAX_H;
+        logoW = logoH / ratio;
+      }
       doc.addImage(dataUrl, fmt, (pageW - logoW) / 2, y, logoW, logoH);
       y += logoH + 6;
     } catch {
       // ignore erros de logo
     }
   }
+
 
   // Título
   doc.setFont(FONT, "bold");

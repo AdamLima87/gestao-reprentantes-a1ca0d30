@@ -39,7 +39,16 @@ function detectImageFormat(b64: string): "PNG" | "JPEG" {
   return "PNG";
 }
 
-export function exportPDF(
+async function loadImageSize(src: string): Promise<{ w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+export async function exportPDF(
   filename: string,
   title: string,
   headers: string[],
@@ -52,36 +61,52 @@ export function exportPDF(
   const pageHeight = doc.internal.pageSize.getHeight();
   const brand = options?.brand ?? false;
 
-  let cursorY = 12;
+  let cursorY = 10;
   const logo = options?.logoBase64;
 
   if (logo) {
     try {
       const fmt = detectImageFormat(logo);
-      const logoW = 50;
-      const logoH = 18;
+      const size = await loadImageSize(logo);
+      const MAX_W = 45;
+      const MAX_H = 20;
+      let logoW = MAX_W;
+      let logoH = MAX_W;
+      if (size && size.w > 0 && size.h > 0) {
+        const ratio = size.h / size.w;
+        logoW = MAX_W;
+        logoH = logoW * ratio;
+        if (logoH > MAX_H) {
+          logoH = MAX_H;
+          logoW = logoH / ratio;
+        }
+      } else {
+        logoH = MAX_W * 0.4;
+      }
       const logoX = (pageWidth - logoW) / 2;
       doc.addImage(logo, fmt, logoX, cursorY, logoW, logoH);
-      cursorY += logoH + 4;
+      cursorY += logoH + 6;
     } catch {
       // ignore broken image
     }
   }
 
-  doc.setFontSize(14);
+
+  doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   if (brand) doc.setTextColor(BRAND.titleColor[0], BRAND.titleColor[1], BRAND.titleColor[2]);
   else doc.setTextColor(0);
 
   if (logo) {
-    doc.text(title, pageWidth / 2, cursorY + 2, { align: "center" });
-    cursorY += 8;
+    doc.text(title, pageWidth / 2, cursorY, { align: "center" });
+    cursorY += 7;
   } else {
     doc.text(title, 14, cursorY + 3);
     cursorY += 8;
   }
   doc.setFont("helvetica", "normal");
   doc.setTextColor(0);
+
 
   if (subtitle) {
     doc.setFontSize(10);
