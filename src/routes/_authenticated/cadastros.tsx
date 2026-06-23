@@ -651,22 +651,26 @@ function CConfigTab() {
     <Card>
       <CardHeader><CardTitle>% de comissão por cliente</CardTitle></CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-          <div><Label>Cliente</Label>
-            <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{(clientes ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div><Label>Representante</Label>
-            <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div><Label>%</Label><Input type="number" step="0.01" value={form.percentual} onChange={(e) => setForm({ ...form, percentual: e.target.value })} required /></div>
-          <Button type="submit">Salvar</Button>
-        </form>
+        {canEditPct ? (
+          <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div><Label>Cliente</Label>
+              <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{(clientes ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Representante</Label>
+              <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>%</Label><Input type="number" step="0.01" value={form.percentual} onChange={(e) => setForm({ ...form, percentual: e.target.value })} required /></div>
+            <Button type="submit">Salvar</Button>
+          </form>
+        ) : (
+          <p className="text-sm text-muted-foreground">Você não tem permissão para editar os percentuais por cliente.</p>
+        )}
 
         <Table>
           <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Rep</TableHead><TableHead>%</TableHead><TableHead></TableHead></TableRow></TableHeader>
