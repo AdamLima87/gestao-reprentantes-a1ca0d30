@@ -761,8 +761,8 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
                     <TableCell className="font-medium">{p.numero_pedido}</TableCell>
                     <TableCell>{(p.clientes as { nome?: string } | null)?.nome ?? "—"}</TableCell>
                     <TableCell>{(p.representantes as { nome?: string } | null)?.nome ?? "—"}</TableCell>
-                    <TableCell>{p.data_pedido}</TableCell>
-                    <TableCell>{p.prazo_entrega ?? "—"}</TableCell>
+                    <TableCell>{formatarData(p.data_pedido)}</TableCell>
+                    <TableCell>{formatarData(p.prazo_entrega)}</TableCell>
                     <TableCell className="text-right">{fmtBRL(p.valor_produtos)}</TableCell>
                     <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
                   </TableRow>
