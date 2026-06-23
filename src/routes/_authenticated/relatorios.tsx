@@ -203,13 +203,6 @@ type ComissaoRow = {
     pedidos?: { clientes?: { nome?: string } | null } | null;
   } | null;
 };
-  nfe: {
-    numero_nfe?: string;
-    data_nfe?: string;
-    data_entrega?: string | null;
-    pedidos?: { clientes?: { nome?: string } | null } | null;
-  } | null;
-};
 
 function ExternosTable({
   data,
