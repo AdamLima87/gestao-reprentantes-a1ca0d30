@@ -622,6 +622,8 @@ function EmpresaTab() {
 // ============== COMISSAO CONFIG ==============
 function CConfigTab() {
   const qc = useQueryClient();
+  const { can } = usePermissions();
+  const canEditPct = can("editar_percentual_cliente");
   const { data: clientes } = useQuery({ queryKey: ["clientes"], queryFn: async () => (await supabase.from("clientes").select("id, nome").order("nome")).data ?? [] });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [] });
   const { data: configs } = useQuery({ queryKey: ["cconfig"], queryFn: async () => (await supabase.from("comissao_config").select("*, clientes(nome), representantes(nome)").order("criado_em", { ascending: false })).data ?? [] });
@@ -629,6 +631,7 @@ function CConfigTab() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEditPct) return;
     const { error } = await supabase.from("comissao_config").upsert({
       cliente_id: form.cliente_id, representante_id: form.representante_id, percentual: Number(form.percentual),
     }, { onConflict: "cliente_id,representante_id" });
@@ -639,6 +642,7 @@ function CConfigTab() {
   };
 
   const del = async (id: string) => {
+    if (!canEditPct) return;
     await supabase.from("comissao_config").delete().eq("id", id);
     qc.invalidateQueries({ queryKey: ["cconfig"] });
   };
