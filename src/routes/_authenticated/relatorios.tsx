@@ -49,7 +49,8 @@ const MESES = [
 
 function RelatoriosPage() {
   const { roles } = useAuth();
-  const allowed = roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const { can } = usePermissions();
+  const allowed = can("exportar_relatorios") || roles.some((r) => ["admin", "vendedor_interno", "financeiro", "gestor"].includes(r));
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
