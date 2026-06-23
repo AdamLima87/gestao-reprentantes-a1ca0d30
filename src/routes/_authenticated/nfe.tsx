@@ -235,7 +235,7 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
               required
             />
           </div>
-          {!valoresIguais && (
+          {!valoresIguais && notaMenor && (
             <div>
               <Label>{obsObrigatoria ? "Observação (obrigatória)" : "Observação (opcional)"}</Label>
               <Textarea
