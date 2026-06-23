@@ -145,13 +145,15 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
 
   // Mantém valor_nfe sincronizado com valor_produtos quando toggle ativo
   useEffect(() => {
-    if (valoresIguais && form.valor_produtos !== form.valor_nfe) {
-      setForm((f) => ({ ...f, valor_nfe: f.valor_produtos }));
+    if (valoresIguais && (form.valor_produtos !== form.valor_nfe || form.observacao)) {
+      setForm((f) => ({ ...f, valor_nfe: f.valor_produtos, observacao: "" }));
     }
-  }, [valoresIguais, form.valor_produtos, form.valor_nfe]);
+  }, [valoresIguais, form.valor_produtos, form.valor_nfe, form.observacao]);
 
-  const notaMenor = !valoresIguais && Number(form.valor_nfe) < Number(form.valor_produtos);
-  const obsObrigatoria = notaMenor;
+  const vNfe = Number(form.valor_nfe) || 0;
+  const vProd = Number(form.valor_produtos) || 0;
+  const obsObrigatoria = !valoresIguais && vNfe > 0 && vProd > 0 && vNfe < vProd;
+  const obsOpcional = !valoresIguais && vNfe > 0 && vProd > 0 && vNfe > vProd;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
