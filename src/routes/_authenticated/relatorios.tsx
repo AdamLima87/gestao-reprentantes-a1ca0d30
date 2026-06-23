@@ -806,7 +806,7 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
       .map((c) => ({
         nome: c.nome,
         rep: data.reps.find((r) => r.id === c.representante_id)?.nome ?? "—",
-        ultima: c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "Nunca",
+        ultima: c.ultima_compra_at ? formatarData(c.ultima_compra_at) : "Nunca",
       }))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [data]);
