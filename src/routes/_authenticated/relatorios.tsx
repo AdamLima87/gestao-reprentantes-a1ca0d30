@@ -133,25 +133,96 @@ function ExportButtons({ onCSV, onPDF }: { onCSV: () => void; onPDF: () => void 
 }
 
 /* ============ COMISSÕES ============ */
+type Visao = "todos" | "externos" | "interno";
+
 function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
+  const [visao, setVisao] = useState<Visao>("todos");
+
   const { data, isLoading } = useQuery({
     queryKey: ["rel-comissoes", mes, ano],
     queryFn: async () => {
       const res = await supabase
         .from("comissoes")
-        .select("tipo, base_calculo, valor_comissao, nfe_id, representante_id, representantes(nome)")
-        .eq("mes_ref", mes).eq("ano_ref", ano);
+        .select(
+          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(clientes(nome)))",
+        )
+        .eq("mes_ref", mes)
+        .eq("ano_ref", ano);
       return res.data ?? [];
     },
   });
 
+  const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-6 flex flex-wrap items-end gap-3">
+          <div className="w-64">
+            <Label className="text-xs">Visualizar</Label>
+            <Select value={visao} onValueChange={(v) => setVisao(v as Visao)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="externos">Representantes externos</SelectItem>
+                <SelectItem value="interno">Vendedor interno</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <p className="text-muted-foreground">Carregando…</p>
+      ) : (
+        <>
+          {(visao === "todos" || visao === "externos") && (
+            <ExternosTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} />
+          )}
+          {(visao === "todos" || visao === "interno") && (
+            <InternoTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+type ComissaoRow = {
+  tipo: string;
+  base_calculo: number | string;
+  valor_comissao: number | string;
+  percentual_aplicado: number | string;
+  nfe_id: string;
+  representante_id: string | null;
+  representantes: { nome?: string; tipo?: string } | null;
+  nfe: {
+    numero_nfe?: string;
+    data_nfe?: string;
+    data_entrega?: string | null;
+    pedidos?: { clientes?: { nome?: string } | null } | null;
+  } | null;
+};
+
+function ExternosTable({
+  data,
+  periodo,
+  mes,
+  ano,
+}: {
+  data: ComissaoRow[];
+  periodo: string;
+  mes: number;
+  ano: number;
+}) {
   const rows = useMemo(() => {
+    const externos = data.filter((c) => c.tipo === "externo");
     const map = new Map<string, { rep: string; tipo: string; nfes: Set<string>; base: number; valor: number }>();
-    for (const c of data ?? []) {
+    for (const c of externos) {
       const key = `${c.representante_id}|${c.tipo}`;
       const r = map.get(key) ?? {
-        rep: (c.representantes as { nome?: string } | null)?.nome ?? "—",
-        tipo: TIPO_LABEL[c.tipo as string] ?? c.tipo,
+        rep: c.representantes?.nome ?? "—",
+        tipo: TIPO_LABEL[c.tipo] ?? c.tipo,
         nfes: new Set<string>(),
         base: 0,
         valor: 0,
@@ -161,44 +232,42 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
       r.valor += Number(c.valor_comissao);
       map.set(key, r);
     }
-    return [...map.values()].sort((a, b) => a.rep.localeCompare(b.rep) || a.tipo.localeCompare(b.tipo));
+    return [...map.values()].sort((a, b) => a.rep.localeCompare(b.rep));
   }, [data]);
 
   const totalBase = rows.reduce((s, r) => s + r.base, 0);
   const totalVal = rows.reduce((s, r) => s + r.valor, 0);
-  const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
+  const totalNfe = rows.reduce((s, r) => s + r.nfes.size, 0);
 
   const handleCSV = () =>
     exportCSV(
-      `comissoes-${ano}-${String(mes).padStart(2, "0")}`,
+      `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
       ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
       [
         ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, r.base.toFixed(2), r.valor.toFixed(2)]),
-        ["TOTAL", "", rows.reduce((s, r) => s + r.nfes.size, 0), totalBase.toFixed(2), totalVal.toFixed(2)],
+        ["TOTAL", "", totalNfe, totalBase.toFixed(2), totalVal.toFixed(2)],
       ],
     );
   const handlePDF = () =>
     exportPDF(
-      `comissoes-${ano}-${String(mes).padStart(2, "0")}`,
-      `Relatório de Comissões - ${periodo}`,
+      `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
+      `Comissões por Representante - ${periodo}`,
       ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
       [
         ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, fmtBRL(r.base), fmtBRL(r.valor)]),
-        ["TOTAL", "", rows.reduce((s, r) => s + r.nfes.size, 0), fmtBRL(totalBase), fmtBRL(totalVal)],
+        ["TOTAL", "", totalNfe, fmtBRL(totalBase), fmtBRL(totalVal)],
       ],
     );
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Comissões por representante</CardTitle>
+        <CardTitle>Comissões por Representante</CardTitle>
         <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <p className="text-muted-foreground">Carregando…</p>
-        ) : rows.length === 0 ? (
-          <p className="text-muted-foreground">Sem comissões no período.</p>
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground">Sem comissões externas no período.</p>
         ) : (
           <Table>
             <TableHeader>
@@ -222,7 +291,7 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
               ))}
               <TableRow className="bg-muted/50 font-bold">
                 <TableCell colSpan={2}>TOTAL</TableCell>
-                <TableCell className="text-right">{rows.reduce((s, r) => s + r.nfes.size, 0)}</TableCell>
+                <TableCell className="text-right">{totalNfe}</TableCell>
                 <TableCell className="text-right">{fmtBRL(totalBase)}</TableCell>
                 <TableCell className="text-right">{fmtBRL(totalVal)}</TableCell>
               </TableRow>
@@ -233,6 +302,201 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
     </Card>
   );
 }
+
+const TIPOS_INTERNO = ["interno_novo", "interno_reativacao", "interno_recorrente", "interno_sobre_rep"] as const;
+
+function fmtDateBR(s?: string | null) {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+}
+
+function InternoTable({
+  data,
+  periodo,
+  mes,
+  ano,
+}: {
+  data: ComissaoRow[];
+  periodo: string;
+  mes: number;
+  ano: number;
+}) {
+  const internas = useMemo(
+    () => data.filter((c) => (TIPOS_INTERNO as readonly string[]).includes(c.tipo)),
+    [data],
+  );
+
+  const vendedorNome = useMemo(() => {
+    const rep = internas.find((c) => c.representantes?.tipo === "interno")?.representantes?.nome;
+    return rep ?? "Vendedor Interno";
+  }, [internas]);
+
+  // Agrupar por NF-e
+  const rows = useMemo(() => {
+    type R = {
+      nfeId: string;
+      numero: string;
+      emissao: string;
+      empresa: string;
+      entrega: string;
+      valor: number;
+      c15: number | null;
+      c1: number | null;
+      c05: number | null;
+    };
+    const map = new Map<string, R>();
+    for (const c of internas) {
+      const r = map.get(c.nfe_id) ?? {
+        nfeId: c.nfe_id,
+        numero: c.nfe?.numero_nfe ?? "—",
+        emissao: c.nfe?.data_nfe ?? "",
+        empresa: c.nfe?.pedidos?.clientes?.nome ?? "—",
+        entrega: c.nfe?.data_entrega ?? "",
+        valor: Number(c.base_calculo),
+        c15: null,
+        c1: null,
+        c05: null,
+      };
+      const valor = Number(c.valor_comissao);
+      if (c.tipo === "interno_novo" || c.tipo === "interno_reativacao") {
+        r.c15 = (r.c15 ?? 0) + valor;
+      } else if (c.tipo === "interno_recorrente") {
+        r.c1 = (r.c1 ?? 0) + valor;
+      } else if (c.tipo === "interno_sobre_rep") {
+        r.c05 = (r.c05 ?? 0) + valor;
+      }
+      map.set(c.nfe_id, r);
+    }
+    return [...map.values()].sort((a, b) => (a.emissao || "").localeCompare(b.emissao || ""));
+  }, [internas]);
+
+  const totals = useMemo(() => {
+    return rows.reduce(
+      (acc, r) => ({
+        valor: acc.valor + r.valor,
+        c15: acc.c15 + (r.c15 ?? 0),
+        c1: acc.c1 + (r.c1 ?? 0),
+        c05: acc.c05 + (r.c05 ?? 0),
+      }),
+      { valor: 0, c15: 0, c1: 0, c05: 0 },
+    );
+  }, [rows]);
+
+  const headers = ["NF", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%"];
+
+  const handleCSV = () =>
+    exportCSV(
+      `comissoes-interno-${ano}-${String(mes).padStart(2, "0")}`,
+      headers,
+      [
+        ...rows.map((r) => [
+          r.numero,
+          fmtDateBR(r.emissao),
+          r.empresa,
+          fmtDateBR(r.entrega),
+          r.valor.toFixed(2),
+          r.c15 == null ? "—" : r.c15.toFixed(2),
+          r.c1 == null ? "—" : r.c1.toFixed(2),
+          r.c05 == null ? "—" : r.c05.toFixed(2),
+        ]),
+        [
+          "TOTAL",
+          "",
+          "",
+          "",
+          totals.valor.toFixed(2),
+          totals.c15.toFixed(2),
+          totals.c1.toFixed(2),
+          totals.c05.toFixed(2),
+        ],
+      ],
+    );
+
+  const handlePDF = () =>
+    exportPDF(
+      `comissoes-interno-${ano}-${String(mes).padStart(2, "0")}`,
+      `BRAZIL AMORTECEDORES - CÁLCULO DE COMISSÃO POR REPRESENTANTE - ${vendedorNome.toUpperCase()}`,
+      headers,
+      [
+        ...rows.map((r) => [
+          r.numero,
+          fmtDateBR(r.emissao),
+          r.empresa,
+          fmtDateBR(r.entrega),
+          fmtBRL(r.valor),
+          r.c15 == null ? "—" : fmtBRL(r.c15),
+          r.c1 == null ? "—" : fmtBRL(r.c1),
+          r.c05 == null ? "—" : fmtBRL(r.c05),
+        ]),
+        [
+          "TOTAL",
+          "",
+          "",
+          "",
+          fmtBRL(totals.valor),
+          fmtBRL(totals.c15),
+          fmtBRL(totals.c1),
+          fmtBRL(totals.c05),
+        ],
+      ],
+      `Período: ${periodo}`,
+    );
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Cálculo de Comissão — Vendedor Interno</CardTitle>
+        <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground">Sem comissões internas no período.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>NF</TableHead>
+                <TableHead>Emissão</TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Entrega</TableHead>
+                <TableHead className="text-right">Valor Produto</TableHead>
+                <TableHead className="text-right">Comissão 1,5%</TableHead>
+                <TableHead className="text-right">Comissão 1%</TableHead>
+                <TableHead className="text-right">Comissão 0,5%</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.nfeId}>
+                  <TableCell className="font-medium">{r.numero}</TableCell>
+                  <TableCell>{fmtDateBR(r.emissao)}</TableCell>
+                  <TableCell>{r.empresa}</TableCell>
+                  <TableCell>{fmtDateBR(r.entrega)}</TableCell>
+                  <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
+                  <TableCell className="text-right">{r.c15 == null ? "—" : fmtBRL(r.c15)}</TableCell>
+                  <TableCell className="text-right">{r.c1 == null ? "—" : fmtBRL(r.c1)}</TableCell>
+                  <TableCell className="text-right">{r.c05 == null ? "—" : fmtBRL(r.c05)}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="bg-muted/50 font-bold">
+                <TableCell colSpan={4}>TOTAL</TableCell>
+                <TableCell className="text-right">{fmtBRL(totals.valor)}</TableCell>
+                <TableCell className="text-right">{fmtBRL(totals.c15)}</TableCell>
+                <TableCell className="text-right">{fmtBRL(totals.c1)}</TableCell>
+                <TableCell className="text-right">{fmtBRL(totals.c05)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Badge import kept for other tabs that may use it later
+void Badge;
 
 /* ============ VENDAS ============ */
 function VendasTab({ mes, ano }: { mes: number; ano: number }) {
