@@ -30,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/cadastros")({
 
 function CadastrosPage() {
   const { roles } = useAuth();
+  const { can } = usePermissions();
   if (!roles.includes("admin")) {
     return <p className="text-muted-foreground">Apenas administradores podem acessar os cadastros.</p>;
   }
@@ -44,7 +45,7 @@ function CadastrosPage() {
           <TabsTrigger value="metas">Metas</TabsTrigger>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="empresa">Empresa</TabsTrigger>
-          <TabsTrigger value="importar">Importar</TabsTrigger>
+          {can("importar_planilhas") && <TabsTrigger value="importar">Importar</TabsTrigger>}
         </TabsList>
         <TabsContent value="clientes"><ClientesTab /></TabsContent>
         <TabsContent value="reps"><RepsTab /></TabsContent>
@@ -52,7 +53,7 @@ function CadastrosPage() {
         <TabsContent value="metas"><MetasTab /></TabsContent>
         <TabsContent value="usuarios"><UsuariosTab /></TabsContent>
         <TabsContent value="empresa"><EmpresaTab /></TabsContent>
-        <TabsContent value="importar"><ImportarTab /></TabsContent>
+        {can("importar_planilhas") && <TabsContent value="importar"><ImportarTab /></TabsContent>}
       </Tabs>
     </div>
   );
