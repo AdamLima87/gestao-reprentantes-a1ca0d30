@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type AppRole = "admin" | "vendedor_interno" | "representante" | "financeiro";
+type AppRole = "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -11,11 +11,13 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   if (!isAdmin) throw new Error("Apenas administradores podem executar esta ação.");
 }
 
-function validarSenha(senha: string) {
-  if (senha.length < 10) throw new Error("Senha deve ter ao menos 10 caracteres.");
-  if (!/[A-Z]/.test(senha)) throw new Error("Senha deve conter ao menos uma letra maiúscula.");
-  if (!/[a-z]/.test(senha)) throw new Error("Senha deve conter ao menos uma letra minúscula.");
-  if (!/[0-9]/.test(senha)) throw new Error("Senha deve conter ao menos um número.");
+function validarSenhaProvisoria(senha: string) {
+  // A senha provisória pode ser livre, mas precisa ter ao menos 6 caracteres
+  // para evitar erros do Supabase Auth. O usuário será obrigado a trocá-la
+  // no primeiro acesso, atendendo aos requisitos fortes de segurança.
+  if (!senha || senha.length < 6) {
+    throw new Error("Senha provisória deve ter ao menos 6 caracteres.");
+  }
 }
 
 export const createUser = createServerFn({ method: "POST" })
