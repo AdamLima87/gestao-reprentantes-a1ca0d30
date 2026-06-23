@@ -220,15 +220,49 @@ function PedidosPage() {
                             → {NEXT_STATUS[p.status]}
                           </Button>
                         )}
-                        {editable && (
-                          <Button size="sm" variant="outline" onClick={() => setEditing(p)}>Editar</Button>
-                        )}
-                        {canCancel && p.status !== "cancelado" && (
-                          <Button size="sm" variant="destructive" onClick={() => setCancelingId(p.id)}>Cancelar</Button>
-                        )}
-                        {isAdmin && (
-                          <Button size="sm" variant="destructive" onClick={() => remove(p.id)}>Excluir</Button>
-                        )}
+                        {(() => {
+                          const showEdit = editable;
+                          const showCancel = canCancel && p.status !== "cancelado" && p.status !== "entregue";
+                          const showDelete = isAdmin;
+                          const hasAny = showEdit || showCancel || showDelete;
+                          if (!hasAny) {
+                            return (
+                              <Button size="sm" variant="ghost" disabled aria-label="Sem ações disponíveis">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            );
+                          }
+                          return (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="ghost" aria-label="Ações">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {showEdit && (
+                                  <DropdownMenuItem onClick={() => setEditing(p)}>
+                                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                                  </DropdownMenuItem>
+                                )}
+                                {showEdit && (showCancel || showDelete) && <DropdownMenuSeparator />}
+                                {showCancel && (
+                                  <DropdownMenuItem onClick={() => setCancelingId(p.id)}>
+                                    <XIcon className="h-4 w-4 mr-2" /> Cancelar pedido
+                                  </DropdownMenuItem>
+                                )}
+                                {showDelete && (
+                                  <DropdownMenuItem
+                                    onClick={() => remove(p.id)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          );
+                        })()}
                       </TableCell>
                     </TableRow>
                   );
