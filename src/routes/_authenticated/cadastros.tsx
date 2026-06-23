@@ -766,8 +766,8 @@ function UsuariosTab() {
 
   const submitNew = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isPasswordOk(form.senha)) {
-      toast.error("A senha não atende aos requisitos mínimos.");
+    if (!form.senha || form.senha.length < 6) {
+      toast.error("A senha provisória deve ter ao menos 6 caracteres.");
       return;
     }
     setSaving(true);
