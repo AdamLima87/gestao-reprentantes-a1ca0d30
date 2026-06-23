@@ -680,7 +680,7 @@ function CConfigTab() {
                 <TableCell>{c.clientes?.nome}</TableCell>
                 <TableCell>{c.representantes?.nome}</TableCell>
                 <TableCell>{Number(c.percentual).toFixed(2)}%</TableCell>
-                <TableCell><Button size="sm" variant="destructive" onClick={() => del(c.id)}>Remover</Button></TableCell>
+                <TableCell>{canEditPct && <Button size="sm" variant="destructive" onClick={() => del(c.id)}>Remover</Button>}</TableCell>
               </TableRow>
             ))}
           </TableBody>
