@@ -226,12 +226,8 @@ function PedidosPage() {
                           const showDelete = isAdmin;
                           const hasAny = showEdit || showCancel || showDelete;
                           if (!hasAny) {
-                            return (
-                              <Button size="sm" variant="ghost" disabled aria-label="Sem ações disponíveis">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            );
-                          }
+                             return null;
+                           }
                           return (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
