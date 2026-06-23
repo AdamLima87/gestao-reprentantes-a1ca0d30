@@ -400,18 +400,21 @@ export type Database = {
         Row: {
           criado_em: string
           id: string
+          must_change_password: boolean
           nome: string
           representante_id: string | null
         }
         Insert: {
           criado_em?: string
           id: string
+          must_change_password?: boolean
           nome?: string
           representante_id?: string | null
         }
         Update: {
           criado_em?: string
           id?: string
+          must_change_password?: boolean
           nome?: string
           representante_id?: string | null
         }
@@ -537,7 +540,12 @@ export type Database = {
       reprocessar_comissoes: { Args: never; Returns: Json }
     }
     Enums: {
-      app_role: "admin" | "vendedor_interno" | "representante" | "financeiro"
+      app_role:
+        | "admin"
+        | "vendedor_interno"
+        | "representante"
+        | "financeiro"
+        | "gestor"
       comissao_tipo:
         | "externo"
         | "interno_novo"
@@ -678,7 +686,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "vendedor_interno", "representante", "financeiro"],
+      app_role: [
+        "admin",
+        "vendedor_interno",
+        "representante",
+        "financeiro",
+        "gestor",
+      ],
       comissao_tipo: [
         "externo",
         "interno_novo",

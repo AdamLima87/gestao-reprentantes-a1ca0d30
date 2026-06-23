@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
-export type AppRole = "admin" | "vendedor_interno" | "representante" | "financeiro";
+export type AppRole =
+  | "admin"
+  | "vendedor_interno"
+  | "representante"
+  | "financeiro"
+  | "gestor";
 
 export interface AuthState {
   loading: boolean;
@@ -11,6 +16,7 @@ export interface AuthState {
   roles: AppRole[];
   representanteId: string | null;
   nome: string;
+  mustChangePassword: boolean;
 }
 
 export function useAuth(): AuthState {
@@ -19,6 +25,7 @@ export function useAuth(): AuthState {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [representanteId, setRepresentanteId] = useState<string | null>(null);
   const [nome, setNome] = useState("");
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -37,16 +44,22 @@ export function useAuth(): AuthState {
       setRoles([]);
       setRepresentanteId(null);
       setNome("");
+      setMustChangePassword(false);
       return;
     }
     (async () => {
       const [{ data: rolesData }, { data: profile }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", uid),
-        supabase.from("profiles").select("nome, representante_id").eq("id", uid).maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("nome, representante_id, must_change_password")
+          .eq("id", uid)
+          .maybeSingle(),
       ]);
       setRoles((rolesData ?? []).map((r) => r.role as AppRole));
       setRepresentanteId(profile?.representante_id ?? null);
       setNome(profile?.nome ?? "");
+      setMustChangePassword(Boolean((profile as any)?.must_change_password));
     })();
   }, [session?.user.id]);
 
@@ -57,6 +70,7 @@ export function useAuth(): AuthState {
     roles,
     representanteId,
     nome,
+    mustChangePassword,
   };
 }
 

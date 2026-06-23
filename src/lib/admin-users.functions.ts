@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type AppRole = "admin" | "vendedor_interno" | "representante" | "financeiro";
+type AppRole = "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -11,11 +11,13 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   if (!isAdmin) throw new Error("Apenas administradores podem executar esta ação.");
 }
 
-function validarSenha(senha: string) {
-  if (senha.length < 10) throw new Error("Senha deve ter ao menos 10 caracteres.");
-  if (!/[A-Z]/.test(senha)) throw new Error("Senha deve conter ao menos uma letra maiúscula.");
-  if (!/[a-z]/.test(senha)) throw new Error("Senha deve conter ao menos uma letra minúscula.");
-  if (!/[0-9]/.test(senha)) throw new Error("Senha deve conter ao menos um número.");
+function validarSenhaProvisoria(senha: string) {
+  // A senha provisória pode ser livre, mas precisa ter ao menos 6 caracteres
+  // para evitar erros do Supabase Auth. O usuário será obrigado a trocá-la
+  // no primeiro acesso, atendendo aos requisitos fortes de segurança.
+  if (!senha || senha.length < 6) {
+    throw new Error("Senha provisória deve ter ao menos 6 caracteres.");
+  }
 }
 
 export const createUser = createServerFn({ method: "POST" })
@@ -31,7 +33,7 @@ export const createUser = createServerFn({ method: "POST" })
       if (!input.email || !input.senha || !input.nome || !input.role) {
         throw new Error("Campos obrigatórios faltando.");
       }
-      validarSenha(input.senha);
+      validarSenhaProvisoria(input.senha);
       return input;
     },
   )
@@ -63,6 +65,7 @@ export const createUser = createServerFn({ method: "POST" })
       .update({
         nome: data.nome,
         representante_id: data.representante_id || null,
+        must_change_password: true,
       })
       .eq("id", userId);
     if (profErr) throw new Error(profErr.message);
@@ -122,7 +125,7 @@ export const updateUser = createServerFn({ method: "POST" })
       representante_id?: string | null;
     }) => {
       if (!input.userId) throw new Error("userId obrigatório.");
-      if (input.senha) validarSenha(input.senha);
+      if (input.senha) validarSenhaProvisoria(input.senha);
       return input;
     },
   )
@@ -139,10 +142,12 @@ export const updateUser = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    const profPatch: { nome?: string; representante_id?: string | null } = {};
+    const profPatch: { nome?: string; representante_id?: string | null; must_change_password?: boolean } = {};
     if (data.nome !== undefined) profPatch.nome = data.nome;
     if (data.representante_id !== undefined)
       profPatch.representante_id = data.representante_id || null;
+    // Senha redefinida por um admin é considerada provisória e exige troca no próximo login.
+    if (data.senha) profPatch.must_change_password = true;
     if (Object.keys(profPatch).length > 0) {
       const { error } = await supabaseAdmin.from("profiles").update(profPatch).eq("id", data.userId);
       if (error) throw new Error(error.message);

@@ -760,14 +760,14 @@ function UsuariosTab() {
     nome: "",
     email: "",
     senha: "",
-    role: "representante" as "admin" | "vendedor_interno" | "representante" | "financeiro",
+    role: "representante" as "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor",
     representante_id: "none",
   });
 
   const submitNew = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isPasswordOk(form.senha)) {
-      toast.error("A senha não atende aos requisitos mínimos.");
+    if (!form.senha || form.senha.length < 6) {
+      toast.error("A senha provisória deve ter ao menos 6 caracteres.");
       return;
     }
     setSaving(true);
@@ -797,7 +797,7 @@ function UsuariosTab() {
     nome: string;
     email: string;
     senha: string;
-    role: "admin" | "vendedor_interno" | "representante" | "financeiro";
+    role: "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor";
     representante_id: string;
   }>(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -816,8 +816,8 @@ function UsuariosTab() {
   const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
-    if (editing.senha && !isPasswordOk(editing.senha)) {
-      toast.error("Nova senha não atende aos requisitos mínimos.");
+    if (editing.senha && editing.senha.length < 6) {
+      toast.error("Nova senha provisória deve ter ao menos 6 caracteres.");
       return;
     }
     setSavingEdit(true);
@@ -858,6 +858,7 @@ function UsuariosTab() {
 
   const roleLabel: Record<string, string> = {
     admin: "Admin",
+    gestor: "Gestor",
     vendedor_interno: "Vendedor interno",
     representante: "Representante",
     financeiro: "Financeiro",
@@ -877,14 +878,17 @@ function UsuariosTab() {
               <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
               <div>
                 <Label>Senha provisória *</Label>
-                <Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={10} />
-                <PasswordStrengthMeter value={form.senha} />
+                <Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={6} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pode ser qualquer senha com 6+ caracteres. O usuário será obrigado a trocá-la no primeiro acesso, atendendo aos requisitos de segurança.
+                </p>
               </div>
               <div><Label>Perfil *</Label>
                 <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as typeof form.role })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="gestor">Gestor</SelectItem>
                     <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
                     <SelectItem value="representante">Representante</SelectItem>
                     <SelectItem value="financeiro">Financeiro</SelectItem>
@@ -948,15 +952,20 @@ function UsuariosTab() {
             <div><Label>Nome *</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} required /></div>
             <div><Label>E-mail *</Label><Input type="email" value={editing.email} onChange={(e) => setEditing({ ...editing, email: e.target.value })} required /></div>
             <div>
-              <Label>Nova senha (opcional)</Label>
+              <Label>Nova senha provisória (opcional)</Label>
               <Input type="text" value={editing.senha} onChange={(e) => setEditing({ ...editing, senha: e.target.value })} placeholder="Deixe em branco para manter" />
-              {editing.senha && <PasswordStrengthMeter value={editing.senha} />}
+              {editing.senha && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Ao salvar, o usuário será obrigado a definir uma nova senha forte no próximo login.
+                </p>
+              )}
             </div>
             <div><Label>Perfil *</Label>
               <Select value={editing.role} onValueChange={(v) => setEditing({ ...editing, role: v as typeof editing.role })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
                   <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
                   <SelectItem value="representante">Representante</SelectItem>
                   <SelectItem value="financeiro">Financeiro</SelectItem>
