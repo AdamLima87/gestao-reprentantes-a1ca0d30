@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { addBusinessDays } from "@/lib/business-days";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -275,16 +276,34 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
   reps: any[]; clientes: any[]; myRepId: string | null; onDone: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const today = new Date().toISOString().slice(0, 10);
+  const initialForm = {
     numero_pedido: "",
     numero_pedido_cliente: "",
     cliente_id: "",
     representante_id: myRepId ?? "",
-    data_pedido: new Date().toISOString().slice(0, 10),
-    prazo_entrega: "",
+    data_pedido: today,
+    prazo_entrega: addBusinessDays(today, 15),
     valor_produtos: "",
     jefferson_participou: false,
-  });
+  };
+  const [form, setForm] = useState(initialForm);
+
+  useEffect(() => {
+    if (open) {
+      const t = new Date().toISOString().slice(0, 10);
+      setForm({ ...initialForm, data_pedido: t, prazo_entrega: addBusinessDays(t, 15), representante_id: myRepId ?? "" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    if (form.data_pedido) {
+      const novo = addBusinessDays(form.data_pedido, 15);
+      if (novo !== form.prazo_entrega) setForm((f) => ({ ...f, prazo_entrega: novo }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.data_pedido]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -338,7 +357,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Data pedido</Label><Input type="date" value={form.data_pedido} onChange={(e) => setForm({ ...form, data_pedido: e.target.value })} /></div>
-            <div><Label>Prazo entrega</Label><Input type="date" value={form.prazo_entrega} onChange={(e) => setForm({ ...form, prazo_entrega: e.target.value })} /></div>
+            <div><Label>Prazo entrega <span className="text-xs text-muted-foreground">(15 dias úteis)</span></Label><Input type="date" value={form.prazo_entrega} readOnly className="bg-muted" /></div>
           </div>
           <div><Label>Valor produtos (R$)</Label><Input type="number" step="0.01" value={form.valor_produtos} onChange={(e) => setForm({ ...form, valor_produtos: e.target.value })} /></div>
           <div className="flex items-center gap-2">
