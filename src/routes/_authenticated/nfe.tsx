@@ -239,3 +239,53 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
     </Dialog>
   );
 }
+
+function RegistrarEntregaDialog({ nfeId, pedidoId, onDone }: { nfeId: string; pedidoId: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data) {
+      toast.error("Informe a data de entrega.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("nfe").update({ data_entrega: data }).eq("id", nfeId);
+    if (error) {
+      setSaving(false);
+      return toast.error(error.message);
+    }
+    const { error: errPed } = await supabase
+      .from("pedidos")
+      .update({ status: "entregue" })
+      .eq("id", pedidoId)
+      .neq("status", "cancelado");
+    setSaving(false);
+    if (errPed) return toast.error("Entrega salva, mas falha ao atualizar pedido: " + errPed.message);
+    toast.success("Entrega registrada!");
+    setOpen(false);
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">Registrar entrega</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Registrar entrega</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <Label>Data de entrega *</Label>
+            <Input type="date" value={data} onChange={(e) => setData(e.target.value)} required />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={saving}>Confirmar entrega</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
