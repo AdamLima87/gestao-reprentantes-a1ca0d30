@@ -65,6 +65,7 @@ export const createUser = createServerFn({ method: "POST" })
       .update({
         nome: data.nome,
         representante_id: data.representante_id || null,
+        must_change_password: true,
       })
       .eq("id", userId);
     if (profErr) throw new Error(profErr.message);
