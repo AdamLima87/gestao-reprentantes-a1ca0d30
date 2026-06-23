@@ -104,6 +104,7 @@ function RelatoriosPage() {
           <TabsTrigger value="comissoes">Comissões</TabsTrigger>
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
+          <TabsTrigger value="nfe">NF-e</TabsTrigger>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
         </TabsList>
 
@@ -115,6 +116,9 @@ function RelatoriosPage() {
         </TabsContent>
         <TabsContent value="pedidos" className="space-y-4 mt-4">
           <PedidosTab mes={mes} ano={ano} />
+        </TabsContent>
+        <TabsContent value="nfe" className="space-y-4 mt-4">
+          <NfeTab mes={mes} ano={ano} />
         </TabsContent>
         <TabsContent value="clientes" className="space-y-4 mt-4">
           <ClientesTab mes={mes} ano={ano} />
