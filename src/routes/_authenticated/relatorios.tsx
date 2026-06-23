@@ -306,12 +306,6 @@ function ExternosTable({
 
 const TIPOS_INTERNO = ["interno_novo", "interno_reativacao", "interno_recorrente", "interno_sobre_rep"] as const;
 
-function fmtDateBR(s?: string | null) {
-  if (!s) return "—";
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return s;
-  return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
-}
 
 function InternoTable({
   data,
