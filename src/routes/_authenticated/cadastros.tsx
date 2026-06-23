@@ -234,17 +234,18 @@ function ClientesTab() {
 
 // ============== REPS ==============
 type RepFormState = {
-  nome: string; regiao: string; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
+  nome: string; regiao: string; estados: string[]; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
   tipo_pessoa: "juridica" | "fisica";
   cnpj: string; razao_social: string; endereco: string; numero: string; bairro: string; cidade: string; estado: string; cep: string; nome_socio: string;
   cpf: string; nome_completo: string; rg: string; data_nascimento: string;
 };
 const emptyRepForm: RepFormState = {
-  nome: "", regiao: "", tipo: "externo", percentual_padrao: "5.0", ativo: true,
+  nome: "", regiao: "", estados: [], tipo: "externo", percentual_padrao: "5.0", ativo: true,
   tipo_pessoa: "juridica",
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
   cpf: "", nome_completo: "", rg: "", data_nascimento: "",
 };
+
 
 const emptyEnderecoFields = {
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
