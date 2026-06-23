@@ -219,7 +219,7 @@ function PedidosPage() {
                         {editable && (
                           <Button size="sm" variant="outline" onClick={() => setEditing(p)}>Editar</Button>
                         )}
-                        {isAdmin && p.status !== "cancelado" && (
+                        {canCancel && p.status !== "cancelado" && (
                           <Button size="sm" variant="destructive" onClick={() => setCancelingId(p.id)}>Cancelar</Button>
                         )}
                         {isAdmin && (
