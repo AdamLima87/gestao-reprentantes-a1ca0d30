@@ -3,6 +3,21 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type AppRole = "admin" | "vendedor_interno" | "representante" | "financeiro";
 
+async function assertAdmin(context: { supabase: any; userId: string }) {
+  const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (!isAdmin) throw new Error("Apenas administradores podem executar esta ação.");
+}
+
+function validarSenha(senha: string) {
+  if (senha.length < 10) throw new Error("Senha deve ter ao menos 10 caracteres.");
+  if (!/[A-Z]/.test(senha)) throw new Error("Senha deve conter ao menos uma letra maiúscula.");
+  if (!/[a-z]/.test(senha)) throw new Error("Senha deve conter ao menos uma letra minúscula.");
+  if (!/[0-9]/.test(senha)) throw new Error("Senha deve conter ao menos um número.");
+}
+
 export const createUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -16,19 +31,12 @@ export const createUser = createServerFn({ method: "POST" })
       if (!input.email || !input.senha || !input.nome || !input.role) {
         throw new Error("Campos obrigatórios faltando.");
       }
-      if (input.senha.length < 10) throw new Error("Senha deve ter ao menos 10 caracteres.");
-      if (!/[A-Z]/.test(input.senha)) throw new Error("Senha deve conter ao menos uma letra maiúscula.");
-      if (!/[a-z]/.test(input.senha)) throw new Error("Senha deve conter ao menos uma letra minúscula.");
-      if (!/[0-9]/.test(input.senha)) throw new Error("Senha deve conter ao menos um número.");
+      validarSenha(input.senha);
       return input;
     },
   )
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Apenas administradores podem criar usuários.");
+    await assertAdmin(context);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -44,7 +52,6 @@ export const createUser = createServerFn({ method: "POST" })
 
     const userId = created.user.id;
 
-    // handle_new_user trigger creates profile + default role; overwrite with chosen ones.
     await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
@@ -61,4 +68,110 @@ export const createUser = createServerFn({ method: "POST" })
     if (profErr) throw new Error(profErr.message);
 
     return { ok: true, userId };
+  });
+
+export const listUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: profiles, error: pErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, nome, representante_id, criado_em, representantes(nome)")
+      .order("criado_em", { ascending: false });
+    if (pErr) throw new Error(pErr.message);
+
+    const { data: roles, error: rErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id, role");
+    if (rErr) throw new Error(rErr.message);
+
+    // Fetch emails via auth admin (paginated)
+    const emails = new Map<string, string>();
+    let page = 1;
+    while (true) {
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) throw new Error(error.message);
+      for (const u of list.users) emails.set(u.id, u.email ?? "");
+      if (list.users.length < 200) break;
+      page += 1;
+      if (page > 50) break;
+    }
+
+    return (profiles ?? []).map((p: any) => ({
+      id: p.id,
+      nome: p.nome,
+      email: emails.get(p.id) ?? "",
+      representante_id: p.representante_id,
+      representante_nome: p.representantes?.nome ?? null,
+      criado_em: p.criado_em,
+      roles: (roles ?? []).filter((r: any) => r.user_id === p.id).map((r: any) => r.role),
+    }));
+  });
+
+export const updateUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: {
+      userId: string;
+      nome?: string;
+      email?: string;
+      senha?: string | null;
+      role?: AppRole;
+      representante_id?: string | null;
+    }) => {
+      if (!input.userId) throw new Error("userId obrigatório.");
+      if (input.senha) validarSenha(input.senha);
+      return input;
+    },
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const authPatch: { email?: string; password?: string; user_metadata?: any } = {};
+    if (data.email) authPatch.email = data.email;
+    if (data.senha) authPatch.password = data.senha;
+    if (data.nome) authPatch.user_metadata = { nome: data.nome };
+    if (Object.keys(authPatch).length > 0) {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, authPatch);
+      if (error) throw new Error(error.message);
+    }
+
+    const profPatch: { nome?: string; representante_id?: string | null } = {};
+    if (data.nome !== undefined) profPatch.nome = data.nome;
+    if (data.representante_id !== undefined)
+      profPatch.representante_id = data.representante_id || null;
+    if (Object.keys(profPatch).length > 0) {
+      const { error } = await supabaseAdmin.from("profiles").update(profPatch).eq("id", data.userId);
+      if (error) throw new Error(error.message);
+    }
+
+    if (data.role) {
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: data.userId, role: data.role });
+      if (error) throw new Error(error.message);
+    }
+
+    return { ok: true };
+  });
+
+export const deleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string }) => {
+    if (!input.userId) throw new Error("userId obrigatório.");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    if (data.userId === context.userId) {
+      throw new Error("Você não pode excluir o próprio usuário.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
