@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { formatarData } from "@/lib/utils";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -97,11 +98,7 @@ async function gerarExtratoPDF(
       c.pedidos?.numero_pedido ?? "—",
       c.pedidos?.clientes?.nome ?? "—",
       c.nfe?.numero_nfe ?? "—",
-      c.nfe?.data_emissao
-        ? new Date(c.nfe.data_emissao).toLocaleDateString("pt-BR")
-        : c.criado_em
-          ? new Date(c.criado_em).toLocaleDateString("pt-BR")
-          : "—",
+      formatarData(c.nfe?.data_emissao ?? c.criado_em),
       fmtBRLUtil(c.base_calculo),
       TIPO_LABEL[c.tipo] ?? c.tipo,
       `${Number(c.percentual_aplicado).toFixed(2)}%`,
@@ -393,7 +390,7 @@ function ComissoesPage() {
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <StatusBadge pago={!!c.pago_em} />
-                          {c.pago_em && <span className="text-xs text-muted-foreground">em {c.pago_em}</span>}
+                          {c.pago_em && <span className="text-xs text-muted-foreground">em {formatarData(c.pago_em)}</span>}
                           {c.comprovante_url && <ComprovanteLink path={c.comprovante_url} />}
                         </div>
                       </TableCell>
@@ -537,7 +534,7 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
                   <TableCell>{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
                   <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
                   <TableCell><StatusBadge pago={!!c.pago_em} /></TableCell>
-                  <TableCell>{c.pago_em ?? "—"}</TableCell>
+                  <TableCell>{formatarData(c.pago_em)}</TableCell>
                 </TableRow>
               ))}
               {(doMes ?? []).length === 0 && (

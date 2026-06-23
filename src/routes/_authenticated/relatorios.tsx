@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { formatarData } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -305,12 +306,6 @@ function ExternosTable({
 
 const TIPOS_INTERNO = ["interno_novo", "interno_reativacao", "interno_recorrente", "interno_sobre_rep"] as const;
 
-function fmtDateBR(s?: string | null) {
-  if (!s) return "—";
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return s;
-  return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
-}
 
 function InternoTable({
   data,
@@ -393,9 +388,9 @@ function InternoTable({
       [
         ...rows.map((r) => [
           r.numero,
-          fmtDateBR(r.emissao),
+          formatarData(r.emissao),
           r.empresa,
-          fmtDateBR(r.entrega),
+          formatarData(r.entrega),
           r.valor.toFixed(2),
           r.c15 == null ? "—" : r.c15.toFixed(2),
           r.c1 == null ? "—" : r.c1.toFixed(2),
@@ -422,9 +417,9 @@ function InternoTable({
       [
         ...rows.map((r) => [
           r.numero,
-          fmtDateBR(r.emissao),
+          formatarData(r.emissao),
           r.empresa,
-          fmtDateBR(r.entrega),
+          formatarData(r.entrega),
           fmtBRL(r.valor),
           r.c15 == null ? "—" : fmtBRL(r.c15),
           r.c1 == null ? "—" : fmtBRL(r.c1),
@@ -471,9 +466,9 @@ function InternoTable({
               {rows.map((r) => (
                 <TableRow key={r.nfeId}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
-                  <TableCell>{fmtDateBR(r.emissao)}</TableCell>
+                  <TableCell>{formatarData(r.emissao)}</TableCell>
                   <TableCell>{r.empresa}</TableCell>
-                  <TableCell>{fmtDateBR(r.entrega)}</TableCell>
+                  <TableCell>{formatarData(r.entrega)}</TableCell>
                   <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
                   <TableCell className="text-right">{r.c15 == null ? "—" : fmtBRL(r.c15)}</TableCell>
                   <TableCell className="text-right">{r.c1 == null ? "—" : fmtBRL(r.c1)}</TableCell>
@@ -690,8 +685,8 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
         p.numero_pedido,
         (p.clientes as { nome?: string } | null)?.nome ?? "—",
         (p.representantes as { nome?: string } | null)?.nome ?? "—",
-        p.data_pedido,
-        p.prazo_entrega ?? "",
+        formatarData(p.data_pedido),
+        formatarData(p.prazo_entrega),
         Number(p.valor_produtos).toFixed(2),
         p.status,
       ]),
@@ -705,8 +700,8 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
         p.numero_pedido,
         (p.clientes as { nome?: string } | null)?.nome ?? "—",
         (p.representantes as { nome?: string } | null)?.nome ?? "—",
-        p.data_pedido,
-        p.prazo_entrega ?? "",
+        formatarData(p.data_pedido),
+        formatarData(p.prazo_entrega),
         fmtBRL(p.valor_produtos),
         p.status,
       ]),
@@ -766,8 +761,8 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
                     <TableCell className="font-medium">{p.numero_pedido}</TableCell>
                     <TableCell>{(p.clientes as { nome?: string } | null)?.nome ?? "—"}</TableCell>
                     <TableCell>{(p.representantes as { nome?: string } | null)?.nome ?? "—"}</TableCell>
-                    <TableCell>{p.data_pedido}</TableCell>
-                    <TableCell>{p.prazo_entrega ?? "—"}</TableCell>
+                    <TableCell>{formatarData(p.data_pedido)}</TableCell>
+                    <TableCell>{formatarData(p.prazo_entrega)}</TableCell>
                     <TableCell className="text-right">{fmtBRL(p.valor_produtos)}</TableCell>
                     <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
                   </TableRow>
@@ -811,7 +806,7 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
       .map((c) => ({
         nome: c.nome,
         rep: data.reps.find((r) => r.id === c.representante_id)?.nome ?? "—",
-        ultima: c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "Nunca",
+        ultima: c.ultima_compra_at ? formatarData(c.ultima_compra_at) : "Nunca",
       }))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [data]);

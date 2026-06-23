@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { formatarData } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { addBusinessDays } from "@/lib/business-days";
@@ -200,8 +201,8 @@ function PedidosPage() {
                       <TableCell className="font-mono text-xs">{p.numero_pedido}</TableCell>
                       <TableCell>{p.clientes?.nome ?? "—"}</TableCell>
                       <TableCell>{p.representantes?.nome ?? "—"}</TableCell>
-                      <TableCell>{p.data_pedido}</TableCell>
-                      <TableCell>{p.prazo_entrega ?? "—"}</TableCell>
+                      <TableCell>{formatarData(p.data_pedido)}</TableCell>
+                      <TableCell>{formatarData(p.prazo_entrega)}</TableCell>
                       <TableCell>{fmtBRL(p.valor_produtos)}</TableCell>
                       <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
                       <TableCell>

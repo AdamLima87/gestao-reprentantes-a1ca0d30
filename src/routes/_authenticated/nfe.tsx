@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { formatarData } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,13 +68,13 @@ function NfePage() {
                   {(nfes ?? []).map((n) => (
                     <TableRow key={n.id}>
                       <TableCell className="font-mono text-xs">{n.numero_nfe}</TableCell>
-                      <TableCell>{n.data_nfe}</TableCell>
+                      <TableCell>{formatarData(n.data_nfe)}</TableCell>
                       <TableCell>{n.pedidos?.numero_pedido}</TableCell>
                       <TableCell>{n.pedidos?.clientes?.nome}</TableCell>
                       <TableCell>{n.pedidos?.representantes?.nome}</TableCell>
                       <TableCell>{fmtBRL(n.valor_nfe)}</TableCell>
                       <TableCell>{String(n.mes_ref).padStart(2, "0")}/{n.ano_ref}</TableCell>
-                      <TableCell>{n.data_entrega ?? "—"}</TableCell>
+                      <TableCell>{formatarData(n.data_entrega)}</TableCell>
                       <TableCell>
                         {n.observacao ? (
                           <Tooltip>
