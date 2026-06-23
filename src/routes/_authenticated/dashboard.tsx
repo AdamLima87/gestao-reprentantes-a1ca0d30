@@ -31,7 +31,7 @@ function Dashboard() {
         supabase.from("pedidos").select("id, status, prazo_entrega, valor_produtos, representante_id"),
         supabase.from("nfe").select("valor_nfe, mes_ref, ano_ref, pedido_id").eq("mes_ref", mes).eq("ano_ref", ano),
         supabase.from("metas").select("valor, mes, ano, representante_id").eq("mes", mes).eq("ano", ano),
-        supabase.from("representantes").select("id, nome, regiao, tipo, ativo"),
+        supabase.from("representantes").select("id, nome, regiao, estados, tipo, ativo"),
       ]);
       return {
         pedidos: pedidosRes.data ?? [],
@@ -132,11 +132,20 @@ function Dashboard() {
       {(() => {
         const counts: Record<string, number> = {};
         for (const r of data.reps as any[]) {
-          if (r.tipo !== "externo" || !r.ativo || !r.regiao) continue;
-          const raw = String(r.regiao).trim();
-          const uf = raw.length === 2 ? raw.toUpperCase() : (NOME_TO_UF[raw.toLowerCase()] ?? raw.toUpperCase());
-          counts[uf] = (counts[uf] ?? 0) + 1;
+          if (r.tipo !== "externo" || !r.ativo) continue;
+          const lista: string[] = Array.isArray(r.estados) && r.estados.length > 0
+            ? r.estados
+            : (r.regiao ? [String(r.regiao)] : []);
+          const ufs = new Set<string>();
+          for (const item of lista) {
+            const raw = String(item).trim();
+            if (!raw) continue;
+            const uf = raw.length === 2 ? raw.toUpperCase() : (NOME_TO_UF[raw.toLowerCase()] ?? raw.toUpperCase());
+            ufs.add(uf);
+          }
+          for (const uf of ufs) counts[uf] = (counts[uf] ?? 0) + 1;
         }
+
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>

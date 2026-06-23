@@ -1,0 +1,2 @@
+ALTER TABLE public.representantes ADD COLUMN IF NOT EXISTS estados text[] NOT NULL DEFAULT '{}';
+UPDATE public.representantes SET estados = ARRAY[regiao] WHERE regiao IS NOT NULL AND regiao <> '' AND (estados IS NULL OR cardinality(estados) = 0);

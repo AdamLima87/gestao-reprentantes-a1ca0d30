@@ -234,17 +234,18 @@ function ClientesTab() {
 
 // ============== REPS ==============
 type RepFormState = {
-  nome: string; regiao: string; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
+  nome: string; regiao: string; estados: string[]; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
   tipo_pessoa: "juridica" | "fisica";
   cnpj: string; razao_social: string; endereco: string; numero: string; bairro: string; cidade: string; estado: string; cep: string; nome_socio: string;
   cpf: string; nome_completo: string; rg: string; data_nascimento: string;
 };
 const emptyRepForm: RepFormState = {
-  nome: "", regiao: "", tipo: "externo", percentual_padrao: "5.0", ativo: true,
+  nome: "", regiao: "", estados: [], tipo: "externo", percentual_padrao: "5.0", ativo: true,
   tipo_pessoa: "juridica",
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
   cpf: "", nome_completo: "", rg: "", data_nascimento: "",
 };
+
 
 const emptyEnderecoFields = {
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
@@ -292,15 +293,40 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
     <>
       <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Região (UF)</Label>
-          <Select value={form.regiao} onValueChange={(v) => setForm({ ...form, regiao: v })}>
-            <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+        <div>
+          <Label>Estados de cobertura</Label>
+          <Select
+            value=""
+            onValueChange={(v) => {
+              if (!v) return;
+              if (form.estados.includes(v)) return;
+              setForm({ ...form, estados: [...form.estados, v] });
+            }}
+          >
+            <SelectTrigger><SelectValue placeholder="Adicionar estado…" /></SelectTrigger>
             <SelectContent className="max-h-72">
-              {BR_STATES.map((s) => (
+              {BR_STATES.filter((s) => !form.estados.includes(s.sigla)).map((s) => (
                 <SelectItem key={s.sigla} value={s.sigla}>{s.sigla} — {s.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {form.estados.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {form.estados.map((uf) => (
+                <Badge key={uf} variant="secondary" className="gap-1 pr-1">
+                  {uf}
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, estados: form.estados.filter((x) => x !== uf) })}
+                    className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-muted-foreground/20"
+                    aria-label={`Remover ${uf}`}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
         <div><Label>Tipo</Label>
           <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as "externo" | "interno" })}>
@@ -312,6 +338,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           </Select>
         </div>
       </div>
+
       {form.tipo === "externo" && (
         <div>
           <Label>Tipo de pessoa</Label>
@@ -403,8 +430,9 @@ function RepsTab() {
     const isExt = f.tipo === "externo";
     const isPJ = isExt && f.tipo_pessoa === "juridica";
     const isPF = isExt && f.tipo_pessoa === "fisica";
+    const regiaoPrincipal = f.estados[0] ? (regiaoDoEstado(f.estados[0]) ?? f.estados[0]) : null;
     return {
-      nome: f.nome, regiao: f.regiao || null, tipo: f.tipo,
+      nome: f.nome, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
       percentual_padrao: Number(f.percentual_padrao), ativo: f.ativo,
       tipo_pessoa: isExt ? f.tipo_pessoa : "juridica",
       cnpj: isPJ ? (f.cnpj || null) : null,
@@ -423,6 +451,7 @@ function RepsTab() {
     };
   };
 
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = payload(form);
@@ -438,8 +467,12 @@ function RepsTab() {
   const openNovo = () => { setEditingId(null); setForm(emptyRepForm); setOpen(true); };
   const openEdit = (r: any) => {
     setEditingId(r.id);
+    const regiaoLegacy = ((): string => { const raw = String(r.regiao ?? "").trim(); if (!raw) return ""; if (raw.length === 2) return raw.toUpperCase(); return NOME_TO_UF[raw.toLowerCase()] ?? ""; })();
+    const estadosArr: string[] = Array.isArray(r.estados) && r.estados.length > 0
+      ? (r.estados as string[]).map((s) => String(s).toUpperCase())
+      : (regiaoLegacy ? [regiaoLegacy] : []);
     setForm({
-      nome: r.nome ?? "", regiao: ((): string => { const raw = String(r.regiao ?? "").trim(); if (!raw) return ""; if (raw.length === 2) return raw.toUpperCase(); return NOME_TO_UF[raw.toLowerCase()] ?? ""; })(), tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      nome: r.nome ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
       tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
@@ -449,6 +482,7 @@ function RepsTab() {
     });
     setOpen(true);
   };
+
 
   const toggleAtivo = async (id: string, v: boolean) => {
     await supabase.from("representantes").update({ ativo: v }).eq("id", id);
@@ -486,26 +520,43 @@ function RepsTab() {
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Região</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Estados</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(reps ?? []).map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.nome}</TableCell>
-                <TableCell>{r.regiao ?? "—"}</TableCell>
-                <TableCell>{r.tipo}</TableCell>
-                <TableCell>{Number(r.percentual_padrao).toFixed(2)}%</TableCell>
-                <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
-                    {r.tipo === "externo" && can("gerar_contrato_pdf") && (
-                      <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
+            {(reps ?? []).map((r) => {
+              const estadosArr: string[] = Array.isArray((r as any).estados) && (r as any).estados.length > 0
+                ? ((r as any).estados as string[])
+                : (r.regiao ? [String(r.regiao).length === 2 ? String(r.regiao).toUpperCase() : (NOME_TO_UF[String(r.regiao).toLowerCase()] ?? String(r.regiao).toUpperCase())] : []);
+              const visiveis = estadosArr.slice(0, 3);
+              const extras = estadosArr.length - visiveis.length;
+              return (
+                <TableRow key={r.id}>
+                  <TableCell>{r.nome}</TableCell>
+                  <TableCell>
+                    {estadosArr.length === 0 ? "—" : (
+                      <div className="flex flex-wrap gap-1">
+                        {visiveis.map((uf) => (
+                          <Badge key={uf} variant="secondary">{uf}</Badge>
+                        ))}
+                        {extras > 0 && <Badge variant="outline" className="bg-muted text-muted-foreground">+{extras}</Badge>}
+                      </div>
                     )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>{r.tipo}</TableCell>
+                  <TableCell>{Number(r.percentual_padrao).toFixed(2)}%</TableCell>
+                  <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
+                      {r.tipo === "externo" && can("gerar_contrato_pdf") && (
+                        <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
+
         </Table>
       </CardContent>
     </Card>
