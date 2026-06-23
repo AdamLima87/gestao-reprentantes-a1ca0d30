@@ -388,9 +388,9 @@ function InternoTable({
       [
         ...rows.map((r) => [
           r.numero,
-          fmtDateBR(r.emissao),
+          formatarData(r.emissao),
           r.empresa,
-          fmtDateBR(r.entrega),
+          formatarData(r.entrega),
           r.valor.toFixed(2),
           r.c15 == null ? "—" : r.c15.toFixed(2),
           r.c1 == null ? "—" : r.c1.toFixed(2),
@@ -417,9 +417,9 @@ function InternoTable({
       [
         ...rows.map((r) => [
           r.numero,
-          fmtDateBR(r.emissao),
+          formatarData(r.emissao),
           r.empresa,
-          fmtDateBR(r.entrega),
+          formatarData(r.entrega),
           fmtBRL(r.valor),
           r.c15 == null ? "—" : fmtBRL(r.c15),
           r.c1 == null ? "—" : fmtBRL(r.c1),
@@ -466,9 +466,9 @@ function InternoTable({
               {rows.map((r) => (
                 <TableRow key={r.nfeId}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
-                  <TableCell>{fmtDateBR(r.emissao)}</TableCell>
+                  <TableCell>{formatarData(r.emissao)}</TableCell>
                   <TableCell>{r.empresa}</TableCell>
-                  <TableCell>{fmtDateBR(r.entrega)}</TableCell>
+                  <TableCell>{formatarData(r.entrega)}</TableCell>
                   <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
                   <TableCell className="text-right">{r.c15 == null ? "—" : fmtBRL(r.c15)}</TableCell>
                   <TableCell className="text-right">{r.c1 == null ? "—" : fmtBRL(r.c1)}</TableCell>
