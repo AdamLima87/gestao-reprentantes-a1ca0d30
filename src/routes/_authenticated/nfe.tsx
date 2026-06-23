@@ -111,6 +111,7 @@ function NfePage() {
                                 qc.invalidateQueries({ queryKey: ["pedidos"] });
                                 qc.invalidateQueries({ queryKey: ["comissoes"] });
                                 qc.invalidateQueries({ queryKey: ["dashboard"] });
+                                qc.refetchQueries({ queryKey: ["pedidos-para-nfe"] });
                               }}
                             />
                           )}
