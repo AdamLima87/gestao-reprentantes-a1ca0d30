@@ -390,7 +390,7 @@ function ComissoesPage() {
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <StatusBadge pago={!!c.pago_em} />
-                          {c.pago_em && <span className="text-xs text-muted-foreground">em {c.pago_em}</span>}
+                          {c.pago_em && <span className="text-xs text-muted-foreground">em {formatarData(c.pago_em)}</span>}
                           {c.comprovante_url && <ComprovanteLink path={c.comprovante_url} />}
                         </div>
                       </TableCell>
