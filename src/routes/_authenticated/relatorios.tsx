@@ -194,8 +194,15 @@ type ComissaoRow = {
   valor_comissao: number | string;
   percentual_aplicado: number | string;
   nfe_id: string;
-  representante_id: string;
+  representante_id: string | null;
   representantes: { nome?: string; tipo?: string } | null;
+  nfe: {
+    numero_nfe?: string;
+    data_nfe?: string;
+    data_entrega?: string | null;
+    pedidos?: { clientes?: { nome?: string } | null } | null;
+  } | null;
+};
   nfe: {
     numero_nfe?: string;
     data_nfe?: string;
