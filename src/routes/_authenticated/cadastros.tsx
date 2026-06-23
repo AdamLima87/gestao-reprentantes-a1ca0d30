@@ -31,33 +31,53 @@ export const Route = createFileRoute("/_authenticated/cadastros")({
 function CadastrosPage() {
   const { roles } = useAuth();
   const { can } = usePermissions();
-  if (!roles.includes("admin")) {
-    return <p className="text-muted-foreground">Apenas administradores podem acessar os cadastros.</p>;
+  const isAdmin = roles.includes("admin");
+
+  const podeClientes = isAdmin || can("cadastrar_clientes");
+  const podeReps = isAdmin || can("cadastrar_representantes");
+  const podeImportar = isAdmin || can("importar_planilhas");
+  const podeUsuarios = isAdmin;
+  const podeEmpresa = isAdmin;
+
+  if (!podeClientes && !podeReps && !podeImportar && !podeUsuarios && !podeEmpresa) {
+    return <p className="text-muted-foreground">Você não tem permissão para acessar os cadastros.</p>;
   }
+
+  const defaultTab = podeClientes
+    ? "clientes"
+    : podeReps
+    ? "reps"
+    : podeUsuarios
+    ? "usuarios"
+    : podeEmpresa
+    ? "empresa"
+    : "importar";
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Cadastros</h1>
-      <Tabs defaultValue="clientes">
+      <Tabs defaultValue={defaultTab}>
         <TabsList>
-          <TabsTrigger value="clientes">Clientes</TabsTrigger>
-          <TabsTrigger value="reps">Representantes</TabsTrigger>
-          <TabsTrigger value="cconfig">% por cliente</TabsTrigger>
-          <TabsTrigger value="metas">Metas</TabsTrigger>
-          <TabsTrigger value="usuarios">Usuários</TabsTrigger>
-          <TabsTrigger value="empresa">Empresa</TabsTrigger>
-          {can("importar_planilhas") && <TabsTrigger value="importar">Importar</TabsTrigger>}
+          {podeClientes && <TabsTrigger value="clientes">Clientes</TabsTrigger>}
+          {podeReps && <TabsTrigger value="reps">Representantes</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="cconfig">% por cliente</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="metas">Metas</TabsTrigger>}
+          {podeUsuarios && <TabsTrigger value="usuarios">Usuários</TabsTrigger>}
+          {podeEmpresa && <TabsTrigger value="empresa">Empresa</TabsTrigger>}
+          {podeImportar && <TabsTrigger value="importar">Importar</TabsTrigger>}
         </TabsList>
-        <TabsContent value="clientes"><ClientesTab /></TabsContent>
-        <TabsContent value="reps"><RepsTab /></TabsContent>
-        <TabsContent value="cconfig"><CConfigTab /></TabsContent>
-        <TabsContent value="metas"><MetasTab /></TabsContent>
-        <TabsContent value="usuarios"><UsuariosTab /></TabsContent>
-        <TabsContent value="empresa"><EmpresaTab /></TabsContent>
-        {can("importar_planilhas") && <TabsContent value="importar"><ImportarTab /></TabsContent>}
+        {podeClientes && <TabsContent value="clientes"><ClientesTab /></TabsContent>}
+        {podeReps && <TabsContent value="reps"><RepsTab /></TabsContent>}
+        {isAdmin && <TabsContent value="cconfig"><CConfigTab /></TabsContent>}
+        {isAdmin && <TabsContent value="metas"><MetasTab /></TabsContent>}
+        {podeUsuarios && <TabsContent value="usuarios"><UsuariosTab /></TabsContent>}
+        {podeEmpresa && <TabsContent value="empresa"><EmpresaTab /></TabsContent>}
+        {podeImportar && <TabsContent value="importar"><ImportarTab /></TabsContent>}
       </Tabs>
     </div>
   );
 }
+
 
 // ============== CLIENTES ==============
 function ClientesTab() {
