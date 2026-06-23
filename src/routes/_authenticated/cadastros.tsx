@@ -865,6 +865,28 @@ function UsuariosTab() {
           representante_id: editing.representante_id === "none" ? null : editing.representante_id,
         },
       });
+
+      // Persiste permissões personalizadas
+      const toUpsert: Array<{ user_id: string; permissao: string; concedida: boolean }> = [];
+      const toDelete: string[] = [];
+      for (const k of PERMISSION_KEYS) {
+        const v = editing.perms[k];
+        if (v === "default") toDelete.push(k);
+        else toUpsert.push({ user_id: editing.userId, permissao: k, concedida: v === "granted" });
+      }
+      if (toDelete.length) {
+        await supabase
+          .from("user_permissions" as any)
+          .delete()
+          .eq("user_id", editing.userId)
+          .in("permissao", toDelete);
+      }
+      if (toUpsert.length) {
+        await supabase
+          .from("user_permissions" as any)
+          .upsert(toUpsert, { onConflict: "user_id,permissao" });
+      }
+      qc.invalidateQueries({ queryKey: ["user-permissions-all"] });
       toast.success("Usuário atualizado!");
       setEditing(null);
       qc.invalidateQueries({ queryKey: ["users-adm"] });
