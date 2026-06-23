@@ -1,0 +1,1 @@
+ALTER TABLE public.nfe ADD COLUMN IF NOT EXISTS observacao text;

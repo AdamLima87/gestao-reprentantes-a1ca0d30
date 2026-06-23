@@ -298,6 +298,7 @@ export type Database = {
           id: string
           mes_ref: number
           numero_nfe: string
+          observacao: string | null
           pedido_id: string
           valor_nfe: number
         }
@@ -309,6 +310,7 @@ export type Database = {
           id?: string
           mes_ref: number
           numero_nfe: string
+          observacao?: string | null
           pedido_id: string
           valor_nfe: number
         }
@@ -320,6 +322,7 @@ export type Database = {
           id?: string
           mes_ref?: number
           numero_nfe?: string
+          observacao?: string | null
           pedido_id?: string
           valor_nfe?: number
         }
