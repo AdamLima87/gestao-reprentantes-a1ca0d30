@@ -37,9 +37,9 @@ function NfePage() {
     queryFn: async () => (await supabase.from("nfe").select("*, pedidos(numero_pedido, clientes(nome), representantes(nome))").order("criado_em", { ascending: false })).data ?? [],
   });
   const { data: pedidos } = useQuery({
-    queryKey: ["pedidos-disponiveis"],
+    queryKey: ["pedidos-para-nfe"],
     enabled: canCreate,
-    queryFn: async () => (await supabase.from("pedidos").select("id, numero_pedido, valor_produtos, clientes(nome)").in("status", ["pedido", "producao", "faturado"]).order("criado_em", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("pedidos").select("id, numero_pedido, valor_produtos, clientes(nome)").not("status", "in", '("cancelado","entregue")').order("criado_em", { ascending: false })).data ?? [],
   });
 
   return (
