@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { createUser } from "@/lib/admin-users.functions";
+import { createUser, listUsers, updateUser, deleteUser } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle } from "lucide-react";
