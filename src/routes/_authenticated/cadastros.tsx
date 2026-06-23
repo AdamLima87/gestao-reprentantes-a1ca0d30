@@ -760,7 +760,7 @@ function UsuariosTab() {
     nome: "",
     email: "",
     senha: "",
-    role: "representante" as "admin" | "vendedor_interno" | "representante" | "financeiro",
+    role: "representante" as "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor",
     representante_id: "none",
   });
 
