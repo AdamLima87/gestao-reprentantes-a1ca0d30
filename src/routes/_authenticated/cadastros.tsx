@@ -477,6 +477,37 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           </div>
         </div>
       )}
+
+      <Separator className="my-2" />
+      <div className="space-y-3">
+        <div>
+          <h4 className="text-sm font-semibold">Dados Bancários</h4>
+          <p className="text-xs text-muted-foreground">Opcional — usado no extrato de pagamento de comissões.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Banco</Label><Input value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} placeholder="Ex: Bradesco, Itaú, Nubank" /></div>
+          <div>
+            <Label>Tipo de conta</Label>
+            <Select value={form.tipo_conta} onValueChange={(v) => setForm({ ...form, tipo_conta: v })}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="corrente">Conta Corrente</SelectItem>
+                <SelectItem value="poupanca">Conta Poupança</SelectItem>
+                <SelectItem value="pagamento">Conta de Pagamento</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Agência</Label><Input value={form.agencia} onChange={(e) => setForm({ ...form, agencia: e.target.value })} placeholder="0000" /></div>
+          <div><Label>Conta com dígito</Label><Input value={form.conta_digito} onChange={(e) => setForm({ ...form, conta_digito: e.target.value })} placeholder="00000-0" /></div>
+        </div>
+        <div><Label>Chave PIX</Label><Input value={form.chave_pix} onChange={(e) => setForm({ ...form, chave_pix: e.target.value })} placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória" /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Titular da conta</Label><Input value={form.titular_conta} onChange={(e) => setForm({ ...form, titular_conta: e.target.value })} placeholder="Nome do titular" /></div>
+          <div><Label>CPF/CNPJ do titular</Label><Input value={form.cpf_cnpj_titular} onChange={(e) => setForm({ ...form, cpf_cnpj_titular: e.target.value })} /></div>
+        </div>
+      </div>
     </>
   );
 }
