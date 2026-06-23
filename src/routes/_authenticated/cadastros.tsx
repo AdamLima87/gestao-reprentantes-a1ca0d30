@@ -467,8 +467,12 @@ function RepsTab() {
   const openNovo = () => { setEditingId(null); setForm(emptyRepForm); setOpen(true); };
   const openEdit = (r: any) => {
     setEditingId(r.id);
+    const regiaoLegacy = ((): string => { const raw = String(r.regiao ?? "").trim(); if (!raw) return ""; if (raw.length === 2) return raw.toUpperCase(); return NOME_TO_UF[raw.toLowerCase()] ?? ""; })();
+    const estadosArr: string[] = Array.isArray(r.estados) && r.estados.length > 0
+      ? (r.estados as string[]).map((s) => String(s).toUpperCase())
+      : (regiaoLegacy ? [regiaoLegacy] : []);
     setForm({
-      nome: r.nome ?? "", regiao: ((): string => { const raw = String(r.regiao ?? "").trim(); if (!raw) return ""; if (raw.length === 2) return raw.toUpperCase(); return NOME_TO_UF[raw.toLowerCase()] ?? ""; })(), tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      nome: r.nome ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
       tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
@@ -478,6 +482,7 @@ function RepsTab() {
     });
     setOpen(true);
   };
+
 
   const toggleAtivo = async (id: string, v: boolean) => {
     await supabase.from("representantes").update({ ativo: v }).eq("id", id);
