@@ -520,26 +520,43 @@ function RepsTab() {
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Região</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Estados</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(reps ?? []).map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.nome}</TableCell>
-                <TableCell>{r.regiao ?? "—"}</TableCell>
-                <TableCell>{r.tipo}</TableCell>
-                <TableCell>{Number(r.percentual_padrao).toFixed(2)}%</TableCell>
-                <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
-                    {r.tipo === "externo" && can("gerar_contrato_pdf") && (
-                      <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
+            {(reps ?? []).map((r) => {
+              const estadosArr: string[] = Array.isArray((r as any).estados) && (r as any).estados.length > 0
+                ? ((r as any).estados as string[])
+                : (r.regiao ? [String(r.regiao).length === 2 ? String(r.regiao).toUpperCase() : (NOME_TO_UF[String(r.regiao).toLowerCase()] ?? String(r.regiao).toUpperCase())] : []);
+              const visiveis = estadosArr.slice(0, 3);
+              const extras = estadosArr.length - visiveis.length;
+              return (
+                <TableRow key={r.id}>
+                  <TableCell>{r.nome}</TableCell>
+                  <TableCell>
+                    {estadosArr.length === 0 ? "—" : (
+                      <div className="flex flex-wrap gap-1">
+                        {visiveis.map((uf) => (
+                          <Badge key={uf} variant="secondary">{uf}</Badge>
+                        ))}
+                        {extras > 0 && <Badge variant="outline" className="bg-muted text-muted-foreground">+{extras}</Badge>}
+                      </div>
                     )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>{r.tipo}</TableCell>
+                  <TableCell>{Number(r.percentual_padrao).toFixed(2)}%</TableCell>
+                  <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
+                      {r.tipo === "externo" && can("gerar_contrato_pdf") && (
+                        <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
+
         </Table>
       </CardContent>
     </Card>
