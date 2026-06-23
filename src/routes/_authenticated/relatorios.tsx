@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,7 +49,8 @@ const MESES = [
 
 function RelatoriosPage() {
   const { roles } = useAuth();
-  const allowed = roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const { can } = usePermissions();
+  const allowed = can("exportar_relatorios") || roles.some((r) => ["admin", "vendedor_interno", "financeiro", "gestor"].includes(r));
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
@@ -116,6 +118,8 @@ function RelatoriosPage() {
 }
 
 function ExportButtons({ onCSV, onPDF }: { onCSV: () => void; onPDF: () => void }) {
+  const { can } = usePermissions();
+  if (!can("exportar_relatorios")) return null;
   return (
     <div className="flex gap-2">
       <Button variant="outline" size="sm" onClick={onCSV}>

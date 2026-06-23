@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useServerFn } from "@tanstack/react-start";
 import { reprocessarComissoes } from "@/lib/comissoes.functions";
 import jsPDF from "jspdf";
@@ -236,8 +237,8 @@ function ComprovanteLink({ path }: { path: string }) {
 
 function ComissoesPage() {
   const { roles, representanteId } = useAuth();
+  const { can } = usePermissions();
   const isAdmin = roles.includes("admin");
-  const isFinanceiro = roles.includes("financeiro");
   const isRepOnly =
     roles.includes("representante") &&
     !roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
@@ -291,7 +292,8 @@ function ComissoesPage() {
   const totalPago = (data ?? []).filter((c: any) => c.pago_em).reduce((s, c: any) => s + Number(c.valor_comissao), 0);
   const totalVisivel = filtered.reduce((s: number, c: any) => s + Number(c.valor_comissao), 0);
 
-  const canMarcarPago = isAdmin || isFinanceiro;
+  const canMarcarPago = can("marcar_comissao_paga");
+  const canExportar = can("exportar_relatorios");
 
   return (
     <div className="space-y-4">
@@ -345,7 +347,7 @@ function ComissoesPage() {
               </SelectContent>
             </Select>
           </div>
-          {repFilter !== "todos" && (
+          {repFilter !== "todos" && canExportar && (
             <div className="flex items-end">
               <Button
                 variant="outline"

@@ -500,6 +500,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          concedida: boolean
+          criado_em: string | null
+          id: string
+          permissao: string
+          user_id: string
+        }
+        Insert: {
+          concedida?: boolean
+          criado_em?: string | null
+          id?: string
+          permissao: string
+          user_id: string
+        }
+        Update: {
+          concedida?: boolean
+          criado_em?: string | null
+          id?: string
+          permissao?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           criado_em: string

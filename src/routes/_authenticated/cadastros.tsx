@@ -20,6 +20,7 @@ import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
 import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2 } from "lucide-react";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
+import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
 import { maskCNPJ } from "@/lib/masks";
 
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/cadastros")({
 
 function CadastrosPage() {
   const { roles } = useAuth();
+  const { can } = usePermissions();
   if (!roles.includes("admin")) {
     return <p className="text-muted-foreground">Apenas administradores podem acessar os cadastros.</p>;
   }
@@ -43,7 +45,7 @@ function CadastrosPage() {
           <TabsTrigger value="metas">Metas</TabsTrigger>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>
           <TabsTrigger value="empresa">Empresa</TabsTrigger>
-          <TabsTrigger value="importar">Importar</TabsTrigger>
+          {can("importar_planilhas") && <TabsTrigger value="importar">Importar</TabsTrigger>}
         </TabsList>
         <TabsContent value="clientes"><ClientesTab /></TabsContent>
         <TabsContent value="reps"><RepsTab /></TabsContent>
@@ -51,7 +53,7 @@ function CadastrosPage() {
         <TabsContent value="metas"><MetasTab /></TabsContent>
         <TabsContent value="usuarios"><UsuariosTab /></TabsContent>
         <TabsContent value="empresa"><EmpresaTab /></TabsContent>
-        <TabsContent value="importar"><ImportarTab /></TabsContent>
+        {can("importar_planilhas") && <TabsContent value="importar"><ImportarTab /></TabsContent>}
       </Tabs>
     </div>
   );
@@ -60,6 +62,7 @@ function CadastrosPage() {
 // ============== CLIENTES ==============
 function ClientesTab() {
   const qc = useQueryClient();
+  const { can } = usePermissions();
   const { data: clientes } = useQuery({ queryKey: ["clientes-adm"], queryFn: async () => (await supabase.from("clientes").select("*, representantes(nome)").order("nome")).data ?? [] });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const [open, setOpen] = useState(false);
@@ -127,7 +130,7 @@ function ClientesTab() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Clientes</CardTitle>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-          <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>
+          {can("cadastrar_clientes") && <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>}
           <DialogContent>
             <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
@@ -369,6 +372,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
 
 function RepsTab() {
   const qc = useQueryClient();
+  const { can } = usePermissions();
   const { data: reps } = useQuery({ queryKey: ["reps-adm"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const { data: empresa } = useQuery({ queryKey: ["empresa-cfg"], queryFn: async () => (await supabase.from("configuracoes_empresa").select("*").limit(1).maybeSingle()).data });
   const [open, setOpen] = useState(false);
@@ -450,7 +454,7 @@ function RepsTab() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Representantes</CardTitle>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); setForm(emptyRepForm); } }}>
-          <DialogTrigger asChild><Button onClick={openNovo}>+ Novo</Button></DialogTrigger>
+          {can("cadastrar_representantes") && <DialogTrigger asChild><Button onClick={openNovo}>+ Novo</Button></DialogTrigger>}
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editingId ? "Editar representante" : "Novo representante"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
@@ -474,7 +478,7 @@ function RepsTab() {
                 <TableCell>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
-                    {r.tipo === "externo" && (
+                    {r.tipo === "externo" && can("gerar_contrato_pdf") && (
                       <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
                     )}
                   </div>
@@ -618,6 +622,8 @@ function EmpresaTab() {
 // ============== COMISSAO CONFIG ==============
 function CConfigTab() {
   const qc = useQueryClient();
+  const { can } = usePermissions();
+  const canEditPct = can("editar_percentual_cliente");
   const { data: clientes } = useQuery({ queryKey: ["clientes"], queryFn: async () => (await supabase.from("clientes").select("id, nome").order("nome")).data ?? [] });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [] });
   const { data: configs } = useQuery({ queryKey: ["cconfig"], queryFn: async () => (await supabase.from("comissao_config").select("*, clientes(nome), representantes(nome)").order("criado_em", { ascending: false })).data ?? [] });
@@ -625,6 +631,7 @@ function CConfigTab() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEditPct) return;
     const { error } = await supabase.from("comissao_config").upsert({
       cliente_id: form.cliente_id, representante_id: form.representante_id, percentual: Number(form.percentual),
     }, { onConflict: "cliente_id,representante_id" });
@@ -635,6 +642,7 @@ function CConfigTab() {
   };
 
   const del = async (id: string) => {
+    if (!canEditPct) return;
     await supabase.from("comissao_config").delete().eq("id", id);
     qc.invalidateQueries({ queryKey: ["cconfig"] });
   };
@@ -643,22 +651,26 @@ function CConfigTab() {
     <Card>
       <CardHeader><CardTitle>% de comissão por cliente</CardTitle></CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-          <div><Label>Cliente</Label>
-            <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{(clientes ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div><Label>Representante</Label>
-            <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div><Label>%</Label><Input type="number" step="0.01" value={form.percentual} onChange={(e) => setForm({ ...form, percentual: e.target.value })} required /></div>
-          <Button type="submit">Salvar</Button>
-        </form>
+        {canEditPct ? (
+          <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div><Label>Cliente</Label>
+              <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{(clientes ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Representante</Label>
+              <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>%</Label><Input type="number" step="0.01" value={form.percentual} onChange={(e) => setForm({ ...form, percentual: e.target.value })} required /></div>
+            <Button type="submit">Salvar</Button>
+          </form>
+        ) : (
+          <p className="text-sm text-muted-foreground">Você não tem permissão para editar os percentuais por cliente.</p>
+        )}
 
         <Table>
           <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Rep</TableHead><TableHead>%</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -668,7 +680,7 @@ function CConfigTab() {
                 <TableCell>{c.clientes?.nome}</TableCell>
                 <TableCell>{c.representantes?.nome}</TableCell>
                 <TableCell>{Number(c.percentual).toFixed(2)}%</TableCell>
-                <TableCell><Button size="sm" variant="destructive" onClick={() => del(c.id)}>Remover</Button></TableCell>
+                <TableCell>{canEditPct && <Button size="sm" variant="destructive" onClick={() => del(c.id)}>Remover</Button>}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -743,6 +755,7 @@ function MetasTab() {
 // ============== USUÁRIOS ==============
 function UsuariosTab() {
   const qc = useQueryClient();
+  const { can } = usePermissions();
   const callList = useServerFn(listUsers);
   const callUpdate = useServerFn(updateUser);
   const callDelete = useServerFn(deleteUser);
@@ -752,6 +765,14 @@ function UsuariosTab() {
     queryFn: async () => await callList(),
   });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("id, nome").order("nome")).data ?? [] });
+  const { data: allUserPerms } = useQuery({
+    queryKey: ["user-permissions-all"],
+    queryFn: async () => (
+      await supabase
+        .from("user_permissions" as any)
+        .select("user_id, permissao, concedida")
+    ).data ?? [],
+  });
 
   const callCreate = useServerFn(createUser);
   const [open, setOpen] = useState(false);
@@ -792,6 +813,10 @@ function UsuariosTab() {
     }
   };
 
+  type PermTri = "default" | "granted" | "blocked";
+  const emptyPerms = (): Record<PermissionKey, PermTri> =>
+    Object.fromEntries(PERMISSION_KEYS.map((k) => [k, "default"])) as Record<PermissionKey, PermTri>;
+
   const [editing, setEditing] = useState<null | {
     userId: string;
     nome: string;
@@ -799,10 +824,17 @@ function UsuariosTab() {
     senha: string;
     role: "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor";
     representante_id: string;
+    perms: Record<PermissionKey, PermTri>;
   }>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
   const openEdit = (u: any) => {
+    const perms = emptyPerms();
+    for (const row of (allUserPerms ?? []) as unknown as Array<{ user_id: string; permissao: string; concedida: boolean }>) {
+      if (row.user_id === u.id && (PERMISSION_KEYS as readonly string[]).includes(row.permissao)) {
+        perms[row.permissao as PermissionKey] = row.concedida ? "granted" : "blocked";
+      }
+    }
     setEditing({
       userId: u.id,
       nome: u.nome ?? "",
@@ -810,6 +842,7 @@ function UsuariosTab() {
       senha: "",
       role: (u.roles?.[0] ?? "representante") as any,
       representante_id: u.representante_id ?? "none",
+      perms,
     });
   };
 
@@ -832,6 +865,28 @@ function UsuariosTab() {
           representante_id: editing.representante_id === "none" ? null : editing.representante_id,
         },
       });
+
+      // Persiste permissões personalizadas
+      const toUpsert: Array<{ user_id: string; permissao: string; concedida: boolean }> = [];
+      const toDelete: string[] = [];
+      for (const k of PERMISSION_KEYS) {
+        const v = editing.perms[k];
+        if (v === "default") toDelete.push(k);
+        else toUpsert.push({ user_id: editing.userId, permissao: k, concedida: v === "granted" });
+      }
+      if (toDelete.length) {
+        await supabase
+          .from("user_permissions" as any)
+          .delete()
+          .eq("user_id", editing.userId)
+          .in("permissao", toDelete);
+      }
+      if (toUpsert.length) {
+        await supabase
+          .from("user_permissions" as any)
+          .upsert(toUpsert, { onConflict: "user_id,permissao" });
+      }
+      qc.invalidateQueries({ queryKey: ["user-permissions-all"] });
       toast.success("Usuário atualizado!");
       setEditing(null);
       qc.invalidateQueries({ queryKey: ["users-adm"] });
@@ -869,6 +924,7 @@ function UsuariosTab() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Usuários do sistema</CardTitle>
+        {can("criar_usuarios") && (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button>+ Novo usuário</Button></DialogTrigger>
           <DialogContent>
@@ -908,6 +964,7 @@ function UsuariosTab() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </CardHeader>
       <CardContent>
         <Table>
@@ -919,9 +976,23 @@ function UsuariosTab() {
             <TableHead className="w-32 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {(users ?? []).map((u: any) => (
+            {(users ?? []).map((u: any) => {
+              const userPerms = (allUserPerms ?? []) as unknown as Array<{ user_id: string; permissao: string; concedida: boolean }>;
+              const role = (u.roles?.[0] ?? null) as keyof typeof ROLE_DEFAULTS | null;
+              const defaults = role ? ROLE_DEFAULTS[role] : new Set<string>();
+              const personalizado = userPerms.some((p) => {
+                if (p.user_id !== u.id) return false;
+                if (!(PERMISSION_KEYS as readonly string[]).includes(p.permissao)) return false;
+                return p.concedida !== defaults.has(p.permissao as any);
+              });
+              return (
               <TableRow key={u.id}>
-                <TableCell>{u.nome || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span>{u.nome || "—"}</span>
+                    {personalizado && <Badge variant="outline" className="text-xs">Personalizado</Badge>}
+                  </div>
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{u.email || "—"}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{roleLabel[u.roles?.[0]] ?? "—"}</Badge>
@@ -938,49 +1009,106 @@ function UsuariosTab() {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
     </Card>
 
     <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Editar usuário</DialogTitle></DialogHeader>
         {editing && (
-          <form onSubmit={submitEdit} className="space-y-3">
-            <div><Label>Nome *</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} required /></div>
-            <div><Label>E-mail *</Label><Input type="email" value={editing.email} onChange={(e) => setEditing({ ...editing, email: e.target.value })} required /></div>
-            <div>
-              <Label>Nova senha provisória (opcional)</Label>
-              <Input type="text" value={editing.senha} onChange={(e) => setEditing({ ...editing, senha: e.target.value })} placeholder="Deixe em branco para manter" />
-              {editing.senha && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Ao salvar, o usuário será obrigado a definir uma nova senha forte no próximo login.
-                </p>
-              )}
+          <form onSubmit={submitEdit} className="space-y-4">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground">Dados do usuário</h3>
+              <div><Label>Nome *</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} required /></div>
+              <div><Label>E-mail *</Label><Input type="email" value={editing.email} onChange={(e) => setEditing({ ...editing, email: e.target.value })} required /></div>
+              <div>
+                <Label>Nova senha provisória (opcional)</Label>
+                <Input type="text" value={editing.senha} onChange={(e) => setEditing({ ...editing, senha: e.target.value })} placeholder="Deixe em branco para manter" />
+                {editing.senha && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Ao salvar, o usuário será obrigado a definir uma nova senha forte no próximo login.
+                  </p>
+                )}
+              </div>
+              <div><Label>Perfil *</Label>
+                <Select value={editing.role} onValueChange={(v) => setEditing({ ...editing, role: v as typeof editing.role })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="gestor">Gestor</SelectItem>
+                    <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
+                    <SelectItem value="representante">Representante</SelectItem>
+                    <SelectItem value="financeiro">Financeiro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Representante vinculado</Label>
+                <Select value={editing.representante_id} onValueChange={(v) => setEditing({ ...editing, representante_id: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Nenhum —</SelectItem>
+                    {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div><Label>Perfil *</Label>
-              <Select value={editing.role} onValueChange={(v) => setEditing({ ...editing, role: v as typeof editing.role })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="gestor">Gestor</SelectItem>
-                  <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
-                  <SelectItem value="representante">Representante</SelectItem>
-                  <SelectItem value="financeiro">Financeiro</SelectItem>
-                </SelectContent>
-              </Select>
+
+            <div className="space-y-2 pt-2 border-t">
+              <h3 className="text-sm font-semibold">Permissões personalizadas</h3>
+              <p className="text-xs text-muted-foreground">
+                Padrão do perfil aplica as permissões base do perfil selecionado. Concedida ou Bloqueada sobrescreve esse padrão para este usuário.
+              </p>
+              <div className="space-y-2">
+                {PERMISSION_KEYS.map((k) => {
+                  const v = editing.perms[k];
+                  const defaultOn = ROLE_DEFAULTS[editing.role]?.has(k) ?? false;
+                  const setV = (nv: "default" | "granted" | "blocked") =>
+                    setEditing({ ...editing, perms: { ...editing.perms, [k]: nv } });
+                  return (
+                    <div key={k} className="flex items-start justify-between gap-3 rounded-md border p-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">{PERMISSION_LABELS[k].titulo}</div>
+                        <div className="text-xs text-muted-foreground">{PERMISSION_LABELS[k].descricao}</div>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={v === "default" ? "secondary" : "outline"}
+                          onClick={() => setV("default")}
+                          title={`Padrão do perfil (${defaultOn ? "permite" : "bloqueia"})`}
+                        >
+                          Padrão
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className={v === "granted" ? "bg-green-600 text-white hover:bg-green-600" : ""}
+                          onClick={() => setV("granted")}
+                        >
+                          Concedida
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className={v === "blocked" ? "bg-red-600 text-white hover:bg-red-600" : ""}
+                          onClick={() => setV("blocked")}
+                        >
+                          Bloqueada
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div><Label>Representante vinculado</Label>
-              <Select value={editing.representante_id} onValueChange={(v) => setEditing({ ...editing, representante_id: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Nenhum —</SelectItem>
-                  {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+
             <DialogFooter><Button type="submit" disabled={savingEdit}>{savingEdit ? "Salvando…" : "Salvar alterações"}</Button></DialogFooter>
           </form>
         )}

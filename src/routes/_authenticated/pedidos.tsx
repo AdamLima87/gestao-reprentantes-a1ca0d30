@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pedidos")({
@@ -31,12 +32,14 @@ const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style
 
 function PedidosPage() {
   const { roles, representanteId } = useAuth();
+  const { can } = usePermissions();
   const isAdmin = roles.includes("admin");
   const isInterno = roles.includes("vendedor_interno");
   const isFinanceiro = roles.includes("financeiro");
-  const canCreate = isAdmin || isInterno || roles.includes("representante");
+  const canCreate = can("criar_pedidos");
   const canToggleJeff = isAdmin || isInterno;
-  const canEdit = isAdmin || isInterno;
+  const canEdit = can("editar_pedidos");
+  const canCancel = can("cancelar_pedidos");
   const qc = useQueryClient();
 
   const now = new Date();
@@ -216,7 +219,7 @@ function PedidosPage() {
                         {editable && (
                           <Button size="sm" variant="outline" onClick={() => setEditing(p)}>Editar</Button>
                         )}
-                        {isAdmin && p.status !== "cancelado" && (
+                        {canCancel && p.status !== "cancelado" && (
                           <Button size="sm" variant="destructive" onClick={() => setCancelingId(p.id)}>Cancelar</Button>
                         )}
                         {isAdmin && (
