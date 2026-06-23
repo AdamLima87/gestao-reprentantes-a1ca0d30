@@ -216,8 +216,19 @@ function ExternosTable({
   mes: number;
   ano: number;
 }) {
+  const [repFiltro, setRepFiltro] = useState<string>("todos");
+
+  const externos = useMemo(() => data.filter((c) => c.tipo === "externo"), [data]);
+
+  const repsOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of externos) {
+      if (c.representante_id) m.set(c.representante_id, c.representantes?.nome ?? "—");
+    }
+    return [...m.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [externos]);
+
   const rows = useMemo(() => {
-    const externos = data.filter((c) => c.tipo === "externo");
     const map = new Map<string, { rep: string; tipo: string; nfes: Set<string>; base: number; valor: number }>();
     for (const c of externos) {
       const key = `${c.representante_id}|${c.tipo}`;
@@ -234,31 +245,76 @@ function ExternosTable({
       map.set(key, r);
     }
     return [...map.values()].sort((a, b) => a.rep.localeCompare(b.rep));
-  }, [data]);
+  }, [externos]);
+
+  const detailRows = useMemo(() => {
+    if (repFiltro === "todos") return [];
+    return externos
+      .filter((c) => c.representante_id === repFiltro)
+      .map((c) => ({
+        numero: c.nfe?.numero_nfe ?? "—",
+        emissao: c.nfe?.data_nfe ?? "",
+        cliente: c.nfe?.pedidos?.clientes?.nome ?? "—",
+        valor: Number(c.base_calculo),
+        pct: Number(c.percentual_aplicado),
+        comissao: Number(c.valor_comissao),
+      }))
+      .sort((a, b) => (a.emissao || "").localeCompare(b.emissao || ""));
+  }, [externos, repFiltro]);
 
   const totalBase = rows.reduce((s, r) => s + r.base, 0);
   const totalVal = rows.reduce((s, r) => s + r.valor, 0);
   const totalNfe = rows.reduce((s, r) => s + r.nfes.size, 0);
+  const detTotalBase = detailRows.reduce((s, r) => s + r.valor, 0);
+  const detTotalCom = detailRows.reduce((s, r) => s + r.comissao, 0);
+  const repNome = repsOptions.find((r) => r.id === repFiltro)?.nome ?? "";
 
-  const handleCSV = () =>
-    exportCSV(
-      `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
-      [
-        ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, r.base.toFixed(2), r.valor.toFixed(2)]),
-        ["TOTAL", "", totalNfe, totalBase.toFixed(2), totalVal.toFixed(2)],
-      ],
-    );
-  const handlePDF = () =>
-    exportPDF(
-      `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
-      `Comissões por Representante - ${periodo}`,
-      ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
-      [
-        ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, fmtBRL(r.base), fmtBRL(r.valor)]),
-        ["TOTAL", "", totalNfe, fmtBRL(totalBase), fmtBRL(totalVal)],
-      ],
-    );
+  const handleCSV = () => {
+    if (repFiltro === "todos") {
+      exportCSV(
+        `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
+        ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
+        [
+          ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, r.base.toFixed(2), r.valor.toFixed(2)]),
+          ["TOTAL", "", totalNfe, totalBase.toFixed(2), totalVal.toFixed(2)],
+        ],
+      );
+    } else {
+      exportCSV(
+        `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
+        ["NF", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+        [
+          ...detailRows.map((r) => [r.numero, formatarData(r.emissao), r.cliente, r.valor.toFixed(2), r.pct.toFixed(2), r.comissao.toFixed(2)]),
+          ["TOTAL", "", "", detTotalBase.toFixed(2), "", detTotalCom.toFixed(2)],
+        ],
+      );
+    }
+  };
+  const handlePDF = () => {
+    if (repFiltro === "todos") {
+      exportPDF(
+        `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
+        `Comissões por Representante - ${periodo}`,
+        ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
+        [
+          ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, fmtBRL(r.base), fmtBRL(r.valor)]),
+          ["TOTAL", "", totalNfe, fmtBRL(totalBase), fmtBRL(totalVal)],
+        ],
+      );
+    } else {
+      exportPDF(
+        `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
+        `Comissões - ${repNome} - ${periodo}`,
+        ["NF", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+        [
+          ...detailRows.map((r) => [r.numero, formatarData(r.emissao), r.cliente, fmtBRL(r.valor), `${r.pct.toFixed(2)}%`, fmtBRL(r.comissao)]),
+          ["TOTAL", "", "", fmtBRL(detTotalBase), "", fmtBRL(detTotalCom)],
+        ],
+      );
+    }
+  };
+
+  const isDetail = repFiltro !== "todos";
 
   return (
     <Card>
@@ -266,8 +322,21 @@ function ExternosTable({
         <CardTitle>Comissões por Representante</CardTitle>
         <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
       </CardHeader>
-      <CardContent>
-        {rows.length === 0 ? (
+      <CardContent className="space-y-4">
+        <div className="w-72">
+          <Label className="text-xs">Representante</Label>
+          <Select value={repFiltro} onValueChange={setRepFiltro}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os representantes</SelectItem>
+              {repsOptions.map((r) => (
+                <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {!isDetail && (rows.length === 0 ? (
           <p className="text-muted-foreground">Sem comissões externas no período.</p>
         ) : (
           <Table>
@@ -298,7 +367,42 @@ function ExternosTable({
               </TableRow>
             </TableBody>
           </Table>
-        )}
+        ))}
+
+        {isDetail && (detailRows.length === 0 ? (
+          <p className="text-muted-foreground">Sem NF-e desse representante no período.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>NF</TableHead>
+                <TableHead>Data Emissão</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead className="text-right">Valor Produto</TableHead>
+                <TableHead className="text-right">%</TableHead>
+                <TableHead className="text-right">Comissão</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {detailRows.map((r, i) => (
+                <TableRow key={i}>
+                  <TableCell className="font-medium">{r.numero}</TableCell>
+                  <TableCell>{formatarData(r.emissao)}</TableCell>
+                  <TableCell>{r.cliente}</TableCell>
+                  <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
+                  <TableCell className="text-right">{r.pct.toFixed(2)}%</TableCell>
+                  <TableCell className="text-right font-medium">{fmtBRL(r.comissao)}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="bg-muted/50 font-bold">
+                <TableCell colSpan={3}>TOTAL</TableCell>
+                <TableCell className="text-right">{fmtBRL(detTotalBase)}</TableCell>
+                <TableCell></TableCell>
+                <TableCell className="text-right">{fmtBRL(detTotalCom)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        ))}
       </CardContent>
     </Card>
   );
@@ -379,23 +483,30 @@ function InternoTable({
     );
   }, [rows]);
 
-  const headers = ["NF", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%"];
+  const headers = ["NF", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%", "TOTAL COMISSÃO"];
+
+  const totalGeral = totals.c15 + totals.c1 + totals.c05;
+  const summaryLine = `Total 1,5% (novo/reativação): ${fmtBRL(totals.c15)}  |  Total 1% (recorrente): ${fmtBRL(totals.c1)}  |  Total 0,5% (sobre rep): ${fmtBRL(totals.c05)}  |  Total geral: ${fmtBRL(totalGeral)}`;
 
   const handleCSV = () =>
     exportCSV(
       `comissoes-interno-${ano}-${String(mes).padStart(2, "0")}`,
       headers,
       [
-        ...rows.map((r) => [
-          r.numero,
-          formatarData(r.emissao),
-          r.empresa,
-          formatarData(r.entrega),
-          r.valor.toFixed(2),
-          r.c15 == null ? "—" : r.c15.toFixed(2),
-          r.c1 == null ? "—" : r.c1.toFixed(2),
-          r.c05 == null ? "—" : r.c05.toFixed(2),
-        ]),
+        ...rows.map((r) => {
+          const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
+          return [
+            r.numero,
+            formatarData(r.emissao),
+            r.empresa,
+            formatarData(r.entrega),
+            r.valor.toFixed(2),
+            r.c15 == null ? "—" : r.c15.toFixed(2),
+            r.c1 == null ? "—" : r.c1.toFixed(2),
+            r.c05 == null ? "—" : r.c05.toFixed(2),
+            tot.toFixed(2),
+          ];
+        }),
         [
           "TOTAL",
           "",
@@ -405,6 +516,7 @@ function InternoTable({
           totals.c15.toFixed(2),
           totals.c1.toFixed(2),
           totals.c05.toFixed(2),
+          totalGeral.toFixed(2),
         ],
       ],
     );
@@ -415,16 +527,20 @@ function InternoTable({
       `BRAZIL AMORTECEDORES - CÁLCULO DE COMISSÃO POR REPRESENTANTE - ${vendedorNome.toUpperCase()}`,
       headers,
       [
-        ...rows.map((r) => [
-          r.numero,
-          formatarData(r.emissao),
-          r.empresa,
-          formatarData(r.entrega),
-          fmtBRL(r.valor),
-          r.c15 == null ? "—" : fmtBRL(r.c15),
-          r.c1 == null ? "—" : fmtBRL(r.c1),
-          r.c05 == null ? "—" : fmtBRL(r.c05),
-        ]),
+        ...rows.map((r) => {
+          const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
+          return [
+            r.numero,
+            formatarData(r.emissao),
+            r.empresa,
+            formatarData(r.entrega),
+            fmtBRL(r.valor),
+            r.c15 == null ? "—" : fmtBRL(r.c15),
+            r.c1 == null ? "—" : fmtBRL(r.c1),
+            r.c05 == null ? "—" : fmtBRL(r.c05),
+            fmtBRL(tot),
+          ];
+        }),
         [
           "TOTAL",
           "",
@@ -434,9 +550,10 @@ function InternoTable({
           fmtBRL(totals.c15),
           fmtBRL(totals.c1),
           fmtBRL(totals.c05),
+          fmtBRL(totalGeral),
         ],
       ],
-      `Período: ${periodo}`,
+      `Período: ${periodo}  |  ${summaryLine}`,
     );
 
   return (
@@ -445,45 +562,72 @@ function InternoTable({
         <CardTitle>Cálculo de Comissão — Vendedor Interno</CardTitle>
         <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {rows.length === 0 ? (
           <p className="text-muted-foreground">Sem comissões internas no período.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>NF</TableHead>
-                <TableHead>Emissão</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Entrega</TableHead>
-                <TableHead className="text-right">Valor Produto</TableHead>
-                <TableHead className="text-right">Comissão 1,5%</TableHead>
-                <TableHead className="text-right">Comissão 1%</TableHead>
-                <TableHead className="text-right">Comissão 0,5%</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.nfeId}>
-                  <TableCell className="font-medium">{r.numero}</TableCell>
-                  <TableCell>{formatarData(r.emissao)}</TableCell>
-                  <TableCell>{r.empresa}</TableCell>
-                  <TableCell>{formatarData(r.entrega)}</TableCell>
-                  <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
-                  <TableCell className="text-right">{r.c15 == null ? "—" : fmtBRL(r.c15)}</TableCell>
-                  <TableCell className="text-right">{r.c1 == null ? "—" : fmtBRL(r.c1)}</TableCell>
-                  <TableCell className="text-right">{r.c05 == null ? "—" : fmtBRL(r.c05)}</TableCell>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="rounded-md border p-3">
+                <div className="text-xs text-muted-foreground">Total 1,5% (novo/reativação)</div>
+                <div className="text-lg font-bold">{fmtBRL(totals.c15)}</div>
+              </div>
+              <div className="rounded-md border p-3">
+                <div className="text-xs text-muted-foreground">Total 1% (recorrente)</div>
+                <div className="text-lg font-bold">{fmtBRL(totals.c1)}</div>
+              </div>
+              <div className="rounded-md border p-3">
+                <div className="text-xs text-muted-foreground">Total 0,5% (sobre rep)</div>
+                <div className="text-lg font-bold">{fmtBRL(totals.c05)}</div>
+              </div>
+              <div className="rounded-md border p-3 bg-green-50 dark:bg-green-950/30 border-green-600/40">
+                <div className="text-xs text-green-700 dark:text-green-400">Total geral</div>
+                <div className="text-lg font-bold text-green-700 dark:text-green-400">{fmtBRL(totalGeral)}</div>
+              </div>
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>NF</TableHead>
+                  <TableHead>Emissão</TableHead>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Entrega</TableHead>
+                  <TableHead className="text-right">Valor Produto</TableHead>
+                  <TableHead className="text-right">Comissão 1,5%</TableHead>
+                  <TableHead className="text-right">Comissão 1%</TableHead>
+                  <TableHead className="text-right">Comissão 0,5%</TableHead>
+                  <TableHead className="text-right">Total Comissão</TableHead>
                 </TableRow>
-              ))}
-              <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={4}>TOTAL</TableCell>
-                <TableCell className="text-right">{fmtBRL(totals.valor)}</TableCell>
-                <TableCell className="text-right">{fmtBRL(totals.c15)}</TableCell>
-                <TableCell className="text-right">{fmtBRL(totals.c1)}</TableCell>
-                <TableCell className="text-right">{fmtBRL(totals.c05)}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => {
+                  const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
+                  return (
+                    <TableRow key={r.nfeId}>
+                      <TableCell className="font-medium">{r.numero}</TableCell>
+                      <TableCell>{formatarData(r.emissao)}</TableCell>
+                      <TableCell>{r.empresa}</TableCell>
+                      <TableCell>{formatarData(r.entrega)}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
+                      <TableCell className="text-right">{r.c15 == null ? "—" : fmtBRL(r.c15)}</TableCell>
+                      <TableCell className="text-right">{r.c1 == null ? "—" : fmtBRL(r.c1)}</TableCell>
+                      <TableCell className="text-right">{r.c05 == null ? "—" : fmtBRL(r.c05)}</TableCell>
+                      <TableCell className="text-right font-medium">{fmtBRL(tot)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-muted/50 font-bold">
+                  <TableCell colSpan={4}>TOTAL</TableCell>
+                  <TableCell className="text-right">{fmtBRL(totals.valor)}</TableCell>
+                  <TableCell className="text-right">{fmtBRL(totals.c15)}</TableCell>
+                  <TableCell className="text-right">{fmtBRL(totals.c1)}</TableCell>
+                  <TableCell className="text-right">{fmtBRL(totals.c05)}</TableCell>
+                  <TableCell className="text-right text-green-700 dark:text-green-400">{fmtBRL(totalGeral)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </>
         )}
       </CardContent>
     </Card>
