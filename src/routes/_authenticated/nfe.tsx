@@ -150,8 +150,7 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
     }
   }, [valoresIguais, form.valor_produtos, form.valor_nfe]);
 
-  const valoresDiferem = !valoresIguais && Number(form.valor_nfe) !== Number(form.valor_produtos);
-  const notaMenor = Number(form.valor_nfe) < Number(form.valor_produtos);
+  const notaMenor = !valoresIguais && Number(form.valor_nfe) < Number(form.valor_produtos);
   const obsObrigatoria = notaMenor;
 
   const submit = async (e: React.FormEvent) => {
