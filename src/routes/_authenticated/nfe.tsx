@@ -74,7 +74,7 @@ function NfePage() {
                       <TableCell>{n.pedidos?.representantes?.nome}</TableCell>
                       <TableCell>{fmtBRL(n.valor_nfe)}</TableCell>
                       <TableCell>{String(n.mes_ref).padStart(2, "0")}/{n.ano_ref}</TableCell>
-                      <TableCell>{n.data_entrega ?? "—"}</TableCell>
+                      <TableCell>{formatarData(n.data_entrega)}</TableCell>
                       <TableCell>
                         {n.observacao ? (
                           <Tooltip>
