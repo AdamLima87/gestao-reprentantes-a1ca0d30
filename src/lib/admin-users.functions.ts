@@ -125,7 +125,7 @@ export const updateUser = createServerFn({ method: "POST" })
       representante_id?: string | null;
     }) => {
       if (!input.userId) throw new Error("userId obrigatório.");
-      if (input.senha) validarSenha(input.senha);
+      if (input.senha) validarSenhaProvisoria(input.senha);
       return input;
     },
   )
