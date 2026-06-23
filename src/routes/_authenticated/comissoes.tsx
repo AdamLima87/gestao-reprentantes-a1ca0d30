@@ -254,6 +254,26 @@ function ComissoesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [recalcOpen, setRecalcOpen] = useState(false);
+  const recalcular = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("recalcular_comissoes_interno" as any);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    onSuccess: (rows) => {
+      if (!rows || rows.length === 0) {
+        toast.success("Todas as comissões já estão corretas.");
+      } else {
+        toast.success(`${rows.length} comissão(ões) recalculada(s) com sucesso.`);
+      }
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
+      qc.invalidateQueries({ queryKey: ["relatorios"] });
+      setRecalcOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
@@ -297,19 +317,46 @@ function ComissoesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Comissões</h1>
         {isAdmin && (
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (confirm("Isso apaga todas as comissões e recalcula a partir das NF-e existentes. Continuar?")) {
-                reprocessar.mutate();
-              }
-            }}
-            disabled={reprocessar.isPending}
-          >
-            {reprocessar.isPending ? "Reprocessando…" : "Reprocessar comissões"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setRecalcOpen(true)}
+              disabled={recalcular.isPending}
+            >
+              {recalcular.isPending ? "Recalculando…" : "Recalcular comissões"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (confirm("Isso apaga todas as comissões e recalcula a partir das NF-e existentes. Continuar?")) {
+                  reprocessar.mutate();
+                }
+              }}
+              disabled={reprocessar.isPending}
+            >
+              {reprocessar.isPending ? "Reprocessando…" : "Reprocessar comissões"}
+            </Button>
+          </div>
         )}
       </div>
+
+      <Dialog open={recalcOpen} onOpenChange={setRecalcOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Recalcular comissões</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Esta ação irá reanalisar todas as comissões do vendedor interno com base no histórico
+            cronológico real de cada cliente, corrigindo classificações incorretas. Deseja continuar?
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRecalcOpen(false)} disabled={recalcular.isPending}>
+              Cancelar
+            </Button>
+            <Button onClick={() => recalcular.mutate()} disabled={recalcular.isPending}>
+              {recalcular.isPending ? "Recalculando…" : "Recalcular"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardContent className="pt-6 flex flex-wrap gap-3">
