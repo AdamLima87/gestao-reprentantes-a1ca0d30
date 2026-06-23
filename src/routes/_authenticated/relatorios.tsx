@@ -216,8 +216,19 @@ function ExternosTable({
   mes: number;
   ano: number;
 }) {
+  const [repFiltro, setRepFiltro] = useState<string>("todos");
+
+  const externos = useMemo(() => data.filter((c) => c.tipo === "externo"), [data]);
+
+  const repsOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of externos) {
+      if (c.representante_id) m.set(c.representante_id, c.representantes?.nome ?? "—");
+    }
+    return [...m.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [externos]);
+
   const rows = useMemo(() => {
-    const externos = data.filter((c) => c.tipo === "externo");
     const map = new Map<string, { rep: string; tipo: string; nfes: Set<string>; base: number; valor: number }>();
     for (const c of externos) {
       const key = `${c.representante_id}|${c.tipo}`;
@@ -234,31 +245,76 @@ function ExternosTable({
       map.set(key, r);
     }
     return [...map.values()].sort((a, b) => a.rep.localeCompare(b.rep));
-  }, [data]);
+  }, [externos]);
+
+  const detailRows = useMemo(() => {
+    if (repFiltro === "todos") return [];
+    return externos
+      .filter((c) => c.representante_id === repFiltro)
+      .map((c) => ({
+        numero: c.nfe?.numero_nfe ?? "—",
+        emissao: c.nfe?.data_nfe ?? "",
+        cliente: c.nfe?.pedidos?.clientes?.nome ?? "—",
+        valor: Number(c.base_calculo),
+        pct: Number(c.percentual_aplicado),
+        comissao: Number(c.valor_comissao),
+      }))
+      .sort((a, b) => (a.emissao || "").localeCompare(b.emissao || ""));
+  }, [externos, repFiltro]);
 
   const totalBase = rows.reduce((s, r) => s + r.base, 0);
   const totalVal = rows.reduce((s, r) => s + r.valor, 0);
   const totalNfe = rows.reduce((s, r) => s + r.nfes.size, 0);
+  const detTotalBase = detailRows.reduce((s, r) => s + r.valor, 0);
+  const detTotalCom = detailRows.reduce((s, r) => s + r.comissao, 0);
+  const repNome = repsOptions.find((r) => r.id === repFiltro)?.nome ?? "";
 
-  const handleCSV = () =>
-    exportCSV(
-      `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
-      [
-        ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, r.base.toFixed(2), r.valor.toFixed(2)]),
-        ["TOTAL", "", totalNfe, totalBase.toFixed(2), totalVal.toFixed(2)],
-      ],
-    );
-  const handlePDF = () =>
-    exportPDF(
-      `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
-      `Comissões por Representante - ${periodo}`,
-      ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
-      [
-        ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, fmtBRL(r.base), fmtBRL(r.valor)]),
-        ["TOTAL", "", totalNfe, fmtBRL(totalBase), fmtBRL(totalVal)],
-      ],
-    );
+  const handleCSV = () => {
+    if (repFiltro === "todos") {
+      exportCSV(
+        `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
+        ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
+        [
+          ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, r.base.toFixed(2), r.valor.toFixed(2)]),
+          ["TOTAL", "", totalNfe, totalBase.toFixed(2), totalVal.toFixed(2)],
+        ],
+      );
+    } else {
+      exportCSV(
+        `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
+        ["NF", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+        [
+          ...detailRows.map((r) => [r.numero, formatarData(r.emissao), r.cliente, r.valor.toFixed(2), r.pct.toFixed(2), r.comissao.toFixed(2)]),
+          ["TOTAL", "", "", detTotalBase.toFixed(2), "", detTotalCom.toFixed(2)],
+        ],
+      );
+    }
+  };
+  const handlePDF = () => {
+    if (repFiltro === "todos") {
+      exportPDF(
+        `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
+        `Comissões por Representante - ${periodo}`,
+        ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
+        [
+          ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, fmtBRL(r.base), fmtBRL(r.valor)]),
+          ["TOTAL", "", totalNfe, fmtBRL(totalBase), fmtBRL(totalVal)],
+        ],
+      );
+    } else {
+      exportPDF(
+        `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
+        `Comissões - ${repNome} - ${periodo}`,
+        ["NF", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+        [
+          ...detailRows.map((r) => [r.numero, formatarData(r.emissao), r.cliente, fmtBRL(r.valor), `${r.pct.toFixed(2)}%`, fmtBRL(r.comissao)]),
+          ["TOTAL", "", "", fmtBRL(detTotalBase), "", fmtBRL(detTotalCom)],
+        ],
+      );
+    }
+  };
+
+  const isDetail = repFiltro !== "todos";
 
   return (
     <Card>
@@ -266,8 +322,21 @@ function ExternosTable({
         <CardTitle>Comissões por Representante</CardTitle>
         <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
       </CardHeader>
-      <CardContent>
-        {rows.length === 0 ? (
+      <CardContent className="space-y-4">
+        <div className="w-72">
+          <Label className="text-xs">Representante</Label>
+          <Select value={repFiltro} onValueChange={setRepFiltro}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os representantes</SelectItem>
+              {repsOptions.map((r) => (
+                <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {!isDetail && (rows.length === 0 ? (
           <p className="text-muted-foreground">Sem comissões externas no período.</p>
         ) : (
           <Table>
@@ -298,7 +367,42 @@ function ExternosTable({
               </TableRow>
             </TableBody>
           </Table>
-        )}
+        ))}
+
+        {isDetail && (detailRows.length === 0 ? (
+          <p className="text-muted-foreground">Sem NF-e desse representante no período.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>NF</TableHead>
+                <TableHead>Data Emissão</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead className="text-right">Valor Produto</TableHead>
+                <TableHead className="text-right">%</TableHead>
+                <TableHead className="text-right">Comissão</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {detailRows.map((r, i) => (
+                <TableRow key={i}>
+                  <TableCell className="font-medium">{r.numero}</TableCell>
+                  <TableCell>{formatarData(r.emissao)}</TableCell>
+                  <TableCell>{r.cliente}</TableCell>
+                  <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
+                  <TableCell className="text-right">{r.pct.toFixed(2)}%</TableCell>
+                  <TableCell className="text-right font-medium">{fmtBRL(r.comissao)}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="bg-muted/50 font-bold">
+                <TableCell colSpan={3}>TOTAL</TableCell>
+                <TableCell className="text-right">{fmtBRL(detTotalBase)}</TableCell>
+                <TableCell></TableCell>
+                <TableCell className="text-right">{fmtBRL(detTotalCom)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        ))}
       </CardContent>
     </Card>
   );
