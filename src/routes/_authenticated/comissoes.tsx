@@ -347,7 +347,7 @@ function ComissoesPage() {
               </SelectContent>
             </Select>
           </div>
-          {repFilter !== "todos" && (
+          {repFilter !== "todos" && canExportar && (
             <div className="flex items-end">
               <Button
                 variant="outline"
