@@ -237,22 +237,24 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
           </div>
           {!valoresIguais && (
             <div>
-              <Label>Observação (obrigatória)</Label>
+              <Label>{obsObrigatoria ? "Observação (obrigatória)" : "Observação (opcional)"}</Label>
               <Textarea
                 value={form.observacao}
                 onChange={(e) => setForm({ ...form, observacao: e.target.value })}
-                placeholder="Explique a diferença entre o valor dos produtos e o valor da nota (ex: frete incluso, desconto comercial, ajuste fiscal...)"
+                placeholder={obsObrigatoria
+                  ? "Explique por que o valor da nota é menor que o valor dos produtos (ex: desconto comercial, ajuste fiscal...)"
+                  : "Observação (opcional)"}
                 rows={3}
-                required={valoresDiferem}
+                required={obsObrigatoria}
               />
-              {valoresDiferem && !form.observacao.trim() && (
-                <p className="text-xs text-destructive mt-1">Observação obrigatória quando o valor da nota difere do valor dos produtos.</p>
+              {obsObrigatoria && !form.observacao.trim() && (
+                <p className="text-xs text-destructive mt-1">Observação obrigatória quando o valor da nota for menor que o valor dos produtos.</p>
               )}
             </div>
           )}
           <div><Label>Data entrega</Label><Input type="date" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} /></div>
           <DialogFooter>
-            <Button type="submit" disabled={valoresDiferem && !form.observacao.trim()}>Salvar e calcular comissões</Button>
+            <Button type="submit" disabled={obsObrigatoria && !form.observacao.trim()}>Salvar e calcular comissões</Button>
           </DialogFooter>
         </form>
       </DialogContent>
