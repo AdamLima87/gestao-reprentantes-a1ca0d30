@@ -878,14 +878,17 @@ function UsuariosTab() {
               <div><Label>E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
               <div>
                 <Label>Senha provisória *</Label>
-                <Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={10} />
-                <PasswordStrengthMeter value={form.senha} />
+                <Input type="text" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required minLength={6} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pode ser qualquer senha com 6+ caracteres. O usuário será obrigado a trocá-la no primeiro acesso, atendendo aos requisitos de segurança.
+                </p>
               </div>
               <div><Label>Perfil *</Label>
                 <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as typeof form.role })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="gestor">Gestor</SelectItem>
                     <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
                     <SelectItem value="representante">Representante</SelectItem>
                     <SelectItem value="financeiro">Financeiro</SelectItem>
