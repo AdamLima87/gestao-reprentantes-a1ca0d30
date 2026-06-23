@@ -90,17 +90,31 @@ function NfePage() {
                         ) : null}
                       </TableCell>
                       <TableCell className="text-right">
-                        {!n.data_entrega && canCreate && (
-                          <RegistrarEntregaDialog
-                            nfeId={n.id}
-                            pedidoId={n.pedido_id}
-                            onDone={() => {
-                              qc.invalidateQueries({ queryKey: ["nfes"] });
-                              qc.invalidateQueries({ queryKey: ["pedidos"] });
-                              qc.invalidateQueries({ queryKey: ["dashboard"] });
-                            }}
-                          />
-                        )}
+                        <div className="flex justify-end gap-2">
+                          {!n.data_entrega && canCreate && (
+                            <RegistrarEntregaDialog
+                              nfeId={n.id}
+                              pedidoId={n.pedido_id}
+                              onDone={() => {
+                                qc.invalidateQueries({ queryKey: ["nfes"] });
+                                qc.invalidateQueries({ queryKey: ["pedidos"] });
+                                qc.invalidateQueries({ queryKey: ["dashboard"] });
+                              }}
+                            />
+                          )}
+                          {isAdmin && (
+                            <ExcluirNfeDialog
+                              nfeId={n.id}
+                              numeroNfe={n.numero_nfe}
+                              onDone={() => {
+                                qc.invalidateQueries({ queryKey: ["nfes"] });
+                                qc.invalidateQueries({ queryKey: ["pedidos"] });
+                                qc.invalidateQueries({ queryKey: ["comissoes"] });
+                                qc.invalidateQueries({ queryKey: ["dashboard"] });
+                              }}
+                            />
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
