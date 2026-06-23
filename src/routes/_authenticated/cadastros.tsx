@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { createUser, listUsers, updateUser, deleteUser, listAllPermissions } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2 } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X } from "lucide-react";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
 import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
@@ -88,6 +88,7 @@ function ClientesTab() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [filtro, setFiltro] = useState<"todos" | "com_rep" | "interno" | "sem_vinculo">("todos");
+  const [busca, setBusca] = useState("");
   const emptyForm = { nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", atendimento_interno: false, ativo: true };
   const [form, setForm] = useState(emptyForm);
   const [buscandoCnpj, setBuscandoCnpj] = useState(false);
@@ -158,19 +159,48 @@ function ClientesTab() {
     return `${parts[0]} ${parts[parts.length - 1][0]}.`;
   };
 
+  const normalize = (s: string) => (s ?? "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const onlyDigits = (s: string) => (s ?? "").toString().replace(/\D/g, "");
+  const buscaNorm = normalize(busca.trim());
+  const buscaDigits = onlyDigits(busca);
+
   const filtrados = (clientes ?? []).filter((c: any) => {
-    if (filtro === "com_rep") return !!c.representante_id;
-    if (filtro === "interno") return !!c.atendimento_interno;
-    if (filtro === "sem_vinculo") return !c.representante_id && !c.atendimento_interno;
-    return true;
+    if (filtro === "com_rep" && !c.representante_id) return false;
+    if (filtro === "interno" && !c.atendimento_interno) return false;
+    if (filtro === "sem_vinculo" && (c.representante_id || c.atendimento_interno)) return false;
+    if (!buscaNorm) return true;
+    const nomeMatch = normalize(c.nome).includes(buscaNorm);
+    const repMatch = normalize(c.representantes?.nome ?? "").includes(buscaNorm);
+    const cnpjMatch = buscaDigits.length > 0 && onlyDigits(c.cnpj ?? "").includes(buscaDigits);
+    return nomeMatch || repMatch || cnpjMatch;
   });
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle>Clientes</CardTitle>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-          {can("cadastrar_clientes") && <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>}
+        <div className="flex items-center gap-3">
+          <div className="relative" style={{ width: 320 }}>
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Pesquisar por nome, CNPJ ou representante..."
+              className="pl-8 pr-8"
+            />
+            {busca && (
+              <button
+                type="button"
+                aria-label="Limpar pesquisa"
+                onClick={() => setBusca("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            {can("cadastrar_clientes") && <DialogTrigger asChild><Button onClick={openNew}>+ Novo</Button></DialogTrigger>}
           <DialogContent>
             <DialogHeader><DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
@@ -220,6 +250,7 @@ function ClientesTab() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="mb-3 flex flex-wrap gap-2">
