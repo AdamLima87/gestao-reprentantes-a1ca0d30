@@ -68,7 +68,7 @@ function NfePage() {
                   {(nfes ?? []).map((n) => (
                     <TableRow key={n.id}>
                       <TableCell className="font-mono text-xs">{n.numero_nfe}</TableCell>
-                      <TableCell>{n.data_nfe}</TableCell>
+                      <TableCell>{formatarData(n.data_nfe)}</TableCell>
                       <TableCell>{n.pedidos?.numero_pedido}</TableCell>
                       <TableCell>{n.pedidos?.clientes?.nome}</TableCell>
                       <TableCell>{n.pedidos?.representantes?.nome}</TableCell>
