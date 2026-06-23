@@ -990,6 +990,181 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
   );
 }
 
+/* ============ NF-e ============ */
+function formatCNPJ(cnpj?: string | null) {
+  if (!cnpj) return "—";
+  const d = String(cnpj).replace(/\D/g, "");
+  if (d.length !== 14) return cnpj;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+
+function NfeTab({ mes, ano }: { mes: number; ano: number }) {
+  const { data: logoBase64 } = useQuery({
+    queryKey: ["empresa-logo"],
+    queryFn: async () => {
+      const res = await supabase.from("configuracoes_empresa").select("logo_base64").maybeSingle();
+      return (res.data as { logo_base64?: string | null } | null)?.logo_base64 ?? null;
+    },
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["rel-nfe", mes, ano],
+    queryFn: async () => {
+      const res = await supabase
+        .from("nfe")
+        .select("numero_nfe, data_nfe, valor_nfe, mes_ref, ano_ref, observacao, pedidos(valor_produtos, clientes(nome, cnpj))")
+        .eq("mes_ref", mes).eq("ano_ref", ano)
+        .order("data_nfe", { ascending: true });
+      return res.data ?? [];
+    },
+  });
+
+  const notas = data ?? [];
+  const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
+
+  const totalCount = notas.length;
+  const totalProdutos = notas.reduce(
+    (s, n) => s + Number((n.pedidos as { valor_produtos?: number } | null)?.valor_produtos ?? 0),
+    0,
+  );
+  const totalNfe = notas.reduce((s, n) => s + Number(n.valor_nfe ?? 0), 0);
+  const diferenca = totalNfe - totalProdutos;
+
+  const handleCSV = () =>
+    exportCSV(
+      `nfe-${ano}-${String(mes).padStart(2, "0")}`,
+      ["Nº NF-e", "Data Emissão", "CNPJ", "Cliente", "Valor Produtos", "Valor NF-e", "Observação"],
+      [
+        ...notas.map((n) => {
+          const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
+          return [
+            n.numero_nfe,
+            formatarData(n.data_nfe),
+            formatCNPJ(ped?.clientes?.cnpj),
+            ped?.clientes?.nome ?? "—",
+            Number(ped?.valor_produtos ?? 0).toFixed(2),
+            Number(n.valor_nfe ?? 0).toFixed(2),
+            n.observacao ?? "",
+          ];
+        }),
+        ["TOTAL", String(totalCount), "", "", totalProdutos.toFixed(2), totalNfe.toFixed(2), ""],
+      ],
+    );
+
+  const handlePDF = () =>
+    exportPDF(
+      `nfe-${ano}-${String(mes).padStart(2, "0")}`,
+      `Relatório de NF-es — ${periodo}`,
+      ["Nº NF-e", "Data Emissão", "CNPJ", "Cliente", "Valor Produtos", "Valor NF-e", "Obs"],
+      [
+        ...notas.map((n) => {
+          const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
+          return [
+            n.numero_nfe,
+            formatarData(n.data_nfe),
+            formatCNPJ(ped?.clientes?.cnpj),
+            ped?.clientes?.nome ?? "—",
+            fmtBRL(ped?.valor_produtos ?? 0),
+            fmtBRL(n.valor_nfe ?? 0),
+            n.observacao ? "Sim" : "",
+          ];
+        }),
+        ["TOTAL", String(totalCount), "", "", fmtBRL(totalProdutos), fmtBRL(totalNfe), ""],
+      ],
+      undefined,
+      { brand: true, logoBase64 : logoBase64 ?? null },
+    );
+
+  return (
+    <UiTooltipProvider>
+      <div className={`grid grid-cols-1 md:grid-cols-${Math.abs(diferenca) > 0.005 ? 4 : 3} gap-3`}>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase">Total de NF-es emitidas</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold">{totalCount}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase">Total Valor Produtos</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold">{fmtBRL(totalProdutos)}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase">Total Valor NF-e</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold">{fmtBRL(totalNfe)}</div></CardContent>
+        </Card>
+        {Math.abs(diferenca) > 0.005 && (
+          <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30">
+            <CardHeader className="pb-2"><CardTitle className="text-xs uppercase text-yellow-700 dark:text-yellow-400">Diferença (NF-e vs Produtos)</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{fmtBRL(diferenca)}</div></CardContent>
+          </Card>
+        )}
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
+          <CardTitle>NF-es do período</CardTitle>
+          <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-muted-foreground">Carregando…</p>
+          ) : notas.length === 0 ? (
+            <p className="text-muted-foreground">Nenhuma NF-e no período.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nº NF-e</TableHead>
+                  <TableHead>Data Emissão</TableHead>
+                  <TableHead>CNPJ</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead className="text-right">Valor Produtos</TableHead>
+                  <TableHead className="text-right">Valor NF-e</TableHead>
+                  <TableHead>Obs</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {notas.map((n, i) => {
+                  const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
+                  return (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{n.numero_nfe}</TableCell>
+                      <TableCell>{formatarData(n.data_nfe)}</TableCell>
+                      <TableCell>{formatCNPJ(ped?.clientes?.cnpj)}</TableCell>
+                      <TableCell>{ped?.clientes?.nome ?? "—"}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(ped?.valor_produtos ?? 0)}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(n.valor_nfe ?? 0)}</TableCell>
+                      <TableCell>
+                        {n.observacao ? (
+                          <UiTooltip>
+                            <UiTooltipTrigger asChild>
+                              <button type="button" className="text-muted-foreground hover:text-foreground">
+                                <MessageSquareText className="h-4 w-4" />
+                              </button>
+                            </UiTooltipTrigger>
+                            <UiTooltipContent className="max-w-xs whitespace-pre-wrap">{n.observacao}</UiTooltipContent>
+                          </UiTooltip>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="font-bold bg-muted/50">
+                  <TableCell>TOTAL</TableCell>
+                  <TableCell>{totalCount} NF-e</TableCell>
+                  <TableCell />
+                  <TableCell />
+                  <TableCell className="text-right">{fmtBRL(totalProdutos)}</TableCell>
+                  <TableCell className="text-right">{fmtBRL(totalNfe)}</TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </UiTooltipProvider>
+  );
+}
+
 /* ============ CLIENTES ============ */
 function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
   const { data, isLoading } = useQuery({
