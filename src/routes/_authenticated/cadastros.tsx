@@ -62,6 +62,7 @@ function CadastrosPage() {
 // ============== CLIENTES ==============
 function ClientesTab() {
   const qc = useQueryClient();
+  const { can } = usePermissions();
   const { data: clientes } = useQuery({ queryKey: ["clientes-adm"], queryFn: async () => (await supabase.from("clientes").select("*, representantes(nome)").order("nome")).data ?? [] });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const [open, setOpen] = useState(false);
