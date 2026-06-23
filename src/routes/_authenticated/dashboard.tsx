@@ -31,7 +31,7 @@ function Dashboard() {
         supabase.from("pedidos").select("id, status, prazo_entrega, valor_produtos, representante_id"),
         supabase.from("nfe").select("valor_nfe, mes_ref, ano_ref, pedido_id").eq("mes_ref", mes).eq("ano_ref", ano),
         supabase.from("metas").select("valor, mes, ano, representante_id").eq("mes", mes).eq("ano", ano),
-        supabase.from("representantes").select("id, nome, regiao, tipo, ativo"),
+        supabase.from("representantes").select("id, nome, regiao, estados, tipo, ativo"),
       ]);
       return {
         pedidos: pedidosRes.data ?? [],
