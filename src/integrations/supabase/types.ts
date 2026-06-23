@@ -558,6 +558,7 @@ export type Database = {
     Functions: {
       current_representante_id: { Args: never; Returns: string }
       ensure_vendedor_interno_representante: { Args: never; Returns: string }
+      has_permission: { Args: { perm: string; uid: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
