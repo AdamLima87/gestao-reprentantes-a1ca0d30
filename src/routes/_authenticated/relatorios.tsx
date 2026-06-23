@@ -488,6 +488,7 @@ function InternoTable({
     type R = {
       nfeId: string;
       numero: string;
+      pedidoCliente: string;
       emissao: string;
       empresa: string;
       entrega: string;
@@ -501,6 +502,7 @@ function InternoTable({
       const r = map.get(c.nfe_id) ?? {
         nfeId: c.nfe_id,
         numero: c.nfe?.numero_nfe ?? "—",
+        pedidoCliente: c.nfe?.pedidos?.numero_pedido_cliente ?? "—",
         emissao: c.nfe?.data_nfe ?? "",
         empresa: c.nfe?.pedidos?.clientes?.nome ?? "—",
         entrega: c.nfe?.data_entrega ?? "",
