@@ -976,9 +976,23 @@ function UsuariosTab() {
             <TableHead className="w-32 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {(users ?? []).map((u: any) => (
+            {(users ?? []).map((u: any) => {
+              const userPerms = (allUserPerms ?? []) as unknown as Array<{ user_id: string; permissao: string; concedida: boolean }>;
+              const role = (u.roles?.[0] ?? null) as keyof typeof ROLE_DEFAULTS | null;
+              const defaults = role ? ROLE_DEFAULTS[role] : new Set<string>();
+              const personalizado = userPerms.some((p) => {
+                if (p.user_id !== u.id) return false;
+                if (!(PERMISSION_KEYS as readonly string[]).includes(p.permissao)) return false;
+                return p.concedida !== defaults.has(p.permissao as any);
+              });
+              return (
               <TableRow key={u.id}>
-                <TableCell>{u.nome || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span>{u.nome || "—"}</span>
+                    {personalizado && <Badge variant="outline" className="text-xs">Personalizado</Badge>}
+                  </div>
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{u.email || "—"}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{roleLabel[u.roles?.[0]] ?? "—"}</Badge>
