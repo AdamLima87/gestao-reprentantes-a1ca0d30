@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { formatarData } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LineChart,
   Line,
