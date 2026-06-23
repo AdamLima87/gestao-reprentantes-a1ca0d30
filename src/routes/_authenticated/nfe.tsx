@@ -160,8 +160,8 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
       toast.error("Preencha os campos obrigatórios.");
       return;
     }
-    if (valoresDiferem && !form.observacao.trim()) {
-      toast.error("Informe a observação explicando a diferença entre os valores.");
+    if (obsObrigatoria && !form.observacao.trim()) {
+      toast.error("Observação obrigatória quando o valor da nota for menor que o valor dos produtos.");
       return;
     }
     const d = new Date(form.data_nfe);
@@ -173,7 +173,7 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
       mes_ref: d.getMonth() + 1,
       ano_ref: d.getFullYear(),
       data_entrega: form.data_entrega || null,
-      observacao: valoresDiferem ? form.observacao.trim() : null,
+      observacao: form.observacao.trim() ? form.observacao.trim() : null,
     });
     if (error) return toast.error(error.message);
     if (form.data_entrega) {
