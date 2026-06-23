@@ -118,6 +118,8 @@ function RelatoriosPage() {
 }
 
 function ExportButtons({ onCSV, onPDF }: { onCSV: () => void; onPDF: () => void }) {
+  const { can } = usePermissions();
+  if (!can("exportar_relatorios")) return null;
   return (
     <div className="flex gap-2">
       <Button variant="outline" size="sm" onClick={onCSV}>
