@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 
@@ -58,44 +58,34 @@ export function roleDefault(roles: AppRole[], perm: PermissionKey): boolean {
 
 export interface PermissionsState {
   loading: boolean;
-  overrides: Record<string, boolean>; // permissao -> concedida
+  overrides: Record<string, boolean>;
   can: (perm: PermissionKey | string) => boolean;
 }
 
 export function usePermissions(userId?: string | null): PermissionsState {
   const auth = useAuth();
   const uid = userId ?? auth.user?.id ?? null;
-  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!uid) {
-      setOverrides({});
-      setLoading(false);
-      return;
-    }
-    let active = true;
-    setLoading(true);
-    supabase
-      .from("user_permissions" as any)
-      .select("permissao, concedida")
-      .eq("user_id", uid)
-      .then(({ data }) => {
-        if (!active) return;
-        const map: Record<string, boolean> = {};
-        for (const row of (data ?? []) as unknown as Array<{ permissao: string; concedida: boolean }>) {
-          map[row.permissao] = row.concedida;
-        }
-        setOverrides(map);
-        setLoading(false);
-      });
-    return () => { active = false; };
-  }, [uid]);
+  const { data: overrides = {}, isLoading } = useQuery({
+    queryKey: ["user-permissions", uid],
+    enabled: !!uid,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_permissions" as any)
+        .select("permissao, concedida")
+        .eq("user_id", uid as string);
+      const map: Record<string, boolean> = {};
+      for (const row of (data ?? []) as unknown as Array<{ permissao: string; concedida: boolean }>) {
+        map[row.permissao] = row.concedida;
+      }
+      return map;
+    },
+  });
 
   const can = (perm: PermissionKey | string) => {
     if (perm in overrides) return overrides[perm];
     return roleDefault(auth.roles, perm as PermissionKey);
   };
 
-  return { loading, overrides, can };
+  return { loading: !!uid && isLoading, overrides, can };
 }
