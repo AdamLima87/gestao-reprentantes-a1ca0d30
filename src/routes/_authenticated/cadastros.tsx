@@ -18,7 +18,9 @@ import { toast } from "sonner";
 import { createUser, listUsers, updateUser, deleteUser, listAllPermissions } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
 import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
@@ -298,12 +300,14 @@ type RepFormState = {
   tipo_pessoa: "juridica" | "fisica";
   cnpj: string; razao_social: string; endereco: string; numero: string; bairro: string; cidade: string; estado: string; cep: string; nome_socio: string;
   cpf: string; nome_completo: string; rg: string; data_nascimento: string;
+  banco: string; tipo_conta: string; agencia: string; conta_digito: string; chave_pix: string; titular_conta: string; cpf_cnpj_titular: string;
 };
 const emptyRepForm: RepFormState = {
   nome: "", regiao: "", estados: [], tipo: "externo", percentual_padrao: "5.0", ativo: true,
   tipo_pessoa: "juridica",
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
   cpf: "", nome_completo: "", rg: "", data_nascimento: "",
+  banco: "", tipo_conta: "", agencia: "", conta_digito: "", chave_pix: "", titular_conta: "", cpf_cnpj_titular: "",
 };
 
 
@@ -473,6 +477,37 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           </div>
         </div>
       )}
+
+      <Separator className="my-2" />
+      <div className="space-y-3">
+        <div>
+          <h4 className="text-sm font-semibold">Dados Bancários</h4>
+          <p className="text-xs text-muted-foreground">Opcional — usado no extrato de pagamento de comissões.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Banco</Label><Input value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} placeholder="Ex: Bradesco, Itaú, Nubank" /></div>
+          <div>
+            <Label>Tipo de conta</Label>
+            <Select value={form.tipo_conta} onValueChange={(v) => setForm({ ...form, tipo_conta: v })}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="corrente">Conta Corrente</SelectItem>
+                <SelectItem value="poupanca">Conta Poupança</SelectItem>
+                <SelectItem value="pagamento">Conta de Pagamento</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Agência</Label><Input value={form.agencia} onChange={(e) => setForm({ ...form, agencia: e.target.value })} placeholder="0000" /></div>
+          <div><Label>Conta com dígito</Label><Input value={form.conta_digito} onChange={(e) => setForm({ ...form, conta_digito: e.target.value })} placeholder="00000-0" /></div>
+        </div>
+        <div><Label>Chave PIX</Label><Input value={form.chave_pix} onChange={(e) => setForm({ ...form, chave_pix: e.target.value })} placeholder="CPF/CNPJ, e-mail, telefone ou chave aleatória" /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Titular da conta</Label><Input value={form.titular_conta} onChange={(e) => setForm({ ...form, titular_conta: e.target.value })} placeholder="Nome do titular" /></div>
+          <div><Label>CPF/CNPJ do titular</Label><Input value={form.cpf_cnpj_titular} onChange={(e) => setForm({ ...form, cpf_cnpj_titular: e.target.value })} /></div>
+        </div>
+      </div>
     </>
   );
 }
@@ -508,6 +543,13 @@ function RepsTab() {
       cidade: isExt ? (f.cidade || null) : null,
       estado: isExt ? (f.estado || null) : null,
       cep: isExt ? (f.cep || null) : null,
+      banco: f.banco || null,
+      tipo_conta: f.tipo_conta || null,
+      agencia: f.agencia || null,
+      conta_digito: f.conta_digito || null,
+      chave_pix: f.chave_pix || null,
+      titular_conta: f.titular_conta || null,
+      cpf_cnpj_titular: f.cpf_cnpj_titular || null,
     };
   };
 
@@ -539,6 +581,9 @@ function RepsTab() {
       endereco: r.endereco ?? "", numero: r.numero ?? "", bairro: r.bairro ?? "",
       cidade: r.cidade ?? "", estado: r.estado ?? "", cep: r.cep ?? "", nome_socio: r.nome_socio ?? "",
       cpf: r.cpf ?? "", nome_completo: r.nome_completo ?? "", rg: r.rg ?? "", data_nascimento: r.data_nascimento ?? "",
+      banco: r.banco ?? "", tipo_conta: r.tipo_conta ?? "", agencia: r.agencia ?? "",
+      conta_digito: r.conta_digito ?? "", chave_pix: r.chave_pix ?? "",
+      titular_conta: r.titular_conta ?? "", cpf_cnpj_titular: r.cpf_cnpj_titular ?? "",
     });
     setOpen(true);
   };
@@ -590,7 +635,26 @@ function RepsTab() {
               const extras = estadosArr.length - visiveis.length;
               return (
                 <TableRow key={r.id}>
-                  <TableCell>{r.nome}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span>{r.nome}</span>
+                      {(() => {
+                        const ra: any = r;
+                        const temBanco = !!(ra.banco || ra.agencia || ra.conta_digito || ra.chave_pix || ra.titular_conta);
+                        if (!temBanco) return null;
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex text-emerald-600"><Landmark className="h-4 w-4" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent>Dados bancários cadastrados</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {estadosArr.length === 0 ? "—" : (
                       <div className="flex flex-wrap gap-1">
