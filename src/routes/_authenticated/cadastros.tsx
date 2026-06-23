@@ -635,7 +635,26 @@ function RepsTab() {
               const extras = estadosArr.length - visiveis.length;
               return (
                 <TableRow key={r.id}>
-                  <TableCell>{r.nome}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span>{r.nome}</span>
+                      {(() => {
+                        const ra: any = r;
+                        const temBanco = !!(ra.banco || ra.agencia || ra.conta_digito || ra.chave_pix || ra.titular_conta);
+                        if (!temBanco) return null;
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex text-emerald-600"><Landmark className="h-4 w-4" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent>Dados bancários cadastrados</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {estadosArr.length === 0 ? "—" : (
                       <div className="flex flex-wrap gap-1">
