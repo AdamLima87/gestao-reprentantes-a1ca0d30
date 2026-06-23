@@ -1009,7 +1009,8 @@ function UsuariosTab() {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
