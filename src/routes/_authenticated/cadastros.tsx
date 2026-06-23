@@ -952,15 +952,20 @@ function UsuariosTab() {
             <div><Label>Nome *</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} required /></div>
             <div><Label>E-mail *</Label><Input type="email" value={editing.email} onChange={(e) => setEditing({ ...editing, email: e.target.value })} required /></div>
             <div>
-              <Label>Nova senha (opcional)</Label>
+              <Label>Nova senha provisória (opcional)</Label>
               <Input type="text" value={editing.senha} onChange={(e) => setEditing({ ...editing, senha: e.target.value })} placeholder="Deixe em branco para manter" />
-              {editing.senha && <PasswordStrengthMeter value={editing.senha} />}
+              {editing.senha && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Ao salvar, o usuário será obrigado a definir uma nova senha forte no próximo login.
+                </p>
+              )}
             </div>
             <div><Label>Perfil *</Label>
               <Select value={editing.role} onValueChange={(v) => setEditing({ ...editing, role: v as typeof editing.role })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="gestor">Gestor</SelectItem>
                   <SelectItem value="vendedor_interno">Vendedor interno</SelectItem>
                   <SelectItem value="representante">Representante</SelectItem>
                   <SelectItem value="financeiro">Financeiro</SelectItem>
