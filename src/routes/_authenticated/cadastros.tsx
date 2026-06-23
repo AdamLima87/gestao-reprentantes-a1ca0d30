@@ -813,6 +813,10 @@ function UsuariosTab() {
     }
   };
 
+  type PermTri = "default" | "granted" | "blocked";
+  const emptyPerms = (): Record<PermissionKey, PermTri> =>
+    Object.fromEntries(PERMISSION_KEYS.map((k) => [k, "default"])) as Record<PermissionKey, PermTri>;
+
   const [editing, setEditing] = useState<null | {
     userId: string;
     nome: string;
@@ -820,10 +824,17 @@ function UsuariosTab() {
     senha: string;
     role: "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor";
     representante_id: string;
+    perms: Record<PermissionKey, PermTri>;
   }>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
   const openEdit = (u: any) => {
+    const perms = emptyPerms();
+    for (const row of (allUserPerms ?? []) as Array<{ user_id: string; permissao: string; concedida: boolean }>) {
+      if (row.user_id === u.id && (PERMISSION_KEYS as readonly string[]).includes(row.permissao)) {
+        perms[row.permissao as PermissionKey] = row.concedida ? "granted" : "blocked";
+      }
+    }
     setEditing({
       userId: u.id,
       nome: u.nome ?? "",
@@ -831,6 +842,7 @@ function UsuariosTab() {
       senha: "",
       role: (u.roles?.[0] ?? "representante") as any,
       representante_id: u.representante_id ?? "none",
+      perms,
     });
   };
 
