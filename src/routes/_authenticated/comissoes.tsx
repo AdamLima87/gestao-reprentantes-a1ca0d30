@@ -236,8 +236,8 @@ function ComprovanteLink({ path }: { path: string }) {
 
 function ComissoesPage() {
   const { roles, representanteId } = useAuth();
+  const { can } = usePermissions();
   const isAdmin = roles.includes("admin");
-  const isFinanceiro = roles.includes("financeiro");
   const isRepOnly =
     roles.includes("representante") &&
     !roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
@@ -291,7 +291,8 @@ function ComissoesPage() {
   const totalPago = (data ?? []).filter((c: any) => c.pago_em).reduce((s, c: any) => s + Number(c.valor_comissao), 0);
   const totalVisivel = filtered.reduce((s: number, c: any) => s + Number(c.valor_comissao), 0);
 
-  const canMarcarPago = isAdmin || isFinanceiro;
+  const canMarcarPago = can("marcar_comissao_paga");
+  const canExportar = can("exportar_relatorios");
 
   return (
     <div className="space-y-4">
