@@ -543,6 +543,9 @@ function RepsTab() {
       endereco: r.endereco ?? "", numero: r.numero ?? "", bairro: r.bairro ?? "",
       cidade: r.cidade ?? "", estado: r.estado ?? "", cep: r.cep ?? "", nome_socio: r.nome_socio ?? "",
       cpf: r.cpf ?? "", nome_completo: r.nome_completo ?? "", rg: r.rg ?? "", data_nascimento: r.data_nascimento ?? "",
+      banco: r.banco ?? "", tipo_conta: r.tipo_conta ?? "", agencia: r.agencia ?? "",
+      conta_digito: r.conta_digito ?? "", chave_pix: r.chave_pix ?? "",
+      titular_conta: r.titular_conta ?? "", cpf_cnpj_titular: r.cpf_cnpj_titular ?? "",
     });
     setOpen(true);
   };
