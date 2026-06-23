@@ -534,7 +534,7 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
                   <TableCell>{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
                   <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
                   <TableCell><StatusBadge pago={!!c.pago_em} /></TableCell>
-                  <TableCell>{c.pago_em ?? "—"}</TableCell>
+                  <TableCell>{formatarData(c.pago_em)}</TableCell>
                 </TableRow>
               ))}
               {(doMes ?? []).length === 0 && (
