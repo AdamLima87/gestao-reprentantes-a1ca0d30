@@ -134,6 +134,11 @@ export const updateUser = createServerFn({ method: "POST" })
       senha?: string | null;
       role?: AppRole;
       representante_id?: string | null;
+      percentual_comissao?: number | null;
+      banco?: string | null;
+      agencia?: string | null;
+      conta?: string | null;
+      pix?: string | null;
     }) => {
       if (!input.userId) throw new Error("userId obrigatório.");
       if (input.senha) validarSenhaProvisoria(input.senha);
@@ -153,19 +158,25 @@ export const updateUser = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    const profPatch: { nome?: string; representante_id?: string | null; must_change_password?: boolean } = {};
+    const profPatch: Record<string, unknown> = {};
     if (data.nome !== undefined) profPatch.nome = data.nome;
     if (data.representante_id !== undefined)
       profPatch.representante_id = data.representante_id || null;
-    // Senha redefinida por um admin é considerada provisória e exige troca no próximo login.
+    if (data.percentual_comissao !== undefined && data.percentual_comissao !== null)
+      profPatch.percentual_comissao = data.percentual_comissao;
+    if (data.banco !== undefined) profPatch.banco = data.banco;
+    if (data.agencia !== undefined) profPatch.agencia = data.agencia;
+    if (data.conta !== undefined) profPatch.conta = data.conta;
+    if (data.pix !== undefined) profPatch.pix = data.pix;
     if (data.senha) profPatch.must_change_password = true;
     if (Object.keys(profPatch).length > 0) {
-      const { error: profErr } = await supabaseAdmin.from("profiles").update(profPatch).eq("id", data.userId);
+      const { error: profErr } = await supabaseAdmin.from("profiles").update(profPatch as any).eq("id", data.userId);
       if (profErr) {
         console.error("[updateUser] profiles error:", profErr);
         throw new Error("Erro ao atualizar perfil: " + profErr.message);
       }
     }
+
 
     if (data.role) {
       await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
