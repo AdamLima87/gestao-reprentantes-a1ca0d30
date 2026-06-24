@@ -977,7 +977,13 @@ function UsuariosTab() {
     senha: "",
     role: "representante" as "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor",
     representante_id: "none",
+    percentual_comissao: "0",
+    banco: "",
+    agencia: "",
+    conta: "",
+    pix: "",
   });
+
 
   const submitNew = async (e: React.FormEvent) => {
     e.preventDefault();
