@@ -36,7 +36,9 @@ const TIPO_LABEL: Record<string, string> = {
   interno_novo: "Vend. Interno - Cliente Novo",
   interno_reativacao: "Vend. Interno - Reativação",
   interno_recorrente: "Vend. Interno - Recorrente",
+  gestor: "Gestor",
 };
+
 
 async function gerarExtratoPDF(
   repNome: string,
@@ -202,6 +204,141 @@ async function gerarExtratoPDF(
   doc.save(`extrato_${slug}_${String(mes).padStart(2, "0")}_${ano}.pdf`);
 }
 
+async function gerarExtratoGestorPDF(
+  gestorNome: string,
+  mes: number,
+  ano: number,
+  rows: any[],
+  gestor?: { banco?: string | null; agencia?: string | null; conta?: string | null; pix?: string | null } | null,
+) {
+  const { data: empresa } = await supabase
+    .from("configuracoes_empresa")
+    .select("razao_social, logo_base64")
+    .limit(1)
+    .maybeSingle();
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+
+  // Cabeçalho verde escuro
+  doc.setFillColor(26, 107, 58);
+  doc.rect(0, 0, pageWidth, 28, "F");
+  let textX = margin;
+  if (empresa?.logo_base64) {
+    try {
+      const fmt = empresa.logo_base64.startsWith("data:image/png") ? "PNG" : "JPEG";
+      const props = (doc as any).getImageProperties?.(empresa.logo_base64);
+      const ratio = props && props.width && props.height ? props.height / props.width : 0.5;
+      const MAX_W = 40;
+      const MAX_H = 18;
+      let logoW = MAX_W;
+      let logoH = logoW * ratio;
+      if (logoH > MAX_H) {
+        logoH = MAX_H;
+        logoW = logoH / ratio;
+      }
+      doc.addImage(empresa.logo_base64, fmt, margin, 5, logoW, logoH);
+      textX = margin + logoW + 6;
+    } catch {/* ignore */}
+  }
+  doc.setTextColor(255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("BRAZIL AMORTECEDORES", textX, 12);
+  doc.setFontSize(11);
+  doc.text("EXTRATO DE COMISSÃO — GESTOR", textX, 19);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Período ${String(mes).padStart(2, "0")}/${ano}`, pageWidth - margin, 12, { align: "right" });
+  doc.text(`Gestor: ${gestorNome}`, pageWidth - margin, 19, { align: "right" });
+  doc.setTextColor(0);
+
+  let cursorY = 36;
+
+  const totalBase = rows.reduce((s, c: any) => s + Number(c.base_calculo || 0), 0);
+  const totalComissao = rows.reduce((s, c: any) => s + Number(c.valor_comissao || 0), 0);
+
+  autoTable(doc, {
+    startY: cursorY,
+    margin: { left: margin, right: margin },
+    head: [["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"]],
+    body: rows.map((c: any) => [
+      c.nfe?.numero_nfe ?? "—",
+      formatarData(c.nfe?.data_nfe ?? c.criado_em),
+      c.pedidos?.clientes?.nome ?? "—",
+      fmtBRLUtil(c.base_calculo),
+      `${Number(c.percentual_aplicado).toFixed(2)}%`,
+      fmtBRLUtil(c.valor_comissao),
+    ]),
+    foot: [[
+      { content: `Total de NF-es: ${rows.length}`, colSpan: 3, styles: { halign: "left", fontStyle: "bold" } },
+      { content: fmtBRLUtil(totalBase), styles: { fontStyle: "bold" } },
+      "",
+      { content: fmtBRLUtil(totalComissao), styles: { fontStyle: "bold" } },
+    ]],
+    styles: { font: "helvetica", fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [26, 107, 58], textColor: 255 },
+    footStyles: { fillColor: [232, 245, 233], textColor: 20 },
+    alternateRowStyles: { fillColor: [245, 250, 247] },
+  });
+
+  let afterY = (doc as any).lastAutoTable?.finalY ?? cursorY + 10;
+  afterY += 10;
+
+  // Bloco total comissão
+  doc.setFillColor(255, 248, 225);
+  doc.setDrawColor(180);
+  doc.rect(margin, afterY, pageWidth - margin * 2, 14, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(146, 64, 14);
+  doc.text(`Total da comissão: ${fmtBRLUtil(totalComissao)}`, margin + 4, afterY + 9);
+  doc.setTextColor(0);
+
+  // Dados bancários do gestor
+  if (gestor && (gestor.banco || gestor.agencia || gestor.conta || gestor.pix)) {
+    const linhas: string[] = [];
+    if (gestor.pix) linhas.push(`PIX: ${gestor.pix}`);
+    const partes: string[] = [];
+    if (gestor.banco) partes.push(`Banco: ${gestor.banco}`);
+    if (gestor.agencia) partes.push(`Ag: ${gestor.agencia}`);
+    if (gestor.conta) partes.push(`Conta: ${gestor.conta}`);
+    if (partes.length) linhas.push(partes.join(" — "));
+
+    if (linhas.length) {
+      const boxY = afterY + 18;
+      const boxH = 8 + linhas.length * 5;
+      doc.setFillColor(245, 250, 245);
+      doc.rect(margin, boxY, pageWidth - margin * 2, boxH, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(40, 80, 40);
+      doc.text("Dados bancários", margin + 4, boxY + 6);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(40);
+      linhas.forEach((l, i) => doc.text(l, margin + 4, boxY + 12 + i * 5));
+      doc.setTextColor(0);
+    }
+  }
+
+  // Rodapé
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  const geradoEm = new Date().toLocaleString("pt-BR");
+  doc.text(`Documento gerado em ${geradoEm}`, margin, pageHeight - margin + 5);
+  doc.text("Brazil Amortecedores — gestao-reprentantes.lovable.app", pageWidth - margin, pageHeight - margin + 5, { align: "right" });
+
+  const slug = gestorNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_");
+  doc.save(`extrato_gestor_${slug}_${String(mes).padStart(2, "0")}_${ano}.pdf`);
+}
+
+
+
+
 function previsaoPagamento(mes: number, ano: number) {
   const next = mes === 12 ? { m: 1, a: ano + 1 } : { m: mes + 1, a: ano };
   return `${String(next.m).padStart(2, "0")}/${next.a}`;
@@ -282,7 +419,7 @@ function ComprovanteLink({ path }: { path: string }) {
 }
 
 function ComissoesPage() {
-  const { representanteId } = useAuth();
+  const { representanteId, roles, user } = useAuth();
   const { can } = usePermissions();
   const canVer = can("ver_comissoes");
   const verTodas = can("ver_todas_comissoes");
@@ -290,9 +427,14 @@ function ComissoesPage() {
   const canRecalcular = can("recalcular_comissoes");
   const canExportar = can("exportar_relatorios");
 
-  const isRepOnly = canVer && !verTodas;
+  const isAdmin = roles.includes("admin");
+  const isGestor = roles.includes("gestor");
+  const podeVerGestor = isAdmin || isGestor;
+
+  const isRepOnly = canVer && !verTodas && !isGestor;
 
   if (isRepOnly) return <PainelRepresentante representanteId={representanteId} />;
+
 
   const qc = useQueryClient();
   const callReprocessar = useServerFn(reprocessarComissoes);
@@ -526,9 +668,171 @@ function ComissoesPage() {
           )}
         </CardContent>
       </Card>
+
+
+      {podeVerGestor && (
+        <ComissaoGestorSection
+          mes={mes}
+          ano={ano}
+          isAdmin={isAdmin}
+          currentUserId={user?.id ?? null}
+        />
+      )}
     </motion.div>
   );
 }
+
+function ComissaoGestorSection({
+  mes,
+  ano,
+  isAdmin,
+  currentUserId,
+}: {
+  mes: number;
+  ano: number;
+  isAdmin: boolean;
+  currentUserId: string | null;
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["comissoes-gestor", mes, ano, isAdmin, currentUserId],
+    enabled: isAdmin || !!currentUserId,
+    queryFn: async () => {
+      let q = supabase
+        .from("comissoes")
+        .select("*, pedidos(numero_pedido, clientes(nome)), nfe(numero_nfe, valor_nfe, data_nfe)")
+        .eq("tipo", "gestor" as any)
+        .eq("mes_ref", mes)
+        .eq("ano_ref", ano)
+        .order("criado_em", { ascending: false });
+      if (!isAdmin && currentUserId) q = q.eq("gestor_user_id", currentUserId);
+      return (await q).data ?? [];
+    },
+  });
+
+  const { data: gestores } = useQuery({
+    queryKey: ["gestores-profiles-full"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "gestor");
+      const ids = (roles ?? []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [] as any[];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, nome, banco, agencia, conta, pix")
+        .in("id", ids);
+      return (profs ?? []) as any[];
+    },
+  });
+
+
+  const grupos = useMemo(() => {
+    const rows = (data ?? []) as any[];
+    if (!isAdmin) return [{ id: currentUserId ?? "", nome: "Minha comissão", rows }];
+    const byId = new Map<string, any[]>();
+    for (const r of rows) {
+      const key = r.gestor_user_id ?? "—";
+      const list = byId.get(key) ?? [];
+      list.push(r);
+      byId.set(key, list);
+    }
+    const nomeOf = (id: string) =>
+      (gestores ?? []).find((g) => g.id === id)?.nome ?? "Gestor";
+    return [...byId.entries()].map(([id, rows]) => ({
+      id,
+      nome: id === "—" ? "Gestor" : nomeOf(id),
+      rows,
+    }));
+  }, [data, isAdmin, gestores, currentUserId]);
+
+
+  const totalGeral = (data ?? []).reduce(
+    (s: number, c: any) => s + Number(c.valor_comissao || 0),
+    0,
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Comissão do Gestor — {String(mes).padStart(2, "0")}/{ano}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-muted-foreground">Carregando…</p>
+        ) : (data ?? []).length === 0 ? (
+          <p className="text-muted-foreground">Sem comissões de gestor no período.</p>
+        ) : (
+          <div className="space-y-6">
+            {grupos.map((g, gi) => {
+              const subtotal = g.rows.reduce(
+                (s: number, c: any) => s + Number(c.valor_comissao || 0),
+                0,
+              );
+              const gestorProfile = (gestores ?? []).find((p: any) => p.id === g.id);
+              return (
+                <div key={gi} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">{isAdmin ? g.nome : "Minha comissão"}</h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        gerarExtratoGestorPDF(
+                          isAdmin ? g.nome : (gestorProfile?.nome ?? "Gestor"),
+                          mes,
+                          ano,
+                          g.rows,
+                          gestorProfile ?? null,
+                        )
+                      }
+                    >
+                      Extrato PDF
+                    </Button>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>NF-e</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead className="text-right">Valor Produtos</TableHead>
+                        <TableHead className="text-right">%</TableHead>
+                        <TableHead className="text-right">Comissão</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {g.rows.map((c: any, i: number) => (
+                        <MotionTableRow key={c.id} {...rowMotionProps(i)}>
+                          <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
+                          <TableCell>{formatarData(c.nfe?.data_nfe)}</TableCell>
+                          <TableCell>{c.pedidos?.clientes?.nome ?? "—"}</TableCell>
+                          <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
+                          <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
+                          <TableCell className="text-right font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
+                        </MotionTableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-bold">
+                        <TableCell colSpan={5} className="text-right">Subtotal</TableCell>
+                        <TableCell className="text-right text-[#1a6b3a]">{fmtBRL(subtotal)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })}
+            <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
+              <span className="font-semibold">Total Comissão Gestor — {String(mes).padStart(2, "0")}/{ano}</span>
+              <span className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</span>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function PainelRepresentante({ representanteId }: { representanteId: string | null }) {
   const now = new Date();

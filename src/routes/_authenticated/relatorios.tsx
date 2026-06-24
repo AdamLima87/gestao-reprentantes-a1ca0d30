@@ -148,7 +148,7 @@ function ExportButtons({ onCSV, onPDF }: { onCSV: () => void; onPDF: () => void 
 }
 
 /* ============ COMISSÕES ============ */
-type Visao = "todos" | "externos" | "interno";
+type Visao = "todos" | "externos" | "interno" | "gestor";
 
 function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
   const [visao, setVisao] = useState<Visao>("todos");
@@ -160,7 +160,7 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
       const res = await supabase
         .from("comissoes")
         .select(
-          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(numero_pedido_cliente, clientes(nome)))",
+          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, gestor_user_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(numero_pedido_cliente, clientes(nome)))",
         )
         .eq("mes_ref", mes)
         .eq("ano_ref", ano);
@@ -202,7 +202,9 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="externos">Representantes externos</SelectItem>
                 <SelectItem value="interno">Vendedor interno</SelectItem>
+                <SelectItem value="gestor">Gestor</SelectItem>
               </SelectContent>
+
             </Select>
           </div>
           {mostraRepFiltro && (
@@ -240,6 +242,10 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
           {(visao === "todos" || visao === "interno") && (
             <InternoTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
           )}
+          {(visao === "todos" || visao === "gestor") && (
+            <GestorTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
+          )}
+
         </>
       )}
     </div>
@@ -253,7 +259,9 @@ type ComissaoRow = {
   percentual_aplicado: number | string;
   nfe_id: string;
   representante_id: string | null;
+  gestor_user_id?: string | null;
   representantes: { nome?: string; tipo?: string } | null;
+
   nfe: {
     numero_nfe?: string;
     data_nfe?: string;
@@ -710,6 +718,164 @@ function InternoTable({
 
 // Badge import kept for other tabs that may use it later
 void Badge;
+
+function GestorTable({
+  data,
+  periodo,
+  mes,
+  ano,
+  logoBase64,
+}: {
+  data: ComissaoRow[];
+  periodo: string;
+  mes: number;
+  ano: number;
+  logoBase64: string | null;
+}) {
+  const gestorRows = useMemo(() => data.filter((c) => c.tipo === "gestor"), [data]);
+
+  const { data: gestores } = useQuery({
+    queryKey: ["gestores-profiles"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "gestor");
+      const ids = (roles ?? []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [] as { id: string; nome: string }[];
+      const { data: profs } = await supabase.from("profiles").select("id, nome").in("id", ids);
+      return (profs ?? []) as { id: string; nome: string }[];
+    },
+    staleTime: 60_000,
+  });
+
+  const nomeOf = (id?: string | null) =>
+    (gestores ?? []).find((g) => g.id === id)?.nome ?? "Gestor";
+
+  const grupos = useMemo(() => {
+    const map = new Map<string, ComissaoRow[]>();
+    for (const r of gestorRows) {
+      const key = r.gestor_user_id ?? "—";
+      const list = map.get(key) ?? [];
+      list.push(r);
+      map.set(key, list);
+    }
+    return [...map.entries()].map(([id, rows]) => ({ id, nome: nomeOf(id), rows }));
+  }, [gestorRows, gestores]);
+
+  const totalGeral = gestorRows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+
+  const handleCSV = () => {
+    const linhas: (string | number)[][] = [];
+    for (const g of grupos) {
+      linhas.push([`Gestor: ${g.nome}`, "", "", "", "", ""]);
+      for (const c of g.rows) {
+        linhas.push([
+          c.nfe?.numero_nfe ?? "—",
+          formatarData(c.nfe?.data_nfe ?? ""),
+          c.nfe?.pedidos?.clientes?.nome ?? "—",
+          Number(c.base_calculo).toFixed(2),
+          Number(c.percentual_aplicado).toFixed(2),
+          Number(c.valor_comissao).toFixed(2),
+        ]);
+      }
+      const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+      linhas.push([`Subtotal ${g.nome}`, "", "", "", "", sub.toFixed(2)]);
+    }
+    linhas.push(["TOTAL GERAL", "", "", "", "", totalGeral.toFixed(2)]);
+    exportCSV(
+      `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
+      ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"],
+      linhas,
+    );
+  };
+
+  const handlePDF = () => {
+    const linhas: (string | number)[][] = [];
+    for (const g of grupos) {
+      linhas.push([{ content: `Gestor: ${g.nome}`, colSpan: 6, styles: { fontStyle: "bold", fillColor: [255, 248, 225] } } as any]);
+      for (const c of g.rows) {
+        linhas.push([
+          c.nfe?.numero_nfe ?? "—",
+          formatarData(c.nfe?.data_nfe ?? ""),
+          c.nfe?.pedidos?.clientes?.nome ?? "—",
+          fmtBRL(c.base_calculo),
+          `${Number(c.percentual_aplicado).toFixed(2)}%`,
+          fmtBRL(c.valor_comissao),
+        ]);
+      }
+      const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+      linhas.push([{ content: `Subtotal ${g.nome}`, colSpan: 5, styles: { fontStyle: "bold", halign: "right" } } as any, fmtBRL(sub)]);
+    }
+    linhas.push([{ content: "TOTAL GERAL", colSpan: 5, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any, { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any]);
+    const tituloPrimario = grupos.length === 1 ? grupos[0].nome : "TODOS OS GESTORES";
+    exportPDF(
+      `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
+      `BRAZIL AMORTECEDORES — COMISSÃO DO GESTOR — ${tituloPrimario} — ${periodo}`,
+      ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"],
+      linhas,
+      undefined,
+      { brand: true, logoBase64 },
+    );
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Comissão do Gestor</CardTitle>
+        <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm font-medium text-muted-foreground">Período: {periodo}</p>
+        {gestorRows.length === 0 ? (
+          <p className="text-muted-foreground">Sem comissões de gestor no período.</p>
+        ) : (
+          <>
+            {grupos.map((g, gi) => {
+              const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+              return (
+                <div key={gi} className="space-y-2">
+                  <h3 className="text-sm font-semibold">{g.nome}</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>NF-e</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead className="text-right">Valor Produtos</TableHead>
+                        <TableHead className="text-right">%</TableHead>
+                        <TableHead className="text-right">Comissão</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {g.rows.map((c, i) => (
+                        <MotionTableRow key={i} {...rowMotionProps(i)}>
+                          <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
+                          <TableCell>{formatarData(c.nfe?.data_nfe ?? "")}</TableCell>
+                          <TableCell>{c.nfe?.pedidos?.clientes?.nome ?? "—"}</TableCell>
+                          <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
+                          <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
+                          <TableCell className="text-right font-medium">{fmtBRL(c.valor_comissao)}</TableCell>
+                        </MotionTableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-bold">
+                        <TableCell colSpan={5} className="text-right">Subtotal {g.nome}</TableCell>
+                        <TableCell className="text-right">{fmtBRL(sub)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })}
+            <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
+              <span className="font-semibold">Total Geral</span>
+              <span className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</span>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
 
 /* ============ VENDAS ============ */
 function VendasTab({ mes, ano }: { mes: number; ano: number }) {

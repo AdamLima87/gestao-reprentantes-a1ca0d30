@@ -977,7 +977,13 @@ function UsuariosTab() {
     senha: "",
     role: "representante" as "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor",
     representante_id: "none",
+    percentual_comissao: "0",
+    banco: "",
+    agencia: "",
+    conta: "",
+    pix: "",
   });
+
 
   const submitNew = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -994,11 +1000,17 @@ function UsuariosTab() {
           senha: form.senha,
           role: form.role,
           representante_id: form.representante_id === "none" ? null : form.representante_id,
+          percentual_comissao: form.role === "gestor" ? Number(form.percentual_comissao || 0) : 0,
+          banco: form.banco || null,
+          agencia: form.agencia || null,
+          conta: form.conta || null,
+          pix: form.pix || null,
         },
       });
+
       toast.success("Usuário criado!");
       setOpen(false);
-      setForm({ nome: "", email: "", senha: "", role: "representante", representante_id: "none" });
+      setForm({ nome: "", email: "", senha: "", role: "representante", representante_id: "none", percentual_comissao: "0", banco: "", agencia: "", conta: "", pix: "" });
       qc.invalidateQueries({ queryKey: ["users-adm"] });
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao criar usuário.");
@@ -1018,8 +1030,14 @@ function UsuariosTab() {
     senha: string;
     role: "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor";
     representante_id: string;
+    percentual_comissao: string;
+    banco: string;
+    agencia: string;
+    conta: string;
+    pix: string;
     perms: Record<PermissionKey, PermTri>;
   }>(null);
+
   const [savingEdit, setSavingEdit] = useState(false);
 
   const openEdit = (u: any) => {
@@ -1036,8 +1054,14 @@ function UsuariosTab() {
       senha: "",
       role: (u.roles?.[0] ?? "representante") as any,
       representante_id: u.representante_id ?? "none",
+      percentual_comissao: String(u.percentual_comissao ?? 0),
+      banco: u.banco ?? "",
+      agencia: u.agencia ?? "",
+      conta: u.conta ?? "",
+      pix: u.pix ?? "",
       perms,
     });
+
   };
 
   const submitEdit = async (e: React.FormEvent) => {
@@ -1057,8 +1081,14 @@ function UsuariosTab() {
           senha: editing.senha || null,
           role: editing.role,
           representante_id: editing.representante_id === "none" ? null : editing.representante_id,
+          percentual_comissao: editing.role === "gestor" ? Number(editing.percentual_comissao || 0) : 0,
+          banco: editing.banco || null,
+          agencia: editing.agencia || null,
+          conta: editing.conta || null,
+          pix: editing.pix || null,
         },
       });
+
 
       // Persiste permissões personalizadas
       const toUpsert: Array<{ user_id: string; permissao: string; concedida: boolean }> = [];
@@ -1146,6 +1176,31 @@ function UsuariosTab() {
                   </SelectContent>
                 </Select>
               </div>
+              {form.role === "gestor" && (
+                <div className="rounded-md p-3 space-y-2" style={{ backgroundColor: "#fff8e1" }}>
+                  <Label className="text-sm font-semibold">% de comissão sobre faturamento</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,75"
+                    className="text-lg font-semibold bg-white"
+                    value={form.percentual_comissao}
+                    onChange={(e) => setForm({ ...form, percentual_comissao: e.target.value })}
+                  />
+                  <p className="text-xs text-amber-800">
+                    Percentual aplicado sobre o valor dos produtos de cada NF-e emitida no mês.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                <div className="col-span-2"><Label className="text-xs">Dados bancários (opcional)</Label></div>
+                <div><Label className="text-xs">Banco</Label><Input value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} /></div>
+                <div><Label className="text-xs">Agência</Label><Input value={form.agencia} onChange={(e) => setForm({ ...form, agencia: e.target.value })} /></div>
+                <div><Label className="text-xs">Conta</Label><Input value={form.conta} onChange={(e) => setForm({ ...form, conta: e.target.value })} /></div>
+                <div><Label className="text-xs">PIX</Label><Input value={form.pix} onChange={(e) => setForm({ ...form, pix: e.target.value })} /></div>
+              </div>
+
               <div><Label>Representante vinculado</Label>
                 <Select value={form.representante_id} onValueChange={(v) => setForm({ ...form, representante_id: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1250,7 +1305,32 @@ function UsuariosTab() {
                   </SelectContent>
                 </Select>
               </div>
+              {editing.role === "gestor" && (
+                <div className="rounded-md p-3 space-y-2" style={{ backgroundColor: "#fff8e1" }}>
+                  <Label className="text-sm font-semibold">% de comissão sobre faturamento</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,75"
+                    className="text-lg font-semibold bg-white"
+                    value={editing.percentual_comissao}
+                    onChange={(e) => setEditing({ ...editing, percentual_comissao: e.target.value })}
+                  />
+                  <p className="text-xs text-amber-800">
+                    Percentual aplicado sobre o valor dos produtos de cada NF-e emitida no mês.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                <div className="col-span-2"><Label className="text-xs">Dados bancários (opcional)</Label></div>
+                <div><Label className="text-xs">Banco</Label><Input value={editing.banco} onChange={(e) => setEditing({ ...editing, banco: e.target.value })} /></div>
+                <div><Label className="text-xs">Agência</Label><Input value={editing.agencia} onChange={(e) => setEditing({ ...editing, agencia: e.target.value })} /></div>
+                <div><Label className="text-xs">Conta</Label><Input value={editing.conta} onChange={(e) => setEditing({ ...editing, conta: e.target.value })} /></div>
+                <div><Label className="text-xs">PIX</Label><Input value={editing.pix} onChange={(e) => setEditing({ ...editing, pix: e.target.value })} /></div>
+              </div>
             </div>
+
 
             <div className="space-y-2 pt-2 border-t">
               <h3 className="text-sm font-semibold">Permissões personalizadas</h3>
