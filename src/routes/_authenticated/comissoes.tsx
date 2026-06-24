@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -474,8 +475,8 @@ function ComissoesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((c: any) => (
-                    <TableRow key={c.id}>
+                  {filtered.map((c: any, index: number) => (
+                    <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                       <TableCell>{c.representantes?.nome}</TableCell>
                       <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
                       <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
@@ -496,7 +497,7 @@ function ComissoesPage() {
                           <MarcarPagoDialog comissao={c} onDone={() => qc.invalidateQueries({ queryKey: ["comissoes"] })} />
                         )}
                       </TableCell>
-                    </TableRow>
+                    </MotionTableRow>
                   ))}
                   {filtered.length === 0 && (
                     <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Sem comissões no período.</TableCell></TableRow>
@@ -620,8 +621,8 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(doMes ?? []).map((c: any) => (
-                <TableRow key={c.id}>
+              {(doMes ?? []).map((c: any, index: number) => (
+                <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                   <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
                   <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
                   <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe}</TableCell>
@@ -632,7 +633,7 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
                   <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
                   <TableCell><StatusBadge pago={!!c.pago_em} /></TableCell>
                   <TableCell>{formatarData(c.pago_em)}</TableCell>
-                </TableRow>
+                </MotionTableRow>
               ))}
               {(doMes ?? []).length === 0 && (
                 <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Sem comissões no período.</TableCell></TableRow>
