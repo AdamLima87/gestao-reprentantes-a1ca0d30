@@ -202,7 +202,9 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="externos">Representantes externos</SelectItem>
                 <SelectItem value="interno">Vendedor interno</SelectItem>
+                <SelectItem value="gestor">Gestor</SelectItem>
               </SelectContent>
+
             </Select>
           </div>
           {mostraRepFiltro && (
