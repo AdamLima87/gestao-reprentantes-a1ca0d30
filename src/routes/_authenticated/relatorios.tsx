@@ -58,7 +58,7 @@ const MESES = [
 ];
 
 function RelatoriosPage() {
-  const { roles } = useAuth();
+  useAuth();
   const { can } = usePermissions();
   const allowed = can("exportar_relatorios") || can("ver_relatorios");
   const now = new Date();
