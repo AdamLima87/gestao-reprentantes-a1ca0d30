@@ -767,9 +767,28 @@ function ComissaoGestorSection({
                 (s: number, c: any) => s + Number(c.valor_comissao || 0),
                 0,
               );
+              const gestorProfile = (gestores ?? []).find((p: any) => p.id === g.id);
               return (
                 <div key={gi} className="space-y-2">
-                  {isAdmin && <h3 className="text-sm font-semibold">{g.nome}</h3>}
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">{isAdmin ? g.nome : "Minha comissão"}</h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        gerarExtratoGestorPDF(
+                          isAdmin ? g.nome : (gestorProfile?.nome ?? "Gestor"),
+                          mes,
+                          ano,
+                          g.rows,
+                          gestorProfile ?? null,
+                        )
+                      }
+                    >
+                      Extrato PDF
+                    </Button>
+                  </div>
+
                   <Table>
                     <TableHeader>
                       <TableRow>
