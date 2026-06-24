@@ -151,7 +151,7 @@ function PedidosPage() {
               </SelectContent>
             </Select>
           </div>
-          {(isAdmin || isInterno || isFinanceiro) && (
+          {canVerRepFilter && (
             <div className="w-56">
               <Label className="text-xs">Representante</Label>
               <Select value={filterRep} onValueChange={setFilterRep}>
