@@ -424,15 +424,18 @@ function ComissoesPage() {
               <SelectContent>{[ano - 1, ano, ano + 1].map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="w-56"><Label className="text-xs">Representante</Label>
-            <Select value={repFilter} onValueChange={setRepFilter}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {verTodas && (
+            <div className="w-56"><Label className="text-xs">Representante</Label>
+              <Select value={repFilter} onValueChange={setRepFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="w-44"><Label className="text-xs">Status pagamento</Label>
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
