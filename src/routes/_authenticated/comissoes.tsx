@@ -497,7 +497,7 @@ function ComissoesPage() {
                           <MarcarPagoDialog comissao={c} onDone={() => qc.invalidateQueries({ queryKey: ["comissoes"] })} />
                         )}
                       </TableCell>
-                    </TableRow>
+                    </MotionTableRow>
                   ))}
                   {filtered.length === 0 && (
                     <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Sem comissões no período.</TableCell></TableRow>
