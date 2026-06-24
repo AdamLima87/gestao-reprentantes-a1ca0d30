@@ -36,7 +36,9 @@ const TIPO_LABEL: Record<string, string> = {
   interno_novo: "Vend. Interno - Cliente Novo",
   interno_reativacao: "Vend. Interno - Reativação",
   interno_recorrente: "Vend. Interno - Recorrente",
+  gestor: "Gestor",
 };
+
 
 async function gerarExtratoPDF(
   repNome: string,
