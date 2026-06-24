@@ -1345,6 +1345,11 @@ function UsuariosTab() {
                     <Button size="sm" variant="ghost" onClick={() => openEdit(u)} title="Editar">
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    {isAdmin && (
+                      <Button size="sm" variant="ghost" onClick={() => setResetting({ id: u.id, nome: u.nome || u.email })} title="Redefinir senha">
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" onClick={() => handleDelete(u)} title="Excluir">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
