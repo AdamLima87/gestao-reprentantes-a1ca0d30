@@ -28,21 +28,35 @@ export const Route = createFileRoute("/_authenticated/nfe")({
 const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function NfePage() {
-  const { roles } = useAuth();
+  const { roles, representanteId } = useAuth();
   const isAdmin = roles.includes("admin");
   const { can } = usePermissions();
+  const canVer = can("ver_nfe");
   const canCreate = can("registrar_nfe");
+  const canEntrega = can("registrar_entrega");
+  const canExcluir = isAdmin || can("excluir_nfe");
+  const verTodas = isAdmin || can("ver_todas_nfe");
   const qc = useQueryClient();
 
   const { data: nfes, isLoading } = useQuery({
-    queryKey: ["nfes"],
-    queryFn: async () => (await supabase.from("nfe").select("*, pedidos(numero_pedido, clientes(nome), representantes(nome))").order("criado_em", { ascending: false })).data ?? [],
+    queryKey: ["nfes", verTodas, representanteId],
+    enabled: canVer,
+    queryFn: async () => {
+      let q = supabase.from("nfe").select("*, pedidos!inner(numero_pedido, representante_id, clientes(nome), representantes(nome))").order("criado_em", { ascending: false });
+      if (!verTodas && representanteId) q = q.eq("pedidos.representante_id", representanteId);
+      return (await q).data ?? [];
+    },
   });
   const { data: pedidos } = useQuery({
     queryKey: ["pedidos-para-nfe"],
     enabled: canCreate,
     queryFn: async () => (await supabase.from("pedidos").select("id, numero_pedido, valor_produtos, clientes(nome)").not("status", "in", '("cancelado","entregue")').order("criado_em", { ascending: false })).data ?? [],
   });
+
+  if (!canVer) {
+    return <p className="text-muted-foreground">Você não tem permissão para ver NF-es.</p>;
+  }
+
 
   return (
     <TooltipProvider>
