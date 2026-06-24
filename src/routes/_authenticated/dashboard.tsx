@@ -121,7 +121,8 @@ function IndicatorCard({
 
 function Dashboard() {
   const { roles, representanteId } = useAuth();
-  const allowed = roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const { can } = usePermissions();
+  const allowed = can("ver_dashboard");
   const isRepOnly = roles.includes("representante") && !allowed;
   const now = new Date();
   const mes = now.getMonth() + 1;
