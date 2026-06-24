@@ -532,10 +532,148 @@ function ComissoesPage() {
             </>
           )}
         </CardContent>
-      </Card>
+      {podeVerGestor && (
+        <ComissaoGestorSection
+          mes={mes}
+          ano={ano}
+          isAdmin={isAdmin}
+          currentUserId={user?.id ?? null}
+        />
+      )}
     </motion.div>
   );
 }
+
+function ComissaoGestorSection({
+  mes,
+  ano,
+  isAdmin,
+  currentUserId,
+}: {
+  mes: number;
+  ano: number;
+  isAdmin: boolean;
+  currentUserId: string | null;
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["comissoes-gestor", mes, ano, isAdmin, currentUserId],
+    enabled: isAdmin || !!currentUserId,
+    queryFn: async () => {
+      let q = supabase
+        .from("comissoes")
+        .select("*, pedidos(numero_pedido, clientes(nome)), nfe(numero_nfe, valor_nfe, data_nfe)")
+        .eq("tipo", "gestor" as any)
+        .eq("mes_ref", mes)
+        .eq("ano_ref", ano)
+        .order("criado_em", { ascending: false });
+      if (!isAdmin && currentUserId) q = q.eq("gestor_user_id", currentUserId);
+      return (await q).data ?? [];
+    },
+  });
+
+  const { data: gestores } = useQuery({
+    queryKey: ["gestores-profiles"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "gestor");
+      const ids = (roles ?? []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [] as { id: string; nome: string }[];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .in("id", ids);
+      return (profs ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const grupos = useMemo(() => {
+    const rows = (data ?? []) as any[];
+    if (!isAdmin) return [{ nome: "Minha comissão", rows }];
+    const byId = new Map<string, any[]>();
+    for (const r of rows) {
+      const key = r.gestor_user_id ?? "—";
+      const list = byId.get(key) ?? [];
+      list.push(r);
+      byId.set(key, list);
+    }
+    const nomeOf = (id: string) =>
+      (gestores ?? []).find((g) => g.id === id)?.nome ?? "Gestor";
+    return [...byId.entries()].map(([id, rows]) => ({
+      nome: id === "—" ? "Gestor" : nomeOf(id),
+      rows,
+    }));
+  }, [data, isAdmin, gestores]);
+
+  const totalGeral = (data ?? []).reduce(
+    (s: number, c: any) => s + Number(c.valor_comissao || 0),
+    0,
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Comissão do Gestor — {String(mes).padStart(2, "0")}/{ano}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-muted-foreground">Carregando…</p>
+        ) : (data ?? []).length === 0 ? (
+          <p className="text-muted-foreground">Sem comissões de gestor no período.</p>
+        ) : (
+          <div className="space-y-6">
+            {grupos.map((g, gi) => {
+              const subtotal = g.rows.reduce(
+                (s: number, c: any) => s + Number(c.valor_comissao || 0),
+                0,
+              );
+              return (
+                <div key={gi} className="space-y-2">
+                  {isAdmin && <h3 className="text-sm font-semibold">{g.nome}</h3>}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>NF-e</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead className="text-right">Valor Produtos</TableHead>
+                        <TableHead className="text-right">%</TableHead>
+                        <TableHead className="text-right">Comissão</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {g.rows.map((c: any, i: number) => (
+                        <MotionTableRow key={c.id} {...rowMotionProps(i)}>
+                          <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
+                          <TableCell>{formatarData(c.nfe?.data_nfe)}</TableCell>
+                          <TableCell>{c.pedidos?.clientes?.nome ?? "—"}</TableCell>
+                          <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
+                          <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
+                          <TableCell className="text-right font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
+                        </MotionTableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-bold">
+                        <TableCell colSpan={5} className="text-right">Subtotal</TableCell>
+                        <TableCell className="text-right text-[#1a6b3a]">{fmtBRL(subtotal)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })}
+            <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
+              <span className="font-semibold">Total Comissão Gestor — {String(mes).padStart(2, "0")}/{ano}</span>
+              <span className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</span>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function PainelRepresentante({ representanteId }: { representanteId: string | null }) {
   const now = new Date();
