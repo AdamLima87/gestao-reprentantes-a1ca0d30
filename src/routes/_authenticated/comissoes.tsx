@@ -282,13 +282,12 @@ function ComprovanteLink({ path }: { path: string }) {
 }
 
 function ComissoesPage() {
-  const { roles, representanteId } = useAuth();
+  const { representanteId } = useAuth();
   const { can } = usePermissions();
-  const isAdmin = roles.includes("admin");
   const canVer = can("ver_comissoes");
-  const verTodas = isAdmin || can("ver_todas_comissoes");
+  const verTodas = can("ver_todas_comissoes");
   const canMarcarPago = can("marcar_comissao_paga");
-  const canRecalcular = isAdmin || can("recalcular_comissoes");
+  const canRecalcular = can("recalcular_comissoes");
   const canExportar = can("exportar_relatorios");
 
   const isRepOnly = canVer && !verTodas;
