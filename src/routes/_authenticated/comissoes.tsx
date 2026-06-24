@@ -341,17 +341,20 @@ function ComissoesPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["comissoes", mes, ano, repFilter],
+    queryKey: ["comissoes", mes, ano, repFilter, verTodas, representanteId],
+    enabled: canVer,
     queryFn: async () => {
       let q = supabase
         .from("comissoes")
         .select("*, representantes(nome), pedidos(numero_pedido, clientes(nome)), nfe(numero_nfe, valor_nfe)")
         .eq("mes_ref", mes).eq("ano_ref", ano)
         .order("criado_em", { ascending: false });
-      if (repFilter !== "todos") q = q.eq("representante_id", repFilter);
+      if (!verTodas && representanteId) q = q.eq("representante_id", representanteId);
+      else if (repFilter !== "todos") q = q.eq("representante_id", repFilter);
       return (await q).data ?? [];
     },
   });
+
 
   const filtered = useMemo(() => {
     const rows = data ?? [];
