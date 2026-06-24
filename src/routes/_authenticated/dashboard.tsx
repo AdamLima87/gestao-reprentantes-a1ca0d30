@@ -7,6 +7,9 @@ import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrasilMap } from "@/components/BrasilMap";
 import { NOME_TO_UF } from "@/lib/estados-brasil";
+import { MotionPage } from "@/components/MotionPage";
+import { motion } from "framer-motion";
+import CountUp from "react-countup";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
