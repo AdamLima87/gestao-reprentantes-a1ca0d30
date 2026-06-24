@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/lib/status-badge";
 import { Download, FileText, MessageSquareText } from "lucide-react";
 import {
   Tooltip as UiTooltip,
@@ -70,7 +71,7 @@ function RelatoriosPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
-      <h1 className="text-2xl font-bold border-l-4 border-primary pl-3">Relatórios</h1>
+      <h1 className="text-2xl font-bold border-l-4 border-[#d97706] pl-3">Relatórios</h1>
 
       <Card>
         <CardContent className="pt-6 flex flex-wrap gap-3 items-end">
@@ -980,7 +981,7 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
                     <TableCell>{formatarData(p.data_pedido)}</TableCell>
                     <TableCell>{formatarData(p.prazo_entrega)}</TableCell>
                     <TableCell className="text-right">{fmtBRL(p.valor_produtos)}</TableCell>
-                    <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
+                    <TableCell><StatusBadge status={p.status} /></TableCell>
                   </MotionTableRow>
                 ))}
               </TableBody>

@@ -48,7 +48,7 @@ function NfePage() {
     <TooltipProvider>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold border-l-4 border-primary pl-3">NF-e</h1>
+          <h1 className="text-2xl font-bold border-l-4 border-[#6b46c1] pl-3">NF-e</h1>
           {canCreate && <NovaNfeDialog pedidos={pedidos ?? []} onDone={() => {
             qc.invalidateQueries({ queryKey: ["nfes"] });
             qc.invalidateQueries({ queryKey: ["pedidos"] });

@@ -98,7 +98,7 @@ function Dashboard() {
 
   return (
     <MotionPage className="space-y-6">
-      <h1 className="text-2xl font-bold border-l-4 border-primary pl-3">Dashboard — {String(mes).padStart(2, "0")}/{ano}</h1>
+      <h1 className="text-2xl font-bold border-l-4 border-[#34a85a] pl-3">Dashboard — {String(mes).padStart(2, "0")}/{ano}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {moneyCards.map((c, i) => (

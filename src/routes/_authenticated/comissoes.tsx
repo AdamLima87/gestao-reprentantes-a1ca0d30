@@ -207,19 +207,8 @@ function previsaoPagamento(mes: number, ano: number) {
   return `${String(next.m).padStart(2, "0")}/${next.a}`;
 }
 
-function StatusBadge({ pago }: { pago: boolean }) {
-  return pago ? (
-    <Badge className="bg-green-600 hover:bg-green-700 text-white">Pago</Badge>
-  ) : (
-    <motion.span
-      animate={{ scale: [1, 1.06, 1] }}
-      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-      className="inline-block"
-    >
-      <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Pendente</Badge>
-    </motion.span>
-  );
-}
+import { PagamentoBadge as StatusBadge, TipoComissaoBadge } from "@/lib/status-badge";
+void motion;
 
 function MarcarPagoDialog({ comissao, onDone }: { comissao: any; onDone: () => void }) {
   const [open, setOpen] = useState(false);
@@ -376,7 +365,7 @@ function ComissoesPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold border-l-4 border-primary pl-3">Comissões</h1>
+        <h1 className="text-2xl font-bold border-l-4 border-[#1a6b3a] pl-3">Comissões</h1>
         {isAdmin && (
           <div className="flex gap-2">
             <Button
@@ -482,7 +471,7 @@ function ComissoesPage() {
                       <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
                       <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe}</TableCell>
                       <TableCell>{fmtBRL(c.base_calculo)}</TableCell>
-                      <TableCell><Badge variant="outline">{TIPO_LABEL[c.tipo] ?? c.tipo}</Badge></TableCell>
+                      <TableCell><TipoComissaoBadge tipo={c.tipo} /></TableCell>
                       <TableCell>{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
                       <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
                       <TableCell>
@@ -570,7 +559,7 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold border-l-4 border-primary pl-3">Minhas comissões</h1>
+      <h1 className="text-2xl font-bold border-l-4 border-[#1a6b3a] pl-3">Minhas comissões</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card>
@@ -627,7 +616,7 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
                   <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
                   <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe}</TableCell>
                   <TableCell>{String(c.mes_ref).padStart(2, "0")}/{c.ano_ref}</TableCell>
-                  <TableCell><Badge variant="outline">{TIPO_LABEL[c.tipo] ?? c.tipo}</Badge></TableCell>
+                  <TableCell><TipoComissaoBadge tipo={c.tipo} /></TableCell>
                   <TableCell>{fmtBRL(c.base_calculo)}</TableCell>
                   <TableCell>{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
                   <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
