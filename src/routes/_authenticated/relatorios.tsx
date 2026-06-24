@@ -259,7 +259,9 @@ type ComissaoRow = {
   percentual_aplicado: number | string;
   nfe_id: string;
   representante_id: string | null;
+  gestor_user_id?: string | null;
   representantes: { nome?: string; tipo?: string } | null;
+
   nfe: {
     numero_nfe?: string;
     data_nfe?: string;
