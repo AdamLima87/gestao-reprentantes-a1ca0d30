@@ -87,15 +87,48 @@ function CadastrosPage() {
 function ClientesTab() {
   const qc = useQueryClient();
   const { can } = usePermissions();
+  const { roles } = useAuth();
+  const isAdmin = roles.includes("admin");
+  const podeExcluir = isAdmin && can("cadastrar_clientes");
   const { data: clientes } = useQuery({ queryKey: ["clientes-adm"], queryFn: async () => (await supabase.from("clientes").select("*, representantes(nome)").order("nome")).data ?? [] });
   const { data: reps } = useQuery({ queryKey: ["reps"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [excluindo, setExcluindo] = useState<any | null>(null);
+  const [excluindoLoading, setExcluindoLoading] = useState(false);
   const [filtro, setFiltro] = useState<"todos" | "com_rep" | "interno" | "sem_vinculo">("todos");
   const [busca, setBusca] = useState("");
   const emptyForm = { nome: "", cnpj: "", estado: "", regiao: "", representante_id: "", atendimento_interno: false, ativo: true };
   const [form, setForm] = useState(emptyForm);
   const [buscandoCnpj, setBuscandoCnpj] = useState(false);
+
+  const confirmarExclusao = async () => {
+    if (!excluindo) return;
+    setExcluindoLoading(true);
+    try {
+      const { count, error: countErr } = await supabase
+        .from("pedidos")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", excluindo.id);
+      if (countErr) throw countErr;
+      if ((count ?? 0) > 0) {
+        toast.error("Não é possível excluir este cliente pois ele possui pedidos cadastrados. Inative-o em vez de excluir.");
+        setExcluindo(null);
+        return;
+      }
+      const { error } = await supabase.from("clientes").delete().eq("id", excluindo.id);
+      if (error) throw error;
+      toast.success("Cliente excluído com sucesso.");
+      setExcluindo(null);
+      qc.invalidateQueries({ queryKey: ["clientes-adm"] });
+      qc.invalidateQueries({ queryKey: ["clientes"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao excluir cliente.");
+    } finally {
+      setExcluindoLoading(false);
+    }
+  };
+
 
   const buscarCnpj = async () => {
     if (!form.cnpj.trim()) return toast.error("Informe o CNPJ.");
@@ -285,12 +318,42 @@ function ClientesTab() {
                 </TableCell>
                 <TableCell>{c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                 <TableCell><Switch checked={c.ativo} onCheckedChange={(v) => toggleAtivo(c.id, v)} /></TableCell>
-                <TableCell><Button size="sm" variant="outline" onClick={() => openEdit(c)}>Editar</Button></TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(c)}>Editar</Button>
+                    {podeExcluir && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setExcluindo(c)}
+                        aria-label="Excluir cliente"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
               </MotionTableRow>
             ))}
           </TableBody>
         </Table>
       </CardContent>
+      <Dialog open={!!excluindo} onOpenChange={(o) => { if (!o && !excluindoLoading) setExcluindo(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Excluir cliente</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja excluir o cliente <span className="font-medium text-foreground">{excluindo?.nome}</span>? Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExcluindo(null)} disabled={excluindoLoading}>Cancelar</Button>
+            <Button variant="destructive" onClick={confirmarExclusao} disabled={excluindoLoading}>
+              {excluindoLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Confirmar exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
