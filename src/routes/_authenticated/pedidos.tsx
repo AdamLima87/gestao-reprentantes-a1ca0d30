@@ -16,6 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/lib/status-badge";
+void Badge;
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
@@ -126,7 +128,7 @@ function PedidosPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold border-l-4 border-primary pl-3">Pedidos</h1>
+        <h1 className="text-2xl font-bold border-l-4 border-[#1d6fa4] pl-3">Pedidos</h1>
         {canCreate && <NovoPedidoDialog reps={reps ?? []} clientes={clientes ?? []} myRepId={representanteId} onDone={() => qc.invalidateQueries({ queryKey: ["pedidos"] })} />}
       </div>
 
@@ -208,7 +210,7 @@ function PedidosPage() {
                       <TableCell>{formatarData(p.data_pedido)}</TableCell>
                       <TableCell>{formatarData(p.prazo_entrega)}</TableCell>
                       <TableCell>{fmtBRL(p.valor_produtos)}</TableCell>
-                      <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
+                      <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell>
                         <Switch
                           checked={p.jefferson_participou}

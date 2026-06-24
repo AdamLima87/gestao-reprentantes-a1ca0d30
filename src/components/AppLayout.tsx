@@ -11,17 +11,18 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 interface NavItem {
   to: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   allow: AppRole[];
+  colorVar: string;
 }
 
 const NAV: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, allow: ["admin", "vendedor_interno", "financeiro"] },
-  { to: "/pedidos", label: "Pedidos", icon: FileText, allow: ["admin", "vendedor_interno", "representante", "financeiro"] },
-  { to: "/nfe", label: "NF-e", icon: Receipt, allow: ["admin", "vendedor_interno", "financeiro"] },
-  { to: "/comissoes", label: "Comissões", icon: DollarSign, allow: ["admin", "vendedor_interno", "representante", "financeiro"] },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3, allow: ["admin", "vendedor_interno", "financeiro"] },
-  { to: "/cadastros", label: "Cadastros", icon: Settings, allow: ["admin"] },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, allow: ["admin", "vendedor_interno", "financeiro"], colorVar: "var(--color-comissoes)" },
+  { to: "/pedidos", label: "Pedidos", icon: FileText, allow: ["admin", "vendedor_interno", "representante", "financeiro"], colorVar: "var(--color-pedidos)" },
+  { to: "/nfe", label: "NF-e", icon: Receipt, allow: ["admin", "vendedor_interno", "financeiro"], colorVar: "var(--color-nfe)" },
+  { to: "/comissoes", label: "Comissões", icon: DollarSign, allow: ["admin", "vendedor_interno", "representante", "financeiro"], colorVar: "var(--color-comissoes)" },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, allow: ["admin", "vendedor_interno", "financeiro"], colorVar: "var(--color-relatorios)" },
+  { to: "/cadastros", label: "Cadastros", icon: Settings, allow: ["admin"], colorVar: "var(--color-cadastros)" },
 ];
 
 export function AppLayout() {
@@ -88,10 +89,8 @@ export function AppLayout() {
                   />
                 )}
                 <Icon
-                  className={cn(
-                    "relative z-10 h-4 w-4 transition-colors",
-                    active ? "text-white" : "text-green-200 group-hover:text-white"
-                  )}
+                  className="relative z-10 h-4 w-4 transition-colors"
+                  style={{ color: n.colorVar }}
                 />
                 <span className="relative z-10">{n.label}</span>
               </Link>
