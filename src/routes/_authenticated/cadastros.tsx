@@ -1000,8 +1000,14 @@ function UsuariosTab() {
           senha: form.senha,
           role: form.role,
           representante_id: form.representante_id === "none" ? null : form.representante_id,
+          percentual_comissao: form.role === "gestor" ? Number(form.percentual_comissao || 0) : 0,
+          banco: form.banco || null,
+          agencia: form.agencia || null,
+          conta: form.conta || null,
+          pix: form.pix || null,
         },
       });
+
       toast.success("Usuário criado!");
       setOpen(false);
       setForm({ nome: "", email: "", senha: "", role: "representante", representante_id: "none", percentual_comissao: "0", banco: "", agencia: "", conta: "", pix: "" });
