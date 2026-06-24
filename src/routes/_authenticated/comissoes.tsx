@@ -284,7 +284,7 @@ function ComprovanteLink({ path }: { path: string }) {
 }
 
 function ComissoesPage() {
-  const { representanteId } = useAuth();
+  const { representanteId, roles, user } = useAuth();
   const { can } = usePermissions();
   const canVer = can("ver_comissoes");
   const verTodas = can("ver_todas_comissoes");
@@ -292,9 +292,14 @@ function ComissoesPage() {
   const canRecalcular = can("recalcular_comissoes");
   const canExportar = can("exportar_relatorios");
 
-  const isRepOnly = canVer && !verTodas;
+  const isAdmin = roles.includes("admin");
+  const isGestor = roles.includes("gestor");
+  const podeVerGestor = isAdmin || isGestor;
+
+  const isRepOnly = canVer && !verTodas && !isGestor;
 
   if (isRepOnly) return <PainelRepresentante representanteId={representanteId} />;
+
 
   const qc = useQueryClient();
   const callReprocessar = useServerFn(reprocessarComissoes);
