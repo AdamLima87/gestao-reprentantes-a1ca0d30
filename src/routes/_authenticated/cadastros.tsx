@@ -1494,6 +1494,39 @@ function UsuariosTab() {
       </DialogContent>
     </Dialog>
 
+    <Dialog open={resetting !== null} onOpenChange={(o) => !o && !resetBusy && setResetting(null)}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Redefinir senha</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Isso irá gerar uma senha temporária para <strong>{resetting?.nome}</strong>. Ele será obrigado a criar uma nova senha no próximo login.
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setResetting(null)} disabled={resetBusy}>Cancelar</Button>
+          <Button onClick={confirmarReset} disabled={resetBusy}>{resetBusy ? "Gerando…" : "Confirmar reset"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={resetResult !== null} onOpenChange={(o) => !o && setResetResult(null)}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Senha temporária gerada</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Repasse esta senha a <strong>{resetResult?.nome}</strong>. Ele será obrigado a criar uma nova senha ao entrar.
+          </p>
+          <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-3">
+            <code className="flex-1 text-base font-mono select-all">{resetResult?.senha}</code>
+            <Button size="sm" variant="outline" onClick={copiarSenha} title="Copiar">
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setResetResult(null)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     {isAdmin && <AuditoriaAcessos />}
     </div>
   );
