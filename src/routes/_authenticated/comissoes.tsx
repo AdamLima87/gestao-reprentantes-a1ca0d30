@@ -376,7 +376,7 @@ function ComissoesPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Comissões</h1>
+        <h1 className="text-2xl font-bold border-l-4 border-primary pl-3">Comissões</h1>
         {isAdmin && (
           <div className="flex gap-2">
             <Button
@@ -570,7 +570,7 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Minhas comissões</h1>
+      <h1 className="text-2xl font-bold border-l-4 border-primary pl-3">Minhas comissões</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card>
