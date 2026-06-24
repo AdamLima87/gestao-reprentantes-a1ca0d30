@@ -1203,7 +1203,7 @@ function UsuariosTab() {
                     </Button>
                   </div>
                 </TableCell>
-              </TableRow>
+              </MotionTableRow>
               );
             })}
           </TableBody>
