@@ -532,6 +532,9 @@ function ComissoesPage() {
             </>
           )}
         </CardContent>
+      </Card>
+
+
       {podeVerGestor && (
         <ComissaoGestorSection
           mes={mes}
