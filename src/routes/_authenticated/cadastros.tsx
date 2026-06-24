@@ -636,7 +636,7 @@ function RepsTab() {
               const visiveis = estadosArr.slice(0, 3);
               const extras = estadosArr.length - visiveis.length;
               return (
-                <TableRow key={r.id}>
+                <MotionTableRow key={r.id} {...rowMotionProps(index)}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span>{r.nome}</span>
