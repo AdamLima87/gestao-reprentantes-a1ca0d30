@@ -210,7 +210,13 @@ function StatusBadge({ pago }: { pago: boolean }) {
   return pago ? (
     <Badge className="bg-green-600 hover:bg-green-700 text-white">Pago</Badge>
   ) : (
-    <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Pendente</Badge>
+    <motion.span
+      animate={{ scale: [1, 1.06, 1] }}
+      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+      className="inline-block"
+    >
+      <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Pendente</Badge>
+    </motion.span>
   );
 }
 
