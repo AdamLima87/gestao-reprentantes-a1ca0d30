@@ -1081,8 +1081,14 @@ function UsuariosTab() {
           senha: editing.senha || null,
           role: editing.role,
           representante_id: editing.representante_id === "none" ? null : editing.representante_id,
+          percentual_comissao: editing.role === "gestor" ? Number(editing.percentual_comissao || 0) : 0,
+          banco: editing.banco || null,
+          agencia: editing.agencia || null,
+          conta: editing.conta || null,
+          pix: editing.pix || null,
         },
       });
+
 
       // Persiste permissões personalizadas
       const toUpsert: Array<{ user_id: string; permissao: string; concedida: boolean }> = [];
