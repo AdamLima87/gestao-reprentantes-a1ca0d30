@@ -41,16 +41,14 @@ const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style
 function PedidosPage() {
   const { roles, representanteId } = useAuth();
   const { can } = usePermissions();
-  const isAdmin = roles.includes("admin");
-  const isInterno = roles.includes("vendedor_interno");
-  const isFinanceiro = roles.includes("financeiro");
+  const isInterno = roles.includes("vendedor_interno") || roles.includes("admin") || roles.includes("gestor");
   const canVer = can("ver_pedidos");
-  const verTodos = isAdmin || can("ver_todos_pedidos");
+  const verTodos = can("ver_todos_pedidos");
   const canCreate = can("criar_pedidos");
-  const canToggleJeff = can("editar_pedidos") || isAdmin || isInterno;
+  const canToggleJeff = can("editar_pedidos") || isInterno;
   const canEdit = can("editar_pedidos");
   const canCancel = can("cancelar_pedidos");
-  const canDelete = isAdmin || can("excluir_pedidos");
+  const canDelete = can("excluir_pedidos");
   const canVerRepFilter = verTodos;
   const qc = useQueryClient();
 
