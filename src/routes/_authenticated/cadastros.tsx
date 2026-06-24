@@ -339,6 +339,21 @@ function ClientesTab() {
           </TableBody>
         </Table>
       </CardContent>
+      <Dialog open={!!excluindo} onOpenChange={(o) => { if (!o && !excluindoLoading) setExcluindo(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Excluir cliente</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja excluir o cliente <span className="font-medium text-foreground">{excluindo?.nome}</span>? Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExcluindo(null)} disabled={excluindoLoading}>Cancelar</Button>
+            <Button variant="destructive" onClick={confirmarExclusao} disabled={excluindoLoading}>
+              {excluindoLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Confirmar exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
