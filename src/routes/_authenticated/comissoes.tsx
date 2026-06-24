@@ -515,7 +515,7 @@ function ComissoesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
 

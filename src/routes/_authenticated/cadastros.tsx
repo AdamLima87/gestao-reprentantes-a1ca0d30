@@ -77,7 +77,7 @@ function CadastrosPage() {
         {podeEmpresa && <TabsContent value="empresa"><EmpresaTab /></TabsContent>}
         {podeImportar && <TabsContent value="importar"><ImportarTab /></TabsContent>}
       </Tabs>
-    </div>
+    </motion.div>
   );
 }
 

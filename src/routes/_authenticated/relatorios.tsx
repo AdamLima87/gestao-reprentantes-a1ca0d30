@@ -125,7 +125,7 @@ function RelatoriosPage() {
           <ClientesTab mes={mes} ano={ano} />
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }
 
