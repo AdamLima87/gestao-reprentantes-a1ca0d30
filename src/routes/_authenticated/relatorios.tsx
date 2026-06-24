@@ -242,6 +242,10 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
           {(visao === "todos" || visao === "interno") && (
             <InternoTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
           )}
+          {(visao === "todos" || visao === "gestor") && (
+            <GestorTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
+          )}
+
         </>
       )}
     </div>
