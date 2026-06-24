@@ -285,14 +285,19 @@ function ComissoesPage() {
   const { roles, representanteId } = useAuth();
   const { can } = usePermissions();
   const isAdmin = roles.includes("admin");
-  const isRepOnly =
-    roles.includes("representante") &&
-    !roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const canVer = can("ver_comissoes");
+  const verTodas = isAdmin || can("ver_todas_comissoes");
+  const canMarcarPago = can("marcar_comissao_paga");
+  const canRecalcular = isAdmin || can("recalcular_comissoes");
+  const canExportar = can("exportar_relatorios");
+
+  const isRepOnly = canVer && !verTodas;
 
   if (isRepOnly) return <PainelRepresentante representanteId={representanteId} />;
 
   const qc = useQueryClient();
   const callReprocessar = useServerFn(reprocessarComissoes);
+
 
   const [recalcOpen, setRecalcOpen] = useState(false);
   const recalcular = useMutation({
