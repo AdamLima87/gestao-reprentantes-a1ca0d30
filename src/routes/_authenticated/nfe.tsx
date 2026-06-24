@@ -104,7 +104,7 @@ function NfePage() {
                               }}
                             />
                           )}
-                          {isAdmin && (
+                          {(isAdmin || can("excluir_nfe") || can("registrar_nfe")) && (
                             <ExcluirNfeDialog
                               nfeId={n.id}
                               numeroNfe={n.numero_nfe}
