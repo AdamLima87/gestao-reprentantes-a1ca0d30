@@ -229,7 +229,7 @@ function PedidosPage() {
                         />
                       </TableCell>
                       <TableCell className="space-x-1">
-                        {NEXT_STATUS[p.status] && !isFinanceiro && (
+                        {NEXT_STATUS[p.status] && !roles.includes("financeiro") && (
                           <Button size="sm" variant="outline" onClick={() => advance(p.id, p.status)}>
                             → {NEXT_STATUS[p.status]}
                           </Button>
