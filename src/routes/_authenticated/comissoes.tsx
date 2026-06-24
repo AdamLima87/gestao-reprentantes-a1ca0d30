@@ -475,8 +475,8 @@ function ComissoesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((c: any) => (
-                    <TableRow key={c.id}>
+                  {filtered.map((c: any, index: number) => (
+                    <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                       <TableCell>{c.representantes?.nome}</TableCell>
                       <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
                       <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
