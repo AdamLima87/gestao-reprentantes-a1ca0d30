@@ -14,6 +14,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { BrasilMap } from "@/components/BrasilMap";
 import { NOME_TO_UF } from "@/lib/estados-brasil";
 import { MotionPage } from "@/components/MotionPage";
@@ -121,7 +122,8 @@ function IndicatorCard({
 
 function Dashboard() {
   const { roles, representanteId } = useAuth();
-  const allowed = roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const { can } = usePermissions();
+  const allowed = can("ver_dashboard");
   const isRepOnly = roles.includes("representante") && !allowed;
   const now = new Date();
   const mes = now.getMonth() + 1;

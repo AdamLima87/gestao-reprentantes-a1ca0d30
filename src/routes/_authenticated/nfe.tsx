@@ -28,14 +28,13 @@ export const Route = createFileRoute("/_authenticated/nfe")({
 const fmtBRL = (n: number | string) => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function NfePage() {
-  const { roles, representanteId } = useAuth();
-  const isAdmin = roles.includes("admin");
+  const { representanteId } = useAuth();
   const { can } = usePermissions();
   const canVer = can("ver_nfe");
   const canCreate = can("registrar_nfe");
   const canEntrega = can("registrar_entrega");
-  const canExcluir = isAdmin || can("excluir_nfe");
-  const verTodas = isAdmin || can("ver_todas_nfe");
+  const canExcluir = can("excluir_nfe");
+  const verTodas = can("ver_todas_nfe");
   const qc = useQueryClient();
 
   const { data: nfes, isLoading } = useQuery({

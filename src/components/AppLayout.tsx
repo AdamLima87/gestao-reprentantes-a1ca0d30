@@ -17,12 +17,12 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, allow: ["admin", "vendedor_interno", "financeiro"], colorVar: "var(--color-comissoes)" },
-  { to: "/pedidos", label: "Pedidos", icon: FileText, allow: ["admin", "vendedor_interno", "representante", "financeiro"], colorVar: "var(--color-pedidos)" },
-  { to: "/nfe", label: "NF-e", icon: Receipt, allow: ["admin", "vendedor_interno", "financeiro"], colorVar: "var(--color-nfe)" },
-  { to: "/comissoes", label: "Comissões", icon: DollarSign, allow: ["admin", "vendedor_interno", "representante", "financeiro"], colorVar: "var(--color-comissoes)" },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3, allow: ["admin", "vendedor_interno", "financeiro"], colorVar: "var(--color-relatorios)" },
-  { to: "/cadastros", label: "Cadastros", icon: Settings, allow: ["admin"], colorVar: "var(--color-cadastros)" },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, allow: ["admin", "gestor", "vendedor_interno", "financeiro"], colorVar: "var(--color-comissoes)" },
+  { to: "/pedidos", label: "Pedidos", icon: FileText, allow: ["admin", "gestor", "vendedor_interno", "representante", "financeiro"], colorVar: "var(--color-pedidos)" },
+  { to: "/nfe", label: "NF-e", icon: Receipt, allow: ["admin", "gestor", "vendedor_interno", "financeiro"], colorVar: "var(--color-nfe)" },
+  { to: "/comissoes", label: "Comissões", icon: DollarSign, allow: ["admin", "gestor", "vendedor_interno", "representante", "financeiro"], colorVar: "var(--color-comissoes)" },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, allow: ["admin", "gestor", "vendedor_interno", "financeiro"], colorVar: "var(--color-relatorios)" },
+  { to: "/cadastros", label: "Cadastros", icon: Settings, allow: ["admin", "gestor"], colorVar: "var(--color-cadastros)" },
 ];
 
 export function AppLayout() {
@@ -46,6 +46,7 @@ export function AppLayout() {
 
   const podeVerRota = (n: NavItem) => {
     if (isAdmin) return true;
+    if (roles.some((r) => n.allow?.includes(r))) return true;
     switch (n.to) {
       case "/dashboard":
         return can("ver_dashboard");
@@ -60,7 +61,7 @@ export function AppLayout() {
       case "/cadastros":
         return podeVerCadastros;
       default:
-        return roles.some((r) => n.allow?.includes(r));
+        return false;
     }
   };
 
