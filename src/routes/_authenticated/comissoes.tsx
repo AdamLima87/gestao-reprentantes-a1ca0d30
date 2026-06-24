@@ -621,8 +621,8 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(doMes ?? []).map((c: any) => (
-                <TableRow key={c.id}>
+              {(doMes ?? []).map((c: any, index: number) => (
+                <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                   <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
                   <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
                   <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe}</TableCell>
