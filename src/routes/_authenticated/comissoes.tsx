@@ -443,28 +443,35 @@ function ComissoesPage() {
   const [recalcOpen, setRecalcOpen] = useState(false);
   const recalcular = useMutation({
     mutationFn: async () => {
-      // 1) Reprocessar: recalcula comissões zeradas ou ausentes a partir das NF-e
-      const reproc: any = await callReprocessar();
-      const geradas = Number(reproc?.comissoes_geradas ?? 0);
+      await callReprocessar();
 
-      // 2) Recálculo cronológico via RPC
-      const { data, error } = await supabase.rpc("recalcular_comissoes_interno" as any);
-      if (error) throw error;
-      const recalc = (data ?? []) as any[];
+      const { data: dataReps, error: errReps } = await supabase
+        .rpc("recalcular_comissoes_representantes" as any);
+      if (errReps) throw new Error("Erro reps: " + errReps.message);
 
-      return { geradas, recalculadas: recalc.length };
+      const { data: dataInterno, error: errInterno } = await supabase
+        .rpc("recalcular_comissoes_interno" as any);
+      if (errInterno) throw new Error("Erro interno: " + errInterno.message);
+
+      const { data: dataGestor, error: errGestor } = await supabase
+        .rpc("recalcular_comissoes_gestor" as any);
+      if (errGestor) throw new Error("Erro gestor: " + errGestor.message);
+
+      return {
+        reps: (dataReps as any[])?.length ?? 0,
+        interno: (dataInterno as any[])?.length ?? 0,
+        gestor: (dataGestor as any[])?.length ?? 0,
+      };
     },
-    onSuccess: ({ geradas, recalculadas }) => {
-      const total = geradas + recalculadas;
-      if (total === 0) {
-        toast.success("Todas as comissões já estão corretas.");
-      } else {
-        toast.success(
-          `${total} comissão(ões) corrigida(s) com sucesso (${geradas} geradas, ${recalculadas} reclassificadas).`,
-        );
-      }
+    onSuccess: (result) => {
+      const msg =
+        result.reps === 0 && result.interno === 0 && result.gestor === 0
+          ? "Todas as comissões já estão corretas."
+          : `Recálculo concluído — Representantes: ${result.reps} | Vendedor interno: ${result.interno} | Gestor: ${result.gestor} registro(s) atualizado(s).`;
+      toast.success(msg);
       qc.invalidateQueries({ queryKey: ["comissoes"] });
       qc.invalidateQueries({ queryKey: ["relatorios"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
       setRecalcOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),

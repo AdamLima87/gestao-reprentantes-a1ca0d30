@@ -606,6 +606,17 @@ export type Database = {
         Returns: boolean
       }
       is_representante_interno: { Args: { _user: string }; Returns: boolean }
+      recalcular_comissoes_gestor: {
+        Args: { p_ano?: number; p_mes?: number }
+        Returns: {
+          gestor_nome: string
+          nfe: string
+          nfe_id: string
+          percentual: number
+          valor_base: number
+          valor_comissao: number
+        }[]
+      }
       recalcular_comissoes_interno: {
         Args: { p_ano?: number; p_mes?: number }
         Returns: {
@@ -616,6 +627,16 @@ export type Database = {
           tipo_novo: string
           valor_antigo: number
           valor_novo: number
+        }[]
+      }
+      recalcular_comissoes_representantes: {
+        Args: { p_ano?: number; p_mes?: number }
+        Returns: {
+          nfe: string
+          nfe_id: string
+          percentual: number
+          representante: string
+          valor_comissao: number
         }[]
       }
       recalcular_comissoes_sem_auth: { Args: never; Returns: Json }
