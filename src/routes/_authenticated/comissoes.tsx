@@ -367,7 +367,7 @@ function ComissoesPage() {
   const canExportar = can("exportar_relatorios");
 
   return (
-    <div className="space-y-4">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Comissões</h1>
         {isAdmin && (

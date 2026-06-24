@@ -123,7 +123,7 @@ function PedidosPage() {
   const anos = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
 
   return (
-    <div className="space-y-4">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Pedidos</h1>
         {canCreate && <NovoPedidoDialog reps={reps ?? []} clientes={clientes ?? []} myRepId={representanteId} onDone={() => qc.invalidateQueries({ queryKey: ["pedidos"] })} />}
