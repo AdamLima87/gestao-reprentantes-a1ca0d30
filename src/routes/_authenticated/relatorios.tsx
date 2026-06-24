@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
+
 import { usePermissions } from "@/hooks/use-permissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,9 +58,9 @@ const MESES = [
 ];
 
 function RelatoriosPage() {
-  const { roles } = useAuth();
+  
   const { can } = usePermissions();
-  const allowed = can("exportar_relatorios") || roles.some((r) => ["admin", "vendedor_interno", "financeiro", "gestor"].includes(r));
+  const allowed = can("exportar_relatorios") || can("ver_relatorios");
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());

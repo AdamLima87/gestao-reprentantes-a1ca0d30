@@ -366,7 +366,7 @@ function ComissoesPage() {
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold border-l-4 border-[#1a6b3a] pl-3">Comissões</h1>
-        {isAdmin && (
+        {(isAdmin || can("recalcular_comissoes") || can("marcar_comissao_paga")) && (
           <div className="flex gap-2">
             <Button
               variant="outline"

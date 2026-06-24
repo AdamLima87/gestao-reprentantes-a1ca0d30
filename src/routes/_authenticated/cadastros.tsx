@@ -24,7 +24,7 @@ import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, Al
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
-import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
+import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, PERMISSION_CATEGORIES, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
 import { maskCNPJ } from "@/lib/masks";
 
@@ -1257,50 +1257,57 @@ function UsuariosTab() {
               <p className="text-xs text-muted-foreground">
                 Padrão do perfil aplica as permissões base do perfil selecionado. Concedida ou Bloqueada sobrescreve esse padrão para este usuário.
               </p>
-              <div className="space-y-2">
-                {PERMISSION_KEYS.map((k) => {
-                  const v = editing.perms[k];
-                  const defaultOn = ROLE_DEFAULTS[editing.role]?.has(k) ?? false;
-                  const setV = (nv: "default" | "granted" | "blocked") =>
-                    setEditing({ ...editing, perms: { ...editing.perms, [k]: nv } });
-                  return (
-                    <div key={k} className="flex items-start justify-between gap-3 rounded-md border p-2">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">{PERMISSION_LABELS[k].titulo}</div>
-                        <div className="text-xs text-muted-foreground">{PERMISSION_LABELS[k].descricao}</div>
-                      </div>
-                      <div className="flex shrink-0 gap-1">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={v === "default" ? "secondary" : "outline"}
-                          onClick={() => setV("default")}
-                          title={`Padrão do perfil (${defaultOn ? "permite" : "bloqueia"})`}
-                        >
-                          Padrão
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className={v === "granted" ? "bg-green-600 text-white hover:bg-green-600" : ""}
-                          onClick={() => setV("granted")}
-                        >
-                          Concedida
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className={v === "blocked" ? "bg-red-600 text-white hover:bg-red-600" : ""}
-                          onClick={() => setV("blocked")}
-                        >
-                          Bloqueada
-                        </Button>
-                      </div>
+              <div className="space-y-4">
+                {PERMISSION_CATEGORIES.map((cat) => (
+                  <div key={cat.categoria} className="space-y-2">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{cat.categoria}</h4>
+                    <div className="space-y-2">
+                      {cat.chaves.map((k) => {
+                        const v = editing.perms[k];
+                        const defaultOn = ROLE_DEFAULTS[editing.role]?.has(k) ?? false;
+                        const setV = (nv: "default" | "granted" | "blocked") =>
+                          setEditing({ ...editing, perms: { ...editing.perms, [k]: nv } });
+                        return (
+                          <div key={k} className="flex items-start justify-between gap-3 rounded-md border p-2">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium">{PERMISSION_LABELS[k].titulo}</div>
+                              <div className="text-xs text-muted-foreground">{PERMISSION_LABELS[k].descricao}</div>
+                            </div>
+                            <div className="flex shrink-0 gap-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={v === "default" ? "secondary" : "outline"}
+                                onClick={() => setV("default")}
+                                title={`Padrão do perfil (${defaultOn ? "permite" : "bloqueia"})`}
+                              >
+                                Padrão
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className={v === "granted" ? "bg-green-600 text-white hover:bg-green-600" : ""}
+                                onClick={() => setV("granted")}
+                              >
+                                Concedida
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className={v === "blocked" ? "bg-red-600 text-white hover:bg-red-600" : ""}
+                                onClick={() => setV("blocked")}
+                              >
+                                Bloqueada
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
 
