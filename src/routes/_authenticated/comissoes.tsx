@@ -575,22 +575,22 @@ function ComissaoGestorSection({
   });
 
   const { data: gestores } = useQuery({
-    queryKey: ["gestores-profiles"],
-    enabled: isAdmin,
+    queryKey: ["gestores-profiles-full"],
     queryFn: async () => {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "gestor");
       const ids = (roles ?? []).map((r: any) => r.user_id);
-      if (ids.length === 0) return [] as { id: string; nome: string }[];
+      if (ids.length === 0) return [] as any[];
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, nome")
+        .select("id, nome, banco, agencia, conta, pix")
         .in("id", ids);
-      return (profs ?? []) as { id: string; nome: string }[];
+      return (profs ?? []) as any[];
     },
   });
+
 
   const grupos = useMemo(() => {
     const rows = (data ?? []) as any[];
