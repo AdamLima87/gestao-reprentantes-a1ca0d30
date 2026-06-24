@@ -7,6 +7,9 @@ import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrasilMap } from "@/components/BrasilMap";
 import { NOME_TO_UF } from "@/lib/estados-brasil";
+import { MotionPage } from "@/components/MotionPage";
+import { motion } from "framer-motion";
+import CountUp from "react-countup";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -77,31 +80,60 @@ function Dashboard() {
     .map(([rid, total]) => ({ nome: data.reps.find((r) => r.id === rid)?.nome ?? "—", total }))
     .sort((a, b) => b.total - a.total);
 
+  const moneyCards = [
+    {
+      title: "Total faturado no mês",
+      value: totalMes,
+      money: true,
+      extra:
+        metaEmpresa > 0 ? (
+          <p className="text-xs text-muted-foreground mt-1">
+            Meta: {fmtBRL(Number(metaEmpresa))} ({((totalMes / Number(metaEmpresa)) * 100).toFixed(1)}%)
+          </p>
+        ) : null,
+    },
+    { title: "Ticket médio", value: ticketMedio, money: true },
+    { title: "Pedidos em atraso", value: atrasados.length, money: false, danger: true },
+  ];
+
   return (
-    <div className="space-y-6">
+    <MotionPage className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard — {String(mes).padStart(2, "0")}/{ano}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total faturado no mês</CardTitle></CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{fmtBRL(totalMes)}</div>
-            {metaEmpresa > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Meta: {fmtBRL(Number(metaEmpresa))} ({((totalMes / Number(metaEmpresa)) * 100).toFixed(1)}%)
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Ticket médio</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold">{fmtBRL(ticketMedio)}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Pedidos em atraso</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-destructive">{atrasados.length}</div></CardContent>
-        </Card>
+        {moneyCards.map((c, i) => (
+          <motion.div
+            key={c.title}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08, duration: 0.3, ease: "easeOut" }}
+          >
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${c.danger ? "text-destructive" : ""}`}>
+                  {c.money ? (
+                    <CountUp
+                      end={c.value}
+                      duration={1.1}
+                      separator="."
+                      decimal=","
+                      decimals={2}
+                      prefix="R$ "
+                    />
+                  ) : (
+                    <CountUp end={c.value} duration={1} separator="." />
+                  )}
+                </div>
+                {c.extra}
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
+
 
       <ClientesEmRiscoCard representanteId={isRepOnly ? representanteId : null} restringir={isRepOnly} />
 
@@ -172,7 +204,7 @@ function Dashboard() {
           </div>
         );
       })()}
-    </div>
+    </MotionPage>
   );
 }
 

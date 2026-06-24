@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 import { formatarData } from "@/lib/utils";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
@@ -209,7 +210,13 @@ function StatusBadge({ pago }: { pago: boolean }) {
   return pago ? (
     <Badge className="bg-green-600 hover:bg-green-700 text-white">Pago</Badge>
   ) : (
-    <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Pendente</Badge>
+    <motion.span
+      animate={{ scale: [1, 1.06, 1] }}
+      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+      className="inline-block"
+    >
+      <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Pendente</Badge>
+    </motion.span>
   );
 }
 
@@ -366,7 +373,7 @@ function ComissoesPage() {
   const canExportar = can("exportar_relatorios");
 
   return (
-    <div className="space-y-4">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Comissões</h1>
         {isAdmin && (
@@ -514,7 +521,7 @@ function ComissoesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
 

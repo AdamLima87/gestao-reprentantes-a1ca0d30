@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 import { formatarData } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -44,7 +45,7 @@ function NfePage() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">NF-e</h1>
           {canCreate && <NovaNfeDialog pedidos={pedidos ?? []} onDone={() => {
@@ -125,7 +126,7 @@ function NfePage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </TooltipProvider>
   );
 }
