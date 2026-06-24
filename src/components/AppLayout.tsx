@@ -119,7 +119,17 @@ export function AppLayout() {
       </aside>
       <main className="flex-1 overflow-auto">
         <div className="p-6 max-w-7xl mx-auto">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
     </div>
