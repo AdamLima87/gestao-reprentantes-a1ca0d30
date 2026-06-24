@@ -106,6 +106,7 @@ export type Database = {
           base_calculo: number
           comprovante_url: string | null
           criado_em: string
+          gestor_user_id: string | null
           id: string
           mes_ref: number
           nfe_id: string
@@ -122,6 +123,7 @@ export type Database = {
           base_calculo: number
           comprovante_url?: string | null
           criado_em?: string
+          gestor_user_id?: string | null
           id?: string
           mes_ref: number
           nfe_id: string
@@ -138,6 +140,7 @@ export type Database = {
           base_calculo?: number
           comprovante_url?: string | null
           criado_em?: string
+          gestor_user_id?: string | null
           id?: string
           mes_ref?: number
           nfe_id?: string
@@ -401,24 +404,39 @@ export type Database = {
       }
       profiles: {
         Row: {
+          agencia: string | null
+          banco: string | null
+          conta: string | null
           criado_em: string
           id: string
           must_change_password: boolean
           nome: string
+          percentual_comissao: number
+          pix: string | null
           representante_id: string | null
         }
         Insert: {
+          agencia?: string | null
+          banco?: string | null
+          conta?: string | null
           criado_em?: string
           id: string
           must_change_password?: boolean
           nome?: string
+          percentual_comissao?: number
+          pix?: string | null
           representante_id?: string | null
         }
         Update: {
+          agencia?: string | null
+          banco?: string | null
+          conta?: string | null
           criado_em?: string
           id?: string
           must_change_password?: boolean
           nome?: string
+          percentual_comissao?: number
+          pix?: string | null
           representante_id?: string | null
         }
         Relationships: [
@@ -616,6 +634,7 @@ export type Database = {
         | "interno_reativacao"
         | "interno_recorrente"
         | "interno_sobre_rep"
+        | "gestor"
       pedido_status:
         | "pedido"
         | "producao"
@@ -763,6 +782,7 @@ export const Constants = {
         "interno_reativacao",
         "interno_recorrente",
         "interno_sobre_rep",
+        "gestor",
       ],
       pedido_status: [
         "pedido",
