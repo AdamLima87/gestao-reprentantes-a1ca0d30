@@ -45,9 +45,16 @@ function PedidosPage() {
   const isInterno = roles.includes("vendedor_interno");
   const isFinanceiro = roles.includes("financeiro");
   const canCreate = can("criar_pedidos");
-  const canToggleJeff = isAdmin || isInterno;
+  const canToggleJeff = can("editar_pedidos") || isAdmin || isInterno;
   const canEdit = can("editar_pedidos");
   const canCancel = can("cancelar_pedidos");
+  const canDelete = isAdmin || can("excluir_pedidos");
+  const canVerRepFilter =
+    isAdmin ||
+    can("ver_todos_pedidos") ||
+    can("editar_pedidos") ||
+    can("criar_pedidos") ||
+    roles.some((r) => ["vendedor_interno", "financeiro"].includes(r));
   const qc = useQueryClient();
 
   const now = new Date();
