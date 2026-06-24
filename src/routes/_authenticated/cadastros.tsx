@@ -17,10 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { createUser, listUsers, updateUser, deleteUser, listAllPermissions } from "@/lib/admin-users.functions";
+import { createUser, listUsers, updateUser, deleteUser, listAllPermissions, resetUserPassword } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
@@ -1019,6 +1019,35 @@ function UsuariosTab() {
   const callList = useServerFn(listUsers);
   const callUpdate = useServerFn(updateUser);
   const callDelete = useServerFn(deleteUser);
+  const callReset = useServerFn(resetUserPassword);
+
+  const [resetting, setResetting] = useState<null | { id: string; nome: string }>(null);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetResult, setResetResult] = useState<null | { nome: string; senha: string }>(null);
+
+  const confirmarReset = async () => {
+    if (!resetting) return;
+    setResetBusy(true);
+    try {
+      const res = await callReset({ data: { userId: resetting.id } });
+      setResetResult({ nome: resetting.nome, senha: (res as any).tempPassword });
+      setResetting(null);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao redefinir senha.");
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
+  const copiarSenha = async () => {
+    if (!resetResult) return;
+    try {
+      await navigator.clipboard.writeText(resetResult.senha);
+      toast.success("Senha copiada!");
+    } catch {
+      toast.error("Não foi possível copiar.");
+    }
+  };
 
   const { data: users } = useQuery({
     queryKey: ["users-adm"],
@@ -1316,6 +1345,11 @@ function UsuariosTab() {
                     <Button size="sm" variant="ghost" onClick={() => openEdit(u)} title="Editar">
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    {isAdmin && (
+                      <Button size="sm" variant="ghost" onClick={() => setResetting({ id: u.id, nome: u.nome || u.email })} title="Redefinir senha">
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" onClick={() => handleDelete(u)} title="Excluir">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -1457,6 +1491,39 @@ function UsuariosTab() {
             <DialogFooter><Button type="submit" disabled={savingEdit}>{savingEdit ? "Salvando…" : "Salvar alterações"}</Button></DialogFooter>
           </form>
         )}
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={resetting !== null} onOpenChange={(o) => !o && !resetBusy && setResetting(null)}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Redefinir senha</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Isso irá gerar uma senha temporária para <strong>{resetting?.nome}</strong>. Ele será obrigado a criar uma nova senha no próximo login.
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setResetting(null)} disabled={resetBusy}>Cancelar</Button>
+          <Button onClick={confirmarReset} disabled={resetBusy}>{resetBusy ? "Gerando…" : "Confirmar reset"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={resetResult !== null} onOpenChange={(o) => !o && setResetResult(null)}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Senha temporária gerada</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Repasse esta senha a <strong>{resetResult?.nome}</strong>. Ele será obrigado a criar uma nova senha ao entrar.
+          </p>
+          <div className="flex items-center gap-2 rounded-md border bg-muted/40 p-3">
+            <code className="flex-1 text-base font-mono select-all">{resetResult?.senha}</code>
+            <Button size="sm" variant="outline" onClick={copiarSenha} title="Copiar">
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setResetResult(null)}>Fechar</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
 

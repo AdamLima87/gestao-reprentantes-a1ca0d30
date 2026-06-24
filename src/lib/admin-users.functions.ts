@@ -213,6 +213,42 @@ export const deleteUser = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+function gerarSenhaTemporaria(): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnpqrstuvwxyz";
+  const digits = "23456789";
+  const all = upper + lower + digits;
+  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
+  let pwd = pick(upper) + pick(lower) + pick(digits);
+  for (let i = 3; i < 12; i++) pwd += pick(all);
+  return pwd.split("").sort(() => Math.random() - 0.5).join("");
+}
+
+export const resetUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string }) => {
+    if (!input.userId) throw new Error("userId obrigatório.");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const tempPassword = gerarSenhaTemporaria();
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      password: tempPassword,
+    });
+    if (error) throw new Error(error.message);
+
+    const { error: pErr } = await supabaseAdmin
+      .from("profiles")
+      .update({ must_change_password: true } as any)
+      .eq("id", data.userId);
+    if (pErr) throw new Error(pErr.message);
+
+    return { tempPassword };
+  });
+
 export const listAllPermissions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
