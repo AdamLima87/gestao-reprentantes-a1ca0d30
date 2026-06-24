@@ -1305,7 +1305,32 @@ function UsuariosTab() {
                   </SelectContent>
                 </Select>
               </div>
+              {editing.role === "gestor" && (
+                <div className="rounded-md p-3 space-y-2" style={{ backgroundColor: "#fff8e1" }}>
+                  <Label className="text-sm font-semibold">% de comissão sobre faturamento</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,75"
+                    className="text-lg font-semibold bg-white"
+                    value={editing.percentual_comissao}
+                    onChange={(e) => setEditing({ ...editing, percentual_comissao: e.target.value })}
+                  />
+                  <p className="text-xs text-amber-800">
+                    Percentual aplicado sobre o valor dos produtos de cada NF-e emitida no mês.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                <div className="col-span-2"><Label className="text-xs">Dados bancários (opcional)</Label></div>
+                <div><Label className="text-xs">Banco</Label><Input value={editing.banco} onChange={(e) => setEditing({ ...editing, banco: e.target.value })} /></div>
+                <div><Label className="text-xs">Agência</Label><Input value={editing.agencia} onChange={(e) => setEditing({ ...editing, agencia: e.target.value })} /></div>
+                <div><Label className="text-xs">Conta</Label><Input value={editing.conta} onChange={(e) => setEditing({ ...editing, conta: e.target.value })} /></div>
+                <div><Label className="text-xs">PIX</Label><Input value={editing.pix} onChange={(e) => setEditing({ ...editing, pix: e.target.value })} /></div>
+              </div>
             </div>
+
 
             <div className="space-y-2 pt-2 border-t">
               <h3 className="text-sm font-semibold">Permissões personalizadas</h3>
