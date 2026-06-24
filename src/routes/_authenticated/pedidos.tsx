@@ -198,10 +198,10 @@ function PedidosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(pedidos ?? []).map((p) => {
+                {(pedidos ?? []).map((p, index) => {
                   const editable = canEdit && p.status !== "entregue" && p.status !== "cancelado";
                   return (
-                    <TableRow key={p.id}>
+                    <MotionTableRow key={p.id} {...rowMotionProps(index)}>
                       <TableCell className="font-mono text-xs">{p.numero_pedido}</TableCell>
                       <TableCell>{p.clientes?.nome ?? "—"}</TableCell>
                       <TableCell>{p.representantes?.nome ?? "—"}</TableCell>
