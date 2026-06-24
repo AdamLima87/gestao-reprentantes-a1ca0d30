@@ -44,10 +44,37 @@ export function AppLayout() {
     can("importar_planilhas") ||
     can("criar_usuarios");
 
-  const visible = NAV.filter((n) => {
-    if (n.to === "/cadastros") return podeVerCadastros;
-    return roles.some((r) => n.allow.includes(r));
-  });
+  const podeVerRota = (n: NavItem) => {
+    if (isAdmin) return true;
+    switch (n.to) {
+      case "/dashboard":
+        return can("ver_dashboard") || roles.some((r) => ["vendedor_interno", "financeiro"].includes(r));
+      case "/pedidos":
+        return (
+          can("criar_pedidos") ||
+          can("editar_pedidos") ||
+          can("cancelar_pedidos") ||
+          can("ver_todos_pedidos") ||
+          roles.some((r) => ["vendedor_interno", "representante", "financeiro"].includes(r))
+        );
+      case "/nfe":
+        return can("ver_nfe") || can("registrar_nfe") || roles.some((r) => ["vendedor_interno", "financeiro"].includes(r));
+      case "/comissoes":
+        return (
+          can("ver_comissoes") ||
+          can("marcar_comissao_paga") ||
+          can("exportar_relatorios") ||
+          roles.some((r) => ["vendedor_interno", "representante", "financeiro"].includes(r))
+        );
+      case "/relatorios":
+        return can("ver_relatorios") || can("exportar_relatorios") || roles.some((r) => ["vendedor_interno", "financeiro"].includes(r));
+      case "/cadastros":
+        return podeVerCadastros;
+      default:
+        return roles.some((r) => n.allow?.includes(r));
+    }
+  };
+  const visible = NAV.filter(podeVerRota);
   const roleLabel = roles[0] ?? "—";
 
   const initials = (nome || user?.email || "?")
