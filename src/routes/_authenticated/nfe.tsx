@@ -69,8 +69,8 @@ function NfePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(nfes ?? []).map((n) => (
-                    <TableRow key={n.id}>
+                  {(nfes ?? []).map((n, index) => (
+                    <MotionTableRow key={n.id} {...rowMotionProps(index)}>
                       <TableCell className="font-mono text-xs">{n.numero_nfe}</TableCell>
                       <TableCell>{formatarData(n.data_nfe)}</TableCell>
                       <TableCell>{n.pedidos?.numero_pedido}</TableCell>
