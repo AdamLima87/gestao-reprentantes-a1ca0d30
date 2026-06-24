@@ -678,7 +678,7 @@ function RepsTab() {
                       )}
                     </div>
                   </TableCell>
-                </TableRow>
+                </MotionTableRow>
               );
             })}
           </TableBody>
