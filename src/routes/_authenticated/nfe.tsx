@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -68,8 +69,8 @@ function NfePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(nfes ?? []).map((n) => (
-                    <TableRow key={n.id}>
+                  {(nfes ?? []).map((n, index) => (
+                    <MotionTableRow key={n.id} {...rowMotionProps(index)}>
                       <TableCell className="font-mono text-xs">{n.numero_nfe}</TableCell>
                       <TableCell>{formatarData(n.data_nfe)}</TableCell>
                       <TableCell>{n.pedidos?.numero_pedido}</TableCell>
@@ -118,7 +119,7 @@ function NfePage() {
                           )}
                         </div>
                       </TableCell>
-                    </TableRow>
+                    </MotionTableRow>
                   ))}
                   {(nfes ?? []).length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Nenhuma NF-e ainda.</TableCell></TableRow>}
                 </TableBody>
