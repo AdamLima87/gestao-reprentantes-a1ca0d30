@@ -334,6 +334,9 @@ async function gerarExtratoGestorPDF(
 
   const slug = gestorNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_");
   doc.save(`extrato_gestor_${slug}_${String(mes).padStart(2, "0")}_${ano}.pdf`);
+}
+
+
 
 
 function previsaoPagamento(mes: number, ano: number) {
