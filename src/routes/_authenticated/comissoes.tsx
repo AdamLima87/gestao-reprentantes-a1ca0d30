@@ -633,7 +633,7 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
                   <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
                   <TableCell><StatusBadge pago={!!c.pago_em} /></TableCell>
                   <TableCell>{formatarData(c.pago_em)}</TableCell>
-                </TableRow>
+                </MotionTableRow>
               ))}
               {(doMes ?? []).length === 0 && (
                 <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Sem comissões no período.</TableCell></TableRow>
