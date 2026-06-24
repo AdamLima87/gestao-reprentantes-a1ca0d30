@@ -14,6 +14,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { BrasilMap } from "@/components/BrasilMap";
 import { NOME_TO_UF } from "@/lib/estados-brasil";
 import { MotionPage } from "@/components/MotionPage";
