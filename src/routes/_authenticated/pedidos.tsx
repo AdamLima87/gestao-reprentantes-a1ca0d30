@@ -44,17 +44,14 @@ function PedidosPage() {
   const isAdmin = roles.includes("admin");
   const isInterno = roles.includes("vendedor_interno");
   const isFinanceiro = roles.includes("financeiro");
+  const canVer = can("ver_pedidos");
+  const verTodos = isAdmin || can("ver_todos_pedidos");
   const canCreate = can("criar_pedidos");
   const canToggleJeff = can("editar_pedidos") || isAdmin || isInterno;
   const canEdit = can("editar_pedidos");
   const canCancel = can("cancelar_pedidos");
   const canDelete = isAdmin || can("excluir_pedidos");
-  const canVerRepFilter =
-    isAdmin ||
-    can("ver_todos_pedidos") ||
-    can("editar_pedidos") ||
-    can("criar_pedidos") ||
-    roles.some((r) => ["vendedor_interno", "financeiro"].includes(r));
+  const canVerRepFilter = verTodos;
   const qc = useQueryClient();
 
   const now = new Date();
@@ -75,17 +72,20 @@ function PedidosPage() {
     queryFn: async () => (await supabase.from("clientes").select("*").order("nome")).data ?? [],
   });
   const { data: pedidos, isLoading } = useQuery({
-    queryKey: ["pedidos", filterStatus, filterRep, filterMes, filterAno],
+    queryKey: ["pedidos", filterStatus, filterRep, filterMes, filterAno, verTodos, representanteId],
+    enabled: canVer,
     refetchOnWindowFocus: true,
     queryFn: async () => {
       let q = supabase.from("pedidos").select("*, clientes(nome), representantes(nome)").order("criado_em", { ascending: false });
+      if (!verTodos && representanteId) q = q.eq("representante_id", representanteId);
       if (filterStatus !== "todos") q = q.eq("status", filterStatus as typeof STATUS[number]);
-      if (filterRep !== "todos") q = q.eq("representante_id", filterRep);
+      if (verTodos && filterRep !== "todos") q = q.eq("representante_id", filterRep);
       if (filterMes !== "todos") q = q.eq("mes_ref", Number(filterMes));
       if (filterAno !== "todos") q = q.eq("ano_ref", Number(filterAno));
       return (await q).data ?? [];
     },
   });
+
 
   const advance = async (id: string, current: string) => {
     const next = NEXT_STATUS[current];
