@@ -409,13 +409,13 @@ function ExternosTable({
             </TableHeader>
             <TableBody>
               {rows.map((r, i) => (
-                <TableRow key={i}>
+                <MotionTableRow key={i} {...rowMotionProps(i)}>
                   <TableCell className="font-medium">{r.rep}</TableCell>
                   <TableCell>{r.tipo}</TableCell>
                   <TableCell className="text-right">{r.nfes.size}</TableCell>
                   <TableCell className="text-right">{fmtBRL(r.base)}</TableCell>
                   <TableCell className="text-right font-medium">{fmtBRL(r.valor)}</TableCell>
-                </TableRow>
+                </MotionTableRow>
               ))}
               <TableRow className="bg-muted/50 font-bold">
                 <TableCell colSpan={2}>TOTAL</TableCell>
@@ -444,7 +444,7 @@ function ExternosTable({
             </TableHeader>
             <TableBody>
               {detailRows.map((r, i) => (
-                <TableRow key={i}>
+                <MotionTableRow key={i} {...rowMotionProps(i)}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
                   <TableCell>{r.pedidoCliente}</TableCell>
                   <TableCell>{formatarData(r.emissao)}</TableCell>
@@ -452,7 +452,7 @@ function ExternosTable({
                   <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
                   <TableCell className="text-right">{r.pct.toFixed(2)}%</TableCell>
                   <TableCell className="text-right font-medium">{fmtBRL(r.comissao)}</TableCell>
-                </TableRow>
+                </MotionTableRow>
               ))}
               <TableRow className="bg-muted/50 font-bold">
                 <TableCell colSpan={4}>TOTAL</TableCell>
@@ -671,10 +671,10 @@ function InternoTable({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r) => {
+                {rows.map((r, i) => {
                   const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
                   return (
-                    <TableRow key={r.nfeId}>
+                    <MotionTableRow key={r.nfeId} {...rowMotionProps(i)}>
                       <TableCell className="font-medium">{r.numero}</TableCell>
                       <TableCell>{r.pedidoCliente}</TableCell>
                       <TableCell>{formatarData(r.emissao)}</TableCell>
@@ -685,7 +685,7 @@ function InternoTable({
                       <TableCell className="text-right">{r.c1 == null ? "—" : fmtBRL(r.c1)}</TableCell>
                       <TableCell className="text-right">{r.c05 == null ? "—" : fmtBRL(r.c05)}</TableCell>
                       <TableCell className="text-right font-medium">{fmtBRL(tot)}</TableCell>
-                    </TableRow>
+                    </MotionTableRow>
                   );
                 })}
                 <TableRow className="bg-muted/50 font-bold">
@@ -845,14 +845,14 @@ function VendasTab({ mes, ano }: { mes: number; ano: number }) {
               </TableHeader>
               <TableBody>
                 {ranking.map((r, i) => (
-                  <TableRow key={i}>
+                  <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell>{i + 1}</TableCell>
                     <TableCell className="font-medium">{r.nome}</TableCell>
                     <TableCell className="text-right">{fmtBRL(r.total)}</TableCell>
                     <TableCell className="text-right">{r.pedidos}</TableCell>
                     <TableCell className="text-right">{fmtBRL(r.ticket)}</TableCell>
                     <TableCell className="text-right">{r.pct.toFixed(1)}%</TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))}
               </TableBody>
             </Table>
@@ -972,7 +972,7 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
               </TableHeader>
               <TableBody>
                 {filtered.map((p, i) => (
-                  <TableRow key={i}>
+                  <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{p.numero_pedido}</TableCell>
                     <TableCell>{(p.clientes as { nome?: string } | null)?.nome ?? "—"}</TableCell>
                     <TableCell>{(p.representantes as { nome?: string } | null)?.nome ?? "—"}</TableCell>
@@ -980,7 +980,7 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
                     <TableCell>{formatarData(p.prazo_entrega)}</TableCell>
                     <TableCell className="text-right">{fmtBRL(p.valor_produtos)}</TableCell>
                     <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))}
               </TableBody>
             </Table>
@@ -1126,7 +1126,7 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
                 {notas.map((n, i) => {
                   const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
                   return (
-                    <TableRow key={i}>
+                    <MotionTableRow key={i} {...rowMotionProps(i)}>
                       <TableCell className="font-medium">{n.numero_nfe}</TableCell>
                       <TableCell>{formatarData(n.data_nfe)}</TableCell>
                       <TableCell>{formatCNPJ(ped?.clientes?.cnpj)}</TableCell>
@@ -1145,7 +1145,7 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
                           </UiTooltip>
                         ) : null}
                       </TableCell>
-                    </TableRow>
+                    </MotionTableRow>
                   );
                 })}
                 <TableRow className="font-bold bg-muted/50">
@@ -1290,11 +1290,11 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
               </TableHeader>
               <TableBody>
                 {inativos.map((c, i) => (
-                  <TableRow key={i}>
+                  <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
                     <TableCell>{c.ultima}</TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))}
               </TableBody>
             </Table>
@@ -1318,11 +1318,11 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
               </TableHeader>
               <TableBody>
                 {novos.map((c, i) => (
-                  <TableRow key={i}>
+                  <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
                     <TableCell>{c.primeira}</TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))}
               </TableBody>
             </Table>
@@ -1347,12 +1347,12 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
               </TableHeader>
               <TableBody>
                 {ranking.map((c, i) => (
-                  <TableRow key={i}>
+                  <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
                     <TableCell className="text-right">{fmtBRL(c.total)}</TableCell>
                     <TableCell className="text-right">{c.pedidos}</TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))}
               </TableBody>
             </Table>
