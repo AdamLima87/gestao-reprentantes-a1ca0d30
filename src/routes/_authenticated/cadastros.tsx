@@ -629,7 +629,7 @@ function RepsTab() {
         <Table>
           <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Estados</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(reps ?? []).map((r) => {
+            {(reps ?? []).map((r, index) => {
               const estadosArr: string[] = Array.isArray((r as any).estados) && (r as any).estados.length > 0
                 ? ((r as any).estados as string[])
                 : (r.regiao ? [String(r.regiao).length === 2 ? String(r.regiao).toUpperCase() : (NOME_TO_UF[String(r.regiao).toLowerCase()] ?? String(r.regiao).toUpperCase())] : []);
