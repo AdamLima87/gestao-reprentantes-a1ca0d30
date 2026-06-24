@@ -92,8 +92,9 @@ export const listUsers = createServerFn({ method: "GET" })
 
     const { data: profiles, error: pErr } = await supabaseAdmin
       .from("profiles")
-      .select("id, nome, representante_id, criado_em, representantes(nome)")
+      .select("id, nome, representante_id, criado_em, percentual_comissao, banco, agencia, conta, pix, representantes(nome)")
       .order("criado_em", { ascending: false });
+
     if (pErr) throw new Error(pErr.message);
 
     const { data: roles, error: rErr } = await supabaseAdmin
