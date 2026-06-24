@@ -234,7 +234,7 @@ function PedidosPage() {
                         {(() => {
                           const showEdit = editable;
                           const showCancel = canCancel && p.status !== "cancelado" && p.status !== "entregue";
-                          const showDelete = isAdmin;
+                          const showDelete = canDelete;
                           const hasAny = showEdit || showCancel || showDelete;
                           if (!hasAny) {
                              return null;
