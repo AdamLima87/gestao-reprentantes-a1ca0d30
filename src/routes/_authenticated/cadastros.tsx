@@ -286,7 +286,7 @@ function ClientesTab() {
                 <TableCell>{c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                 <TableCell><Switch checked={c.ativo} onCheckedChange={(v) => toggleAtivo(c.id, v)} /></TableCell>
                 <TableCell><Button size="sm" variant="outline" onClick={() => openEdit(c)}>Editar</Button></TableCell>
-              </TableRow>
+              </MotionTableRow>
             ))}
           </TableBody>
         </Table>
