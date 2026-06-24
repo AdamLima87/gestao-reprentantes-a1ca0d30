@@ -132,7 +132,12 @@ function PedidosPage() {
   const anoAtual = now.getFullYear();
   const anos = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
 
+  if (!canVer) {
+    return <p className="text-muted-foreground">Você não tem permissão para ver pedidos.</p>;
+  }
+
   return (
+
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold border-l-4 border-[#1d6fa4] pl-3">Pedidos</h1>
