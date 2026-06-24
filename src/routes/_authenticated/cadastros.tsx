@@ -1004,7 +1004,7 @@ function UsuariosTab() {
       });
       toast.success("Usuário criado!");
       setOpen(false);
-      setForm({ nome: "", email: "", senha: "", role: "representante", representante_id: "none" });
+      setForm({ nome: "", email: "", senha: "", role: "representante", representante_id: "none", percentual_comissao: "0", banco: "", agencia: "", conta: "", pix: "" });
       qc.invalidateQueries({ queryKey: ["users-adm"] });
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao criar usuário.");
