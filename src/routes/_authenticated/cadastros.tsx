@@ -1054,8 +1054,14 @@ function UsuariosTab() {
       senha: "",
       role: (u.roles?.[0] ?? "representante") as any,
       representante_id: u.representante_id ?? "none",
+      percentual_comissao: String(u.percentual_comissao ?? 0),
+      banco: u.banco ?? "",
+      agencia: u.agencia ?? "",
+      conta: u.conta ?? "",
+      pix: u.pix ?? "",
       perms,
     });
+
   };
 
   const submitEdit = async (e: React.FormEvent) => {
