@@ -1171,7 +1171,7 @@ function UsuariosTab() {
             <TableHead className="w-32 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {(users ?? []).map((u: any) => {
+            {(users ?? []).map((u: any, index: number) => {
               const userPerms = (allUserPerms ?? []) as unknown as Array<{ user_id: string; permissao: string; concedida: boolean }>;
               const role = (u.roles?.[0] ?? null) as keyof typeof ROLE_DEFAULTS | null;
               const defaults = role ? ROLE_DEFAULTS[role] : new Set<string>();
