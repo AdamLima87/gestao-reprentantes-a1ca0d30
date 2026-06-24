@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -269,8 +270,8 @@ function ClientesTab() {
         <Table>
           <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Região</TableHead><TableHead>Representante</TableHead><TableHead>Atendimento</TableHead><TableHead>Última compra</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {filtrados.map((c: any) => (
-              <TableRow key={c.id}>
+            {filtrados.map((c: any, index: number) => (
+              <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                 <TableCell>{c.nome}</TableCell>
                 <TableCell>{c.cnpj ? maskCNPJ(c.cnpj) : "—"}</TableCell>
                 <TableCell>{c.regiao ?? "—"}</TableCell>
@@ -285,7 +286,7 @@ function ClientesTab() {
                 <TableCell>{c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                 <TableCell><Switch checked={c.ativo} onCheckedChange={(v) => toggleAtivo(c.id, v)} /></TableCell>
                 <TableCell><Button size="sm" variant="outline" onClick={() => openEdit(c)}>Editar</Button></TableCell>
-              </TableRow>
+              </MotionTableRow>
             ))}
           </TableBody>
         </Table>
@@ -628,14 +629,14 @@ function RepsTab() {
         <Table>
           <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Estados</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {(reps ?? []).map((r) => {
+            {(reps ?? []).map((r, index) => {
               const estadosArr: string[] = Array.isArray((r as any).estados) && (r as any).estados.length > 0
                 ? ((r as any).estados as string[])
                 : (r.regiao ? [String(r.regiao).length === 2 ? String(r.regiao).toUpperCase() : (NOME_TO_UF[String(r.regiao).toLowerCase()] ?? String(r.regiao).toUpperCase())] : []);
               const visiveis = estadosArr.slice(0, 3);
               const extras = estadosArr.length - visiveis.length;
               return (
-                <TableRow key={r.id}>
+                <MotionTableRow key={r.id} {...rowMotionProps(index)}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span>{r.nome}</span>
@@ -677,7 +678,7 @@ function RepsTab() {
                       )}
                     </div>
                   </TableCell>
-                </TableRow>
+                </MotionTableRow>
               );
             })}
           </TableBody>
@@ -1170,7 +1171,7 @@ function UsuariosTab() {
             <TableHead className="w-32 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {(users ?? []).map((u: any) => {
+            {(users ?? []).map((u: any, index: number) => {
               const userPerms = (allUserPerms ?? []) as unknown as Array<{ user_id: string; permissao: string; concedida: boolean }>;
               const role = (u.roles?.[0] ?? null) as keyof typeof ROLE_DEFAULTS | null;
               const defaults = role ? ROLE_DEFAULTS[role] : new Set<string>();
@@ -1180,7 +1181,7 @@ function UsuariosTab() {
                 return p.concedida !== defaults.has(p.permissao as any);
               });
               return (
-              <TableRow key={u.id}>
+              <MotionTableRow key={u.id} {...rowMotionProps(index)}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span>{u.nome || "—"}</span>
@@ -1202,7 +1203,7 @@ function UsuariosTab() {
                     </Button>
                   </div>
                 </TableCell>
-              </TableRow>
+              </MotionTableRow>
               );
             })}
           </TableBody>
