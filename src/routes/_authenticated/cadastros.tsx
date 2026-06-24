@@ -1030,8 +1030,14 @@ function UsuariosTab() {
     senha: string;
     role: "admin" | "vendedor_interno" | "representante" | "financeiro" | "gestor";
     representante_id: string;
+    percentual_comissao: string;
+    banco: string;
+    agencia: string;
+    conta: string;
+    pix: string;
     perms: Record<PermissionKey, PermTri>;
   }>(null);
+
   const [savingEdit, setSavingEdit] = useState(false);
 
   const openEdit = (u: any) => {
