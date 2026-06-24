@@ -204,7 +204,7 @@ function Dashboard() {
           </div>
         );
       })()}
-    </div>
+    </MotionPage>
   );
 }
 
