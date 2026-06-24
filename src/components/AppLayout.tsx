@@ -73,19 +73,26 @@ export function AppLayout() {
                 key={n.to}
                 to={n.to}
                 className={cn(
-                  "group flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 border-l-2 hover:translate-x-1",
+                  "relative group flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 border-l-2 hover:translate-x-1",
                   active
-                    ? "bg-sidebar-primary text-white border-primary"
+                    ? "text-white border-primary"
                     : "text-green-200 border-transparent hover:bg-sidebar-primary/30 hover:text-white"
                 )}
               >
+                {active && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute inset-0 rounded-md bg-sidebar-primary -z-0"
+                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                  />
+                )}
                 <Icon
                   className={cn(
-                    "h-4 w-4 transition-colors",
+                    "relative z-10 h-4 w-4 transition-colors",
                     active ? "text-white" : "text-green-200 group-hover:text-white"
                   )}
                 />
-                {n.label}
+                <span className="relative z-10">{n.label}</span>
               </Link>
             );
           })}
