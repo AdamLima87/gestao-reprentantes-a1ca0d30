@@ -107,7 +107,7 @@ function NfePage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {!n.data_entrega && canCreate && (
+                          {!n.data_entrega && canEntrega && (
                             <RegistrarEntregaDialog
                               nfeId={n.id}
                               pedidoId={n.pedido_id}
@@ -118,7 +118,7 @@ function NfePage() {
                               }}
                             />
                           )}
-                          {(isAdmin || can("excluir_nfe") || can("registrar_nfe")) && (
+                          {canExcluir && (
                             <ExcluirNfeDialog
                               nfeId={n.id}
                               numeroNfe={n.numero_nfe}
@@ -145,6 +145,7 @@ function NfePage() {
     </TooltipProvider>
   );
 }
+
 
 function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void }) {
   const [open, setOpen] = useState(false);
