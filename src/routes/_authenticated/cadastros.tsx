@@ -318,7 +318,22 @@ function ClientesTab() {
                 </TableCell>
                 <TableCell>{c.ultima_compra_at ? new Date(c.ultima_compra_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                 <TableCell><Switch checked={c.ativo} onCheckedChange={(v) => toggleAtivo(c.id, v)} /></TableCell>
-                <TableCell><Button size="sm" variant="outline" onClick={() => openEdit(c)}>Editar</Button></TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(c)}>Editar</Button>
+                    {podeExcluir && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setExcluindo(c)}
+                        aria-label="Excluir cliente"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
               </MotionTableRow>
             ))}
           </TableBody>
