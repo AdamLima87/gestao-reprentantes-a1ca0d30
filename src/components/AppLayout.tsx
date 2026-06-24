@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LayoutDashboard, FileText, Receipt, DollarSign, Settings, LogOut, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 interface NavItem {
   to: string;
@@ -97,8 +98,9 @@ export function AppLayout() {
             );
           })}
         </nav>
-        <div className="p-4 bg-green-950 border-t border-green-800">
-          <div className="flex items-center gap-3 mb-3">
+        <div className="p-4 bg-green-950 border-t border-green-800 space-y-3">
+          <ThemeSwitcher />
+          <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-full bg-green-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
               {initials}
             </div>
