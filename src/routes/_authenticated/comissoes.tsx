@@ -364,8 +364,8 @@ function ComissoesPage() {
   const totalPago = (data ?? []).filter((c: any) => c.pago_em).reduce((s, c: any) => s + Number(c.valor_comissao), 0);
   const totalVisivel = filtered.reduce((s: number, c: any) => s + Number(c.valor_comissao), 0);
 
-  const canMarcarPago = can("marcar_comissao_paga");
-  const canExportar = can("exportar_relatorios");
+
+
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
