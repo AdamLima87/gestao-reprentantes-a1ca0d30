@@ -34,7 +34,9 @@ const tipoComissaoMap: Record<string, Style> = {
   interno_reativacao: { label: "Vend. Interno — Reativ.",  bg: "#fff8e1", text: "#b45309", border: "#fcd34d" },
   interno_recorrente: { label: "Vend. Interno — Recorr.",  bg: "#e8f5ee", text: "#1a6b3a", border: "#34a85a" },
   interno_sobre_rep:  { label: "Vend. Interno 0,5%",       bg: "#f3eeff", text: "#6b46c1", border: "#c4b5fd" },
+  gestor:             { label: "Gestor",                   bg: "#fff8e1", text: "#92400e", border: "#fcd34d" },
 };
+
 
 export function TipoComissaoBadge({ tipo }: { tipo: string }) {
   const s = tipoComissaoMap[tipo] ?? { label: tipo, bg: "#f1f3f5", text: "#495057", border: "#dee2e6" };
