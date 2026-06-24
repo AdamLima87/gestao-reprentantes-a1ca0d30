@@ -29,6 +29,11 @@ export const createUser = createServerFn({ method: "POST" })
       senha: string;
       role: AppRole;
       representante_id?: string | null;
+      percentual_comissao?: number | null;
+      banco?: string | null;
+      agencia?: string | null;
+      conta?: string | null;
+      pix?: string | null;
     }) => {
       if (!input.email || !input.senha || !input.nome || !input.role) {
         throw new Error("Campos obrigatórios faltando.");
@@ -66,12 +71,18 @@ export const createUser = createServerFn({ method: "POST" })
         nome: data.nome,
         representante_id: data.representante_id || null,
         must_change_password: true,
-      })
+        percentual_comissao: data.percentual_comissao ?? 0,
+        banco: data.banco ?? null,
+        agencia: data.agencia ?? null,
+        conta: data.conta ?? null,
+        pix: data.pix ?? null,
+      } as any)
       .eq("id", userId);
     if (profErr) throw new Error(profErr.message);
 
     return { ok: true, userId };
   });
+
 
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
