@@ -148,7 +148,7 @@ function ExportButtons({ onCSV, onPDF }: { onCSV: () => void; onPDF: () => void 
 }
 
 /* ============ COMISSÕES ============ */
-type Visao = "todos" | "externos" | "interno";
+type Visao = "todos" | "externos" | "interno" | "gestor";
 
 function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
   const [visao, setVisao] = useState<Visao>("todos");
