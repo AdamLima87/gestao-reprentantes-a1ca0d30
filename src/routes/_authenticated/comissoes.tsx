@@ -285,14 +285,19 @@ function ComissoesPage() {
   const { roles, representanteId } = useAuth();
   const { can } = usePermissions();
   const isAdmin = roles.includes("admin");
-  const isRepOnly =
-    roles.includes("representante") &&
-    !roles.some((r) => ["admin", "vendedor_interno", "financeiro"].includes(r));
+  const canVer = can("ver_comissoes");
+  const verTodas = isAdmin || can("ver_todas_comissoes");
+  const canMarcarPago = can("marcar_comissao_paga");
+  const canRecalcular = isAdmin || can("recalcular_comissoes");
+  const canExportar = can("exportar_relatorios");
+
+  const isRepOnly = canVer && !verTodas;
 
   if (isRepOnly) return <PainelRepresentante representanteId={representanteId} />;
 
   const qc = useQueryClient();
   const callReprocessar = useServerFn(reprocessarComissoes);
+
 
   const [recalcOpen, setRecalcOpen] = useState(false);
   const recalcular = useMutation({
@@ -336,17 +341,20 @@ function ComissoesPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["comissoes", mes, ano, repFilter],
+    queryKey: ["comissoes", mes, ano, repFilter, verTodas, representanteId],
+    enabled: canVer,
     queryFn: async () => {
       let q = supabase
         .from("comissoes")
         .select("*, representantes(nome), pedidos(numero_pedido, clientes(nome)), nfe(numero_nfe, valor_nfe)")
         .eq("mes_ref", mes).eq("ano_ref", ano)
         .order("criado_em", { ascending: false });
-      if (repFilter !== "todos") q = q.eq("representante_id", repFilter);
+      if (!verTodas && representanteId) q = q.eq("representante_id", representanteId);
+      else if (repFilter !== "todos") q = q.eq("representante_id", repFilter);
       return (await q).data ?? [];
     },
   });
+
 
   const filtered = useMemo(() => {
     const rows = data ?? [];
@@ -359,14 +367,18 @@ function ComissoesPage() {
   const totalPago = (data ?? []).filter((c: any) => c.pago_em).reduce((s, c: any) => s + Number(c.valor_comissao), 0);
   const totalVisivel = filtered.reduce((s: number, c: any) => s + Number(c.valor_comissao), 0);
 
-  const canMarcarPago = can("marcar_comissao_paga");
-  const canExportar = can("exportar_relatorios");
+
+
+
+  if (!canVer) {
+    return <p className="text-muted-foreground">Você não tem permissão para ver comissões.</p>;
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold border-l-4 border-[#1a6b3a] pl-3">Comissões</h1>
-        {(isAdmin || can("recalcular_comissoes") || can("marcar_comissao_paga")) && (
+        {canRecalcular && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -378,6 +390,7 @@ function ComissoesPage() {
           </div>
         )}
       </div>
+
 
       <Dialog open={recalcOpen} onOpenChange={setRecalcOpen}>
         <DialogContent>
@@ -411,15 +424,18 @@ function ComissoesPage() {
               <SelectContent>{[ano - 1, ano, ano + 1].map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="w-56"><Label className="text-xs">Representante</Label>
-            <Select value={repFilter} onValueChange={setRepFilter}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {verTodas && (
+            <div className="w-56"><Label className="text-xs">Representante</Label>
+              <Select value={repFilter} onValueChange={setRepFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {(reps ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="w-44"><Label className="text-xs">Status pagamento</Label>
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>

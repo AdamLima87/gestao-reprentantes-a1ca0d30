@@ -60,14 +60,15 @@ const MESES = [
 function RelatoriosPage() {
   
   const { can } = usePermissions();
-  const allowed = can("exportar_relatorios") || can("ver_relatorios");
+  const canVer = can("ver_relatorios");
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
 
-  if (!allowed) {
-    return <p className="text-muted-foreground">Sem acesso aos relatórios.</p>;
+  if (!canVer) {
+    return <p className="text-muted-foreground">Você não tem permissão para acessar relatórios.</p>;
   }
+
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="space-y-4">
