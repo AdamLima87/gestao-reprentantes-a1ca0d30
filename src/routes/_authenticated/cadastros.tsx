@@ -1181,7 +1181,7 @@ function UsuariosTab() {
                 return p.concedida !== defaults.has(p.permissao as any);
               });
               return (
-              <TableRow key={u.id}>
+              <MotionTableRow key={u.id} {...rowMotionProps(index)}>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span>{u.nome || "—"}</span>
