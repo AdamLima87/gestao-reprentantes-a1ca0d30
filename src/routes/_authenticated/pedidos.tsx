@@ -262,7 +262,7 @@ function PedidosPage() {
                           );
                         })()}
                       </TableCell>
-                    </TableRow>
+                    </MotionTableRow>
                   );
                 })}
                 {(pedidos ?? []).length === 0 && (
