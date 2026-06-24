@@ -270,8 +270,8 @@ function ClientesTab() {
         <Table>
           <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Região</TableHead><TableHead>Representante</TableHead><TableHead>Atendimento</TableHead><TableHead>Última compra</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
           <TableBody>
-            {filtrados.map((c: any) => (
-              <TableRow key={c.id}>
+            {filtrados.map((c: any, index: number) => (
+              <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                 <TableCell>{c.nome}</TableCell>
                 <TableCell>{c.cnpj ? maskCNPJ(c.cnpj) : "—"}</TableCell>
                 <TableCell>{c.regiao ?? "—"}</TableCell>
