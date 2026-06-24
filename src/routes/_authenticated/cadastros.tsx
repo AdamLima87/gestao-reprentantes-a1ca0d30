@@ -1019,6 +1019,35 @@ function UsuariosTab() {
   const callList = useServerFn(listUsers);
   const callUpdate = useServerFn(updateUser);
   const callDelete = useServerFn(deleteUser);
+  const callReset = useServerFn(resetUserPassword);
+
+  const [resetting, setResetting] = useState<null | { id: string; nome: string }>(null);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetResult, setResetResult] = useState<null | { nome: string; senha: string }>(null);
+
+  const confirmarReset = async () => {
+    if (!resetting) return;
+    setResetBusy(true);
+    try {
+      const res = await callReset({ data: { userId: resetting.id } });
+      setResetResult({ nome: resetting.nome, senha: (res as any).tempPassword });
+      setResetting(null);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao redefinir senha.");
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
+  const copiarSenha = async () => {
+    if (!resetResult) return;
+    try {
+      await navigator.clipboard.writeText(resetResult.senha);
+      toast.success("Senha copiada!");
+    } catch {
+      toast.error("Não foi possível copiar.");
+    }
+  };
 
   const { data: users } = useQuery({
     queryKey: ["users-adm"],
