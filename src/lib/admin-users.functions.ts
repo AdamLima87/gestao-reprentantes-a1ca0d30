@@ -121,9 +121,15 @@ export const listUsers = createServerFn({ method: "GET" })
       representante_id: p.representante_id,
       representante_nome: p.representantes?.nome ?? null,
       criado_em: p.criado_em,
+      percentual_comissao: p.percentual_comissao ?? 0,
+      banco: p.banco ?? null,
+      agencia: p.agencia ?? null,
+      conta: p.conta ?? null,
+      pix: p.pix ?? null,
       roles: (roles ?? []).filter((r: any) => r.user_id === p.id).map((r: any) => r.role),
     }));
   });
+
 
 export const updateUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
