@@ -729,7 +729,7 @@ function ComissaoGestorSection({
 
   const grupos = useMemo(() => {
     const rows = (data ?? []) as any[];
-    if (!isAdmin) return [{ nome: "Minha comissão", rows }];
+    if (!isAdmin) return [{ id: currentUserId ?? "", nome: "Minha comissão", rows }];
     const byId = new Map<string, any[]>();
     for (const r of rows) {
       const key = r.gestor_user_id ?? "—";
@@ -740,10 +740,12 @@ function ComissaoGestorSection({
     const nomeOf = (id: string) =>
       (gestores ?? []).find((g) => g.id === id)?.nome ?? "Gestor";
     return [...byId.entries()].map(([id, rows]) => ({
+      id,
       nome: id === "—" ? "Gestor" : nomeOf(id),
       rows,
     }));
-  }, [data, isAdmin, gestores]);
+  }, [data, isAdmin, gestores, currentUserId]);
+
 
   const totalGeral = (data ?? []).reduce(
     (s: number, c: any) => s + Number(c.valor_comissao || 0),
