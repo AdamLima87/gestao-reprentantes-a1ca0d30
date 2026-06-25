@@ -230,6 +230,53 @@ export type Database = {
         }
         Relationships: []
       }
+      contratos_assinatura: {
+        Row: {
+          assinado_at: string | null
+          created_at: string
+          d4sign_document_uuid: string | null
+          enviado_at: string | null
+          enviado_por: string | null
+          id: string
+          representante_id: string
+          status: string
+          updated_at: string
+          url_download: string | null
+        }
+        Insert: {
+          assinado_at?: string | null
+          created_at?: string
+          d4sign_document_uuid?: string | null
+          enviado_at?: string | null
+          enviado_por?: string | null
+          id?: string
+          representante_id: string
+          status?: string
+          updated_at?: string
+          url_download?: string | null
+        }
+        Update: {
+          assinado_at?: string | null
+          created_at?: string
+          d4sign_document_uuid?: string | null
+          enviado_at?: string | null
+          enviado_por?: string | null
+          id?: string
+          representante_id?: string
+          status?: string
+          updated_at?: string
+          url_download?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_assinatura_representante_id_fkey"
+            columns: ["representante_id"]
+            isOneToOne: false
+            referencedRelation: "representantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           criado_em: string
@@ -464,6 +511,7 @@ export type Database = {
           cpf_cnpj_titular: string | null
           criado_em: string
           data_nascimento: string | null
+          email: string | null
           endereco: string | null
           estado: string | null
           estados: string[]
@@ -495,6 +543,7 @@ export type Database = {
           cpf_cnpj_titular?: string | null
           criado_em?: string
           data_nascimento?: string | null
+          email?: string | null
           endereco?: string | null
           estado?: string | null
           estados?: string[]
@@ -526,6 +575,7 @@ export type Database = {
           cpf_cnpj_titular?: string | null
           criado_em?: string
           data_nascimento?: string | null
+          email?: string | null
           endereco?: string | null
           estado?: string | null
           estados?: string[]
