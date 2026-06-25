@@ -226,7 +226,7 @@ function gerarSenhaTemporaria(): string {
 
 export const resetUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { userId: string }) => {
+  .inputValidator((input: { userId: string; redirectTo?: string }) => {
     if (!input.userId) throw new Error("userId obrigatório.");
     return input;
   })
@@ -234,19 +234,29 @@ export const resetUserPassword = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const tempPassword = gerarSenhaTemporaria();
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
-      password: tempPassword,
-    });
-    if (error) throw new Error(error.message);
+    // 1. Recupera o email do usuário-alvo
+    const { data: userData, error: getErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    if (getErr) throw new Error(getErr.message);
+    const email = userData?.user?.email;
+    if (!email) throw new Error("Usuário não possui email cadastrado.");
 
+    // 2. Marca o perfil para forçar troca de senha após o login
     const { error: pErr } = await supabaseAdmin
       .from("profiles")
       .update({ must_change_password: true } as any)
       .eq("id", data.userId);
     if (pErr) throw new Error(pErr.message);
 
-    return { tempPassword };
+    // 3. Dispara o email de recuperação padrão do Lovable Cloud.
+    // O usuário clica no link, define a nova senha e é redirecionado.
+    const redirectTo = data.redirectTo || undefined;
+    const { error: mailErr } = await supabaseAdmin.auth.resetPasswordForEmail(
+      email,
+      redirectTo ? { redirectTo } : undefined,
+    );
+    if (mailErr) throw new Error(mailErr.message);
+
+    return { ok: true as const, email };
   });
 
 export const listAllPermissions = createServerFn({ method: "GET" })
