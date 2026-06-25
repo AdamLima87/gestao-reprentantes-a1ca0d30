@@ -234,7 +234,7 @@ function ExportButtons({
                       });
                       if (resp.error) throw new Error(resp.error.message || "Falha ao enviar");
                       if ((resp.data as any)?.error) throw new Error((resp.data as any).error);
-                      toast.success(`Extrato enviado para ${email.destinatarioEmail}`);
+                      toast.success(`Extrato enviado para ${email.destinatarioEmail ?? email.destinatarioNome}`);
                       setOpen(false);
                     } catch (e: any) {
                       toast.error(e?.message ?? "Erro ao enviar e-mail");
