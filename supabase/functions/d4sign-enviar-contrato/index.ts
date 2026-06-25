@@ -1,4 +1,4 @@
-// Redeploy: 25/06/2026 - prod URL + app_role fix
+// Redeploy: 25/06/2026 v2
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const D4SIGN_BASE = "https://api.d4sign.com.br/api/v1";
@@ -43,13 +43,14 @@ Deno.serve(async (req) => {
 
     const TOKEN = Deno.env.get("D4SIGN_TOKEN");
     const SAFE_UUID = Deno.env.get("D4SIGN_SAFE_UUID");
+    const CRYPT_KEY = Deno.env.get("D4SIGN_CRYPT_KEY") ?? "";
+
     if (!TOKEN || !SAFE_UUID) return json({ error: "D4SIGN_TOKEN/SAFE_UUID não configurados" }, 500);
 
-    const cryptKey = Deno.env.get("D4SIGN_CRYPT_KEY") ?? "";
-    const qs = `?tokenAPI=${encodeURIComponent(TOKEN)}${cryptKey ? `&cryptKey=${encodeURIComponent(cryptKey)}` : ""}`;
-
+    const qs = `?tokenAPI=${encodeURIComponent(TOKEN)}&cryptKey=${encodeURIComponent(CRYPT_KEY)}`;
     const safeName = String(nome_rep).replace(/\s+/g, "_");
-    // 1. Upload via base64
+
+    // 1. Upload
     const uploadRes = await fetch(`${D4SIGN_BASE}/documents/${SAFE_UUID}/uploadbinary${qs}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
     if (!docUuid) return json({ error: "Falha no upload D4Sign", detail: uploadData }, 500);
 
     // 2. Signatário
-    const listRes = await fetch(`${D4SIGN_BASE}/documents/${docUuid}/createlist${qs}`, {
+    await fetch(`${D4SIGN_BASE}/documents/${docUuid}/createlist${qs}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -78,10 +79,9 @@ Deno.serve(async (req) => {
         }],
       }),
     });
-    const listData = await listRes.json();
 
     // 3. Enviar para assinatura
-    const sendRes = await fetch(`${D4SIGN_BASE}/documents/${docUuid}/sendtosigner${qs}`, {
+    await fetch(`${D4SIGN_BASE}/documents/${docUuid}/sendtosigner${qs}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -90,7 +90,6 @@ Deno.serve(async (req) => {
         skip_email: "0",
       }),
     });
-    const sendData = await sendRes.json();
 
     // 4. Persistir
     const supabaseAdmin = createClient(
@@ -107,7 +106,7 @@ Deno.serve(async (req) => {
     });
     if (insertErr) return json({ error: "Falha ao registrar", detail: insertErr.message }, 500);
 
-    return json({ success: true, doc_uuid: docUuid, list: listData, send: sendData });
+    return json({ success: true, doc_uuid: docUuid });
   } catch (e: any) {
     return json({ error: e?.message ?? "Erro inesperado" }, 500);
   }
