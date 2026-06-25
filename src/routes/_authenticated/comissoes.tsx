@@ -818,7 +818,85 @@ function ComissaoGestorSection({
 }
 
 
-function PainelRepresentante({ representanteId }: { representanteId: string | null }) {
+function GestorGroup({
+  groupName,
+  rows,
+  mes,
+  ano,
+  gestorProfile,
+  isAdmin,
+}: {
+  groupName: string;
+  rows: any[];
+  mes: number;
+  ano: number;
+  gestorProfile: any | null;
+  isAdmin: boolean;
+}) {
+  const sort = useSortableData(rows, {
+    accessors: {
+      nfe: (c: any) => c.nfe?.numero_nfe ?? "",
+      data: (c: any) => c.nfe?.data_nfe ?? "",
+      cliente: (c: any) => c.pedidos?.clientes?.nome ?? "",
+      base_calculo: (c: any) => Number(c.base_calculo),
+      percentual_aplicado: (c: any) => Number(c.percentual_aplicado),
+      valor_comissao: (c: any) => Number(c.valor_comissao),
+    },
+  });
+  const subtotal = rows.reduce((s: number, c: any) => s + Number(c.valor_comissao || 0), 0);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">{groupName}</h3>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            gerarExtratoGestorPDF(
+              isAdmin ? groupName : (gestorProfile?.nome ?? "Gestor"),
+              mes,
+              ano,
+              rows,
+              gestorProfile,
+            )
+          }
+        >
+          Extrato PDF
+        </Button>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <SortableTableHead sortKey="nfe" sortConfig={sort.sortConfig} onSort={sort.requestSort}>NF-e</SortableTableHead>
+            <SortableTableHead sortKey="data" sortConfig={sort.sortConfig} onSort={sort.requestSort}>Data</SortableTableHead>
+            <SortableTableHead sortKey="cliente" sortConfig={sort.sortConfig} onSort={sort.requestSort}>Cliente</SortableTableHead>
+            <SortableTableHead sortKey="base_calculo" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">Valor Produtos</SortableTableHead>
+            <SortableTableHead sortKey="percentual_aplicado" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">%</SortableTableHead>
+            <SortableTableHead sortKey="valor_comissao" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">Comissão</SortableTableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sort.sortedData.map((c: any, i: number) => (
+            <MotionTableRow key={c.id} {...rowMotionProps(i)}>
+              <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
+              <TableCell>{formatarData(c.nfe?.data_nfe)}</TableCell>
+              <TableCell>{c.pedidos?.clientes?.nome ?? "—"}</TableCell>
+              <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
+              <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
+              <TableCell className="text-right font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
+            </MotionTableRow>
+          ))}
+          <TableRow className="bg-muted/50 font-bold">
+            <TableCell colSpan={5} className="text-right">Subtotal</TableCell>
+            <TableCell className="text-right text-[#1a6b3a]">{fmtBRL(subtotal)}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
