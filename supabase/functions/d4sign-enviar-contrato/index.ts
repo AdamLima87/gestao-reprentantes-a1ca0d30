@@ -1,3 +1,4 @@
+// Redeploy: 25/06/2026
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const D4SIGN_BASE = "https://sandbox.d4sign.com.br/api/v1";
