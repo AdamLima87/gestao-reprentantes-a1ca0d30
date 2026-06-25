@@ -838,15 +838,19 @@ function RepsTab() {
                   <TableCell>{r.tipo}</TableCell>
                   <TableCell>{Number(r.percentual_padrao).toFixed(2)}%</TableCell>
                   <TableCell>
-                    <button
-                      type="button"
-                      className="cursor-pointer disabled:cursor-default"
-                      disabled={repContratos.length === 0}
-                      onClick={() => repContratos.length > 0 && setHistoricoRep({ ...r, _contratos: repContratos })}
-                      title={repContratos.length > 0 ? "Ver histórico" : ""}
-                    >
-                      <StatusContratoBadge status={ultimoContrato?.status ?? null} />
-                    </button>
+                    {podeVisualizarAssinatura ? (
+                      <button
+                        type="button"
+                        className="cursor-pointer disabled:cursor-default"
+                        disabled={repContratos.length === 0}
+                        onClick={() => repContratos.length > 0 && setHistoricoRep({ ...r, _contratos: repContratos })}
+                        title={repContratos.length > 0 ? "Ver histórico" : ""}
+                      >
+                        <StatusContratoBadge status={ultimoContrato?.status ?? null} />
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
                   <TableCell>
