@@ -33,13 +33,15 @@ import { SortableTableHead } from "@/components/ui/sortable-table-head";
 import { useSortableData } from "@/hooks/use-sortable-data";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/lib/status-badge";
-import { Download, FileText, MessageSquareText } from "lucide-react";
+import { Download, FileText, MessageSquareText, Mail } from "lucide-react";
 import {
   Tooltip as UiTooltip,
   TooltipContent as UiTooltipContent,
   TooltipProvider as UiTooltipProvider,
   TooltipTrigger as UiTooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { fmtBRL, exportCSV, exportPDF } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
