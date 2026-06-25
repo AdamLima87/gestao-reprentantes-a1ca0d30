@@ -283,27 +283,30 @@ export type Database = {
           email_destino: string | null
           enviado_at: string
           enviado_por: string | null
+          gestor_user_id: string | null
           id: string
           mes: number
-          representante_id: string
+          representante_id: string | null
         }
         Insert: {
           ano: number
           email_destino?: string | null
           enviado_at?: string
           enviado_por?: string | null
+          gestor_user_id?: string | null
           id?: string
           mes: number
-          representante_id: string
+          representante_id?: string | null
         }
         Update: {
           ano?: number
           email_destino?: string | null
           enviado_at?: string
           enviado_por?: string | null
+          gestor_user_id?: string | null
           id?: string
           mes?: number
-          representante_id?: string
+          representante_id?: string | null
         }
         Relationships: [
           {

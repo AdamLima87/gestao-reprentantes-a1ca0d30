@@ -33,13 +33,15 @@ import { SortableTableHead } from "@/components/ui/sortable-table-head";
 import { useSortableData } from "@/hooks/use-sortable-data";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/lib/status-badge";
-import { Download, FileText, MessageSquareText } from "lucide-react";
+import { Download, FileText, MessageSquareText, Mail } from "lucide-react";
 import {
   Tooltip as UiTooltip,
   TooltipContent as UiTooltipContent,
   TooltipProvider as UiTooltipProvider,
   TooltipTrigger as UiTooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { fmtBRL, exportCSV, exportPDF } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
@@ -134,23 +136,128 @@ function RelatoriosPage() {
   );
 }
 
-function ExportButtons({ onCSV, onPDF }: { onCSV: () => void; onPDF: () => void }) {
+type EmailExtratoPayload = {
+  destinatarioNome: string;
+  destinatarioEmail: string | null;
+  mes: number;
+  ano: number;
+  buildPdfBase64: () => Promise<string>;
+  target: { representante_id?: string; gestor_user_id?: string };
+};
+
+function ExportButtons({
+  onCSV,
+  onPDF,
+  email,
+}: {
+  onCSV: () => void;
+  onPDF: () => void;
+  email?: EmailExtratoPayload | null;
+}) {
   const { can } = usePermissions();
-  if (!can("exportar_relatorios")) return null;
+  const canExport = can("exportar_relatorios");
+  const canEmail = can("enviar_extrato_email");
+  const [open, setOpen] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+
+  if (!canExport && !(canEmail && email)) return null;
+
   return (
     <div className="flex gap-2">
-      <Button variant="outline" size="sm" onClick={onCSV}>
-        <Download className="h-4 w-4 mr-1" /> CSV
-      </Button>
-      <Button variant="outline" size="sm" onClick={onPDF}>
-        <FileText className="h-4 w-4 mr-1" /> PDF
-      </Button>
+      {canExport && (
+        <>
+          <Button variant="outline" size="sm" onClick={onCSV}>
+            <Download className="h-4 w-4 mr-1" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={onPDF}>
+            <FileText className="h-4 w-4 mr-1" /> PDF
+          </Button>
+        </>
+      )}
+      {canEmail && email && (
+        <>
+          <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+            <Mail className="h-4 w-4 mr-1" /> Enviar por e-mail
+          </Button>
+          <Dialog open={open} onOpenChange={(o) => !enviando && setOpen(o)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Enviar extrato por e-mail</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="text-muted-foreground">Destinatário:</span>{" "}
+                  <span className="font-medium">{email.destinatarioNome}</span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">E-mail:</span>{" "}
+                  <span className="font-medium">
+                    {email.destinatarioEmail ?? (
+                      email.target.gestor_user_id ? (
+                        <em className="text-muted-foreground">será obtido do cadastro do gestor</em>
+                      ) : (
+                        <em className="text-red-600">não cadastrado</em>
+                      )
+                    )}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Mês/Ano:</span>{" "}
+                  <span className="font-medium">
+                    {String(email.mes).padStart(2, "0")}/{email.ano}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground pt-2">
+                  O PDF do extrato será gerado e enviado em anexo.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpen(false)} disabled={enviando}>
+                  Cancelar
+                </Button>
+                <Button
+                  disabled={enviando || (!email.destinatarioEmail && !email.target.gestor_user_id)}
+                  onClick={async () => {
+                    setEnviando(true);
+                    try {
+                      const pdf_base64 = await email.buildPdfBase64();
+                      const { data: sess } = await supabase.auth.getSession();
+                      const token = sess.session?.access_token;
+                      const resp = await supabase.functions.invoke("enviar-extrato-email", {
+                        body: {
+                          ...email.target,
+                          pdf_base64,
+                          mes: email.mes,
+                          ano: email.ano,
+                        },
+                        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                      });
+                      if (resp.error) throw new Error(resp.error.message || "Falha ao enviar");
+                      if ((resp.data as any)?.error) throw new Error((resp.data as any).error);
+                      toast.success(`Extrato enviado para ${email.destinatarioEmail ?? email.destinatarioNome}`);
+                      setOpen(false);
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Erro ao enviar e-mail");
+                    } finally {
+                      setEnviando(false);
+                    }
+                  }}
+                >
+                  {enviando ? "Enviando…" : "Confirmar envio"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }
 
 /* ============ COMISSÕES ============ */
 type Visao = "todos" | "externos" | "interno" | "gestor";
+
+
 
 function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
   const [visao, setVisao] = useState<Visao>("todos");
@@ -179,6 +286,15 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: repsFull } = useQuery({
+    queryKey: ["rel-comissoes-reps"],
+    queryFn: async () => {
+      const res = await supabase.from("representantes").select("id, nome, email, tipo");
+      return (res.data ?? []) as { id: string; nome: string; email: string | null; tipo: string }[];
+    },
+    staleTime: 60_000,
+  });
+
   const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
   const mostraRepFiltro = visao === "todos" || visao === "externos";
 
@@ -191,6 +307,16 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
     }
     return [...m.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [data]);
+
+  const internoRep = useMemo(
+    () => (repsFull ?? []).find((r) => r.tipo === "interno") ?? null,
+    [repsFull],
+  );
+  const emailByRepId = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const r of repsFull ?? []) m.set(r.id, r.email);
+    return m;
+  }, [repsFull]);
 
   return (
     <div className="space-y-4">
@@ -238,11 +364,19 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
               ano={ano}
               repFiltro={repFiltro}
               repsOptions={repsOptions}
+              emailByRepId={emailByRepId}
               logoBase64={logoBase64 ?? null}
             />
           )}
           {(visao === "todos" || visao === "interno") && (
-            <InternoTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
+            <InternoTable
+              data={data ?? []}
+              periodo={periodo}
+              mes={mes}
+              ano={ano}
+              logoBase64={logoBase64 ?? null}
+              internoRep={internoRep}
+            />
           )}
           {(visao === "todos" || visao === "gestor") && (
             <GestorTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
@@ -279,6 +413,7 @@ function ExternosTable({
   ano,
   repFiltro,
   repsOptions,
+  emailByRepId,
   logoBase64,
 }: {
   data: ComissaoRow[];
@@ -287,6 +422,7 @@ function ExternosTable({
   ano: number;
   repFiltro: string;
   repsOptions: { id: string; nome: string }[];
+  emailByRepId: Map<string, string | null>;
   logoBase64: string | null;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -421,7 +557,33 @@ function ExternosTable({
     <Card ref={cardRef}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Comissões por Representante</CardTitle>
-        <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+        <ExportButtons
+          onCSV={handleCSV}
+          onPDF={handlePDF}
+          email={
+            isDetail && repFiltro
+              ? {
+                  destinatarioNome: repNome,
+                  destinatarioEmail: emailByRepId.get(repFiltro) ?? null,
+                  mes,
+                  ano,
+                  target: { representante_id: repFiltro },
+                  buildPdfBase64: async () =>
+                    (await exportPDF(
+                      `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
+                      `Comissões - ${repNome} - ${periodo}`,
+                      ["NF", "Nº Pedido Cliente", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+                      [
+                        ...detailRows.map((r) => [r.numero, r.pedidoCliente, formatarData(r.emissao), r.cliente, fmtBRL(r.valor), `${r.pct.toFixed(2)}%`, fmtBRL(r.comissao)]),
+                        ["TOTAL", "", "", "", fmtBRL(detTotalBase), "", fmtBRL(detTotalCom)],
+                      ],
+                      undefined,
+                      { brand: true, logoBase64, returnBase64: true },
+                    )) as string,
+                }
+              : null
+          }
+        />
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm font-medium text-muted-foreground">{modoLabel}</p>
@@ -511,12 +673,14 @@ function InternoTable({
   mes,
   ano,
   logoBase64,
+  internoRep,
 }: {
   data: ComissaoRow[];
   periodo: string;
   mes: number;
   ano: number;
   logoBase64: string | null;
+  internoRep: { id: string; nome: string; email: string | null } | null;
 }) {
   const internas = useMemo(
     () => data.filter((c) => (TIPOS_INTERNO as readonly string[]).includes(c.tipo)),
@@ -678,7 +842,58 @@ function InternoTable({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Cálculo de Comissão — Vendedor Interno</CardTitle>
-        <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+        <ExportButtons
+          onCSV={handleCSV}
+          onPDF={handlePDF}
+          email={
+            internoRep && rows.length > 0
+              ? {
+                  destinatarioNome: internoRep.nome,
+                  destinatarioEmail: internoRep.email,
+                  mes,
+                  ano,
+                  target: { representante_id: internoRep.id },
+                  buildPdfBase64: async () =>
+                    (await exportPDF(
+                      `comissoes-interno-${ano}-${String(mes).padStart(2, "0")}`,
+                      `BRAZIL AMORTECEDORES - CÁLCULO DE COMISSÃO POR REPRESENTANTE - ${vendedorNome.toUpperCase()}`,
+                      headers,
+                      [
+                        ...rows.map((r) => {
+                          const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
+                          return [
+                            r.numero,
+                            r.pedidoCliente,
+                            formatarData(r.emissao),
+                            r.empresa,
+                            formatarData(r.entrega),
+                            fmtBRL(r.valor),
+                            r.c15 == null ? "—" : fmtBRL(r.c15),
+                            r.c1 == null ? "—" : fmtBRL(r.c1),
+                            r.c05 == null ? "—" : fmtBRL(r.c05),
+                            fmtBRL(tot),
+                          ];
+                        }),
+                        [
+                          "TOTAL",
+                          "",
+                          "",
+                          "",
+                          "",
+                          fmtBRL(totals.valor),
+                          fmtBRL(totals.c15),
+                          fmtBRL(totals.c1),
+                          fmtBRL(totals.c05),
+                          fmtBRL(totalGeral),
+                        ],
+                      ],
+                      `Período: ${periodo}  |  ${summaryLine}`,
+                      { brand: true, logoBase64, returnBase64: true },
+                    )) as string,
+                }
+              : null
+          }
+        />
       </CardHeader>
       <CardContent className="space-y-4">
         {rows.length === 0 ? (
@@ -858,7 +1073,48 @@ function GestorTable({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Comissão do Gestor</CardTitle>
-        <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+        <ExportButtons
+          onCSV={handleCSV}
+          onPDF={handlePDF}
+          email={
+            grupos.length === 1 && grupos[0].id !== "—"
+              ? {
+                  destinatarioNome: grupos[0].nome,
+                  destinatarioEmail: null,
+                  mes,
+                  ano,
+                  target: { gestor_user_id: grupos[0].id },
+                  buildPdfBase64: async () => {
+                    const linhas: (string | number)[][] = [];
+                    for (const g of grupos) {
+                      linhas.push([{ content: `Gestor: ${g.nome}`, colSpan: 6, styles: { fontStyle: "bold", fillColor: [255, 248, 225] } } as any]);
+                      for (const c of g.rows) {
+                        linhas.push([
+                          c.nfe?.numero_nfe ?? "—",
+                          formatarData(c.nfe?.data_nfe ?? ""),
+                          c.nfe?.pedidos?.clientes?.nome ?? "—",
+                          fmtBRL(c.base_calculo),
+                          `${Number(c.percentual_aplicado).toFixed(2)}%`,
+                          fmtBRL(c.valor_comissao),
+                        ]);
+                      }
+                      const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+                      linhas.push([{ content: `Subtotal ${g.nome}`, colSpan: 5, styles: { fontStyle: "bold", halign: "right" } } as any, fmtBRL(sub)]);
+                    }
+                    linhas.push([{ content: "TOTAL GERAL", colSpan: 5, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any, { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any]);
+                    return (await exportPDF(
+                      `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
+                      `BRAZIL AMORTECEDORES — COMISSÃO DO GESTOR — ${grupos[0].nome} — ${periodo}`,
+                      ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"],
+                      linhas,
+                      undefined,
+                      { brand: true, logoBase64, returnBase64: true },
+                    )) as string;
+                  },
+                }
+              : null
+          }
+        />
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm font-medium text-muted-foreground">Período: {periodo}</p>

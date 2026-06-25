@@ -22,6 +22,7 @@ export function exportCSV(filename: string, headers: string[], rows: (string | n
 export type PdfBrandOptions = {
   brand?: boolean;
   logoBase64?: string | null;
+  returnBase64?: boolean;
 };
 
 // Brazil Amortecedores brand palette
@@ -55,7 +56,7 @@ export async function exportPDF(
   rows: (string | number)[][],
   subtitle?: string,
   options?: PdfBrandOptions,
-) {
+): Promise<string | void> {
   const doc = new jsPDF({ orientation: "landscape" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -166,5 +167,9 @@ export async function exportPDF(
       doc.setTextColor(0);
     },
   });
+  if (options?.returnBase64) {
+    const dataUri = doc.output("datauristring");
+    return dataUri.split(",")[1] ?? "";
+  }
   doc.save(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
 }
