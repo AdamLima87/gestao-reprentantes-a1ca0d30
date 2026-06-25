@@ -1114,7 +1114,7 @@ function EmpresaTab() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} /></div>
-              <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} /></div>
+              <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: maskCEP(e.target.value) })} placeholder="00000-000" inputMode="numeric" maxLength={9} /></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></div>
