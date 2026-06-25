@@ -136,8 +136,6 @@ function RelatoriosPage() {
   );
 }
 
-function ExportButtons({ onCSV, onPDF }: { onCSV: () => void; onPDF: () => void }) {
-  const { can } = usePermissions();
 type EmailExtratoPayload = {
   destinatarioNome: string;
   destinatarioEmail: string | null;
