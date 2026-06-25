@@ -1,9 +1,23 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const D4SIGN_BASE_URL = "https://api.d4sign.com.br/api/v1";
+
+type JsonObject = Record<string, unknown>;
+
+type RequestBody = {
+  representante_id?: string;
+  pdf_base64?: string;
+  nome_rep?: string;
+  email_rep?: string;
+};
+
+type AppUser = {
+  id: string;
+  email?: string;
 };
 
 Deno.serve(async (req) => {
@@ -11,57 +25,51 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   try {
+    const supabaseUrl = requiredEnv("SUPABASE_URL");
+    const supabaseAnonKey = requiredEnv("SUPABASE_ANON_KEY");
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user } } = await supabaseUser.auth.getUser();
+    const user = await getAuthenticatedUser(supabaseUrl, supabaseAnonKey, authHeader);
     if (!user) return json({ error: "Unauthorized" }, 401);
 
-    const { data: roles } = await supabaseUser
-      .from("user_roles")
-      .select("app_role")
-      .eq("user_id", user.id);
-
-    const rolesList = (roles ?? []).map((r: any) => r.app_role);
+    const rolesList = await getUserRoles(supabaseUrl, supabaseAnonKey, authHeader, user.id);
     if (!rolesList.includes("admin") && !rolesList.includes("gestor")) {
       return json({ error: "Forbidden" }, 403);
     }
 
-    const { representante_id, pdf_base64, nome_rep, email_rep } = await req.json();
+    const { representante_id, pdf_base64, nome_rep, email_rep } = await req.json() as RequestBody;
     if (!representante_id || !pdf_base64 || !nome_rep || !email_rep) {
       return json({ error: "Campos obrigatórios: representante_id, pdf_base64, nome_rep, email_rep" }, 400);
     }
 
-    const TOKEN = Deno.env.get("D4SIGN_TOKEN");
-    const SAFE_UUID = Deno.env.get("D4SIGN_SAFE_UUID");
+    const TOKEN = requiredEnv("D4SIGN_TOKEN");
+    const SAFE_UUID = requiredEnv("D4SIGN_SAFE_UUID");
     const CRYPT_KEY = Deno.env.get("D4SIGN_CRYPT_KEY") ?? "";
 
-    if (!TOKEN || !SAFE_UUID) return json({ error: "D4SIGN_TOKEN/SAFE_UUID não configurados" }, 500);
-
     const qs = `?tokenAPI=${encodeURIComponent(TOKEN)}&cryptKey=${encodeURIComponent(CRYPT_KEY)}`;
-    const safeName = String(nome_rep).replace(/\s+/g, "_");
+    const safeName = String(nome_rep)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9_-]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "representante";
+    const normalizedPdfBase64 = normalizePdfBase64(pdf_base64);
 
     // 1. Upload
-    const uploadRes = await fetch(`https://api.d4sign.com.br/api/v1/documents/${SAFE_UUID}/uploadbinary${qs}`, {
+    const uploadData = await d4signFetch(`${D4SIGN_BASE_URL}/documents/${SAFE_UUID}/uploadbinary${qs}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        base64_binary_file: `data:application/pdf;base64,${pdf_base64}`,
+        base64_binary_file: `data:application/pdf;base64,${normalizedPdfBase64}`,
         name: `Contrato_${safeName}.pdf`,
       }),
-    });
-    const uploadData = await uploadRes.json();
-    const docUuid = uploadData?.uuid;
+    }, "Falha no upload D4Sign");
+    const docUuid = typeof uploadData?.uuid === "string" ? uploadData.uuid : undefined;
     if (!docUuid) return json({ error: "Falha no upload D4Sign", detail: uploadData }, 500);
 
     // 2. Signatário
-    await fetch(`https://api.d4sign.com.br/api/v1/documents/${docUuid}/createlist${qs}`, {
+    await d4signFetch(`${D4SIGN_BASE_URL}/documents/${docUuid}/createlist${qs}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -75,10 +83,10 @@ Deno.serve(async (req) => {
           embed_smsnumber: "",
         }],
       }),
-    });
+    }, "Falha ao adicionar signatário D4Sign");
 
     // 3. Enviar para assinatura
-    await fetch(`https://api.d4sign.com.br/api/v1/documents/${docUuid}/sendtosigner${qs}`, {
+    await d4signFetch(`${D4SIGN_BASE_URL}/documents/${docUuid}/sendtosigner${qs}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -86,29 +94,124 @@ Deno.serve(async (req) => {
         workflow: "0",
         skip_email: "0",
       }),
-    });
+    }, "Falha ao enviar contrato D4Sign");
 
     // 4. Salvar no banco
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { error: insertErr } = await supabaseAdmin.from("contratos_assinatura").insert({
-      representante_id,
-      d4sign_document_uuid: docUuid,
-      status: "enviado",
-      enviado_por: user.id,
-      enviado_at: new Date().toISOString(),
+    const insertData = await supabaseRestFetch<JsonObject[]>(supabaseUrl, supabaseAnonKey, authHeader, "/rest/v1/contratos_assinatura", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Prefer": "return=representation" },
+      body: JSON.stringify({
+        representante_id,
+        d4sign_document_uuid: docUuid,
+        status: "enviado",
+        enviado_por: user.id,
+        enviado_at: new Date().toISOString(),
+      }),
     });
-    if (insertErr) return json({ error: "Falha ao registrar", detail: insertErr.message }, 500);
 
-    return json({ success: true, doc_uuid: docUuid });
+    return json({
+      success: true,
+      doc_uuid: docUuid,
+      contrato_id: Array.isArray(insertData) ? insertData[0]?.id : undefined,
+    });
 
-  } catch (e: any) {
-    return json({ error: e?.message ?? "Erro inesperado" }, 500);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erro inesperado";
+    return json({ error: message }, 500);
   }
 });
+
+function requiredEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`${name} não configurado`);
+  return value;
+}
+
+async function getAuthenticatedUser(supabaseUrl: string, supabaseAnonKey: string, authHeader: string): Promise<AppUser | null> {
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    method: "GET",
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: authHeader,
+      Accept: "application/json",
+    },
+  });
+
+  if (response.status === 401 || response.status === 403) return null;
+  if (!response.ok) {
+    const detail = await readResponseBody(response);
+    throw new Error(`Falha ao validar usuário: ${detail}`);
+  }
+
+  const user = await response.json();
+  return user?.id ? { id: String(user.id), email: user.email } : null;
+}
+
+async function getUserRoles(supabaseUrl: string, supabaseAnonKey: string, authHeader: string, userId: string): Promise<string[]> {
+  const roles = await supabaseRestFetch<Array<{ role?: string; app_role?: string }>>(
+    supabaseUrl,
+    supabaseAnonKey,
+    authHeader,
+    `/rest/v1/user_roles?select=role&user_id=eq.${encodeURIComponent(userId)}`,
+  );
+
+  return roles
+    .map((roleRow) => roleRow.role ?? roleRow.app_role)
+    .filter((role): role is string => typeof role === "string" && role.length > 0);
+}
+
+async function supabaseRestFetch<T>(supabaseUrl: string, supabaseAnonKey: string, authHeader: string, path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${supabaseUrl}${path}`, {
+    ...init,
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: authHeader,
+      Accept: "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const detail = await readResponseBody(response);
+    throw new Error(`Falha na API do banco: ${detail}`);
+  }
+
+  if (response.status === 204) return null as T;
+  return await response.json() as T;
+}
+
+async function d4signFetch(url: string, init: RequestInit, fallbackMessage: string): Promise<JsonObject> {
+  const response = await fetch(url, init);
+  const detail = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw new Error(`${fallbackMessage}: ${detail}`);
+  }
+
+  if (!detail) return {};
+  try {
+    return JSON.parse(detail) as JsonObject;
+  } catch {
+    return { raw: detail };
+  }
+}
+
+async function readResponseBody(response: Response): Promise<string> {
+  const text = await response.text();
+  if (!text) return `${response.status} ${response.statusText}`.trim();
+
+  try {
+    return JSON.stringify(JSON.parse(text));
+  } catch {
+    return text;
+  }
+}
+
+function normalizePdfBase64(pdfBase64: string): string {
+  return pdfBase64
+    .replace(/^data:application\/pdf;base64,/i, "")
+    .replace(/\s/g, "");
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
