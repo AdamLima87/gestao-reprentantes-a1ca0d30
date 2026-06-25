@@ -29,6 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useSortableData } from "@/hooks/use-sortable-data";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/lib/status-badge";
 import { Download, FileText, MessageSquareText } from "lucide-react";
