@@ -28,10 +28,10 @@ Deno.serve(async (req) => {
 
     const { data: roles } = await supabaseUser
       .from("user_roles")
-      .select("role")
+      .select("app_role")
       .eq("user_id", user.id);
 
-    const rolesList = (roles ?? []).map((r: any) => r.role);
+    const rolesList = (roles ?? []).map((r: any) => r.app_role);
     if (!rolesList.includes("admin") && !rolesList.includes("gestor")) {
       return json({ error: "Forbidden" }, 403);
     }
