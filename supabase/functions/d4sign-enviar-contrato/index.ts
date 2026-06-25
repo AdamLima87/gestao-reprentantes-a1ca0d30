@@ -129,7 +129,9 @@ Deno.serve(async (req) => {
     });
 
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Erro inesperado";
+    const raw = e instanceof Error ? e.message : "Erro inesperado";
+    const message = maskSecrets(raw);
+    console.error("[d4sign-enviar-contrato]", message);
     return json({ error: message }, 500);
   }
 });
