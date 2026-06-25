@@ -1260,6 +1260,18 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
   const totalNfe = notas.reduce((s, n) => s + Number(n.valor_nfe ?? 0), 0);
   const diferenca = totalNfe - totalProdutos;
 
+  const notasSort = useSortableData(notas, {
+    accessors: {
+      numero_nfe: (n: any) => n.numero_nfe ?? "",
+      data_nfe: (n: any) => n.data_nfe ?? "",
+      cnpj: (n: any) => n.pedidos?.clientes?.cnpj ?? "",
+      cliente: (n: any) => n.pedidos?.clientes?.nome ?? "",
+      valor_produtos: (n: any) => Number(n.pedidos?.valor_produtos ?? 0),
+      valor_nfe: (n: any) => Number(n.valor_nfe ?? 0),
+      observacao: (n: any) => n.observacao ?? "",
+    },
+  });
+
   const handleCSV = () =>
     exportCSV(
       `nfe-${ano}-${String(mes).padStart(2, "0")}`,
