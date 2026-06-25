@@ -613,7 +613,7 @@ function StatusContratoBadge({ status }: { status: string | null }) {
 function RepsTab() {
   const qc = useQueryClient();
   const { can } = usePermissions();
-  const { roles } = useAuth();
+  const _auth = useAuth();
   const podeEnviarAssinatura = can("enviar_contrato_assinatura");
   const podeVisualizarAssinatura = can("visualizar_contratos_assinatura");
   const { data: reps } = useQuery({ queryKey: ["reps-adm"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
