@@ -33,10 +33,13 @@ export const PERMISSION_KEYS = [
   "criar_usuarios",
   "editar_percentual_cliente",
   "gerar_contrato_pdf",
+  "enviar_contrato_assinatura",
+  "visualizar_contratos_assinatura",
   "importar_planilhas",
   // Relatórios
   "exportar_relatorios",
 ] as const;
+
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
 
