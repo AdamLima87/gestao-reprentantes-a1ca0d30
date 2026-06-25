@@ -633,6 +633,18 @@ function ComissoesPage() {
               </Button>
             </div>
           )}
+          {repFilter !== "todos" && canEnviarExtrato && (
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => setEmailDialogOpen(true)}
+                disabled={filtered.length === 0}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Enviar por e-mail
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
