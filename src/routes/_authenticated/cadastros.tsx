@@ -592,7 +592,7 @@ function RepsTab() {
     const isPF = isExt && f.tipo_pessoa === "fisica";
     const regiaoPrincipal = f.estados[0] ? (regiaoDoEstado(f.estados[0]) ?? f.estados[0]) : null;
     return {
-      nome: f.nome, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
+      nome: f.nome, email: f.email || null, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
       percentual_padrao: Number(f.percentual_padrao), ativo: f.ativo,
       tipo_pessoa: isExt ? f.tipo_pessoa : "juridica",
       cnpj: isPJ ? (f.cnpj || null) : null,
