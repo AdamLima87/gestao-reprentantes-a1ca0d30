@@ -1081,8 +1081,23 @@ function EmpresaTab() {
   const EMPRESA_ID = "00000000-0000-0000-0000-000000000001";
   const salvar = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.cnpj && !isValidCNPJ(form.cnpj)) return toast.error("CNPJ inválido.");
+    if (form.cep && !isValidCEP(form.cep)) return toast.error("CEP inválido.");
+    if (form.email && !isValidEmail(form.email)) return toast.error("E-mail inválido.");
+    if (form.telefone && !isValidPhone(form.telefone)) return toast.error("Telefone inválido.");
     setSalvando(true);
-    const payload = { id: empresa?.id ?? EMPRESA_ID, ...form };
+    const sanitized = {
+      ...form,
+      razao_social: sanitizeText(form.razao_social),
+      endereco: sanitizeText(form.endereco),
+      numero: sanitizeText(form.numero),
+      bairro: sanitizeText(form.bairro),
+      cidade: sanitizeText(form.cidade),
+      estado: sanitizeText(form.estado).toUpperCase().slice(0, 2),
+      nome_socio: sanitizeName(form.nome_socio),
+      email: sanitizeEmail(form.email),
+    };
+    const payload = { id: empresa?.id ?? EMPRESA_ID, ...sanitized };
     const res = await supabase
       .from("configuracoes_empresa")
       .upsert(payload, { onConflict: "id" });
