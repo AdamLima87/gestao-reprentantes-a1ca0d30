@@ -467,17 +467,17 @@ function ExternosTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>NF</TableHead>
-                <TableHead>Nº Pedido Cliente</TableHead>
-                <TableHead>Data Emissão</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="text-right">Valor Produto</TableHead>
-                <TableHead className="text-right">%</TableHead>
-                <TableHead className="text-right">Comissão</TableHead>
+                <SortableTableHead sortKey="numero" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort}>NF</SortableTableHead>
+                <SortableTableHead sortKey="pedidoCliente" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort}>Nº Pedido Cliente</SortableTableHead>
+                <SortableTableHead sortKey="emissao" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort}>Data Emissão</SortableTableHead>
+                <SortableTableHead sortKey="cliente" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort}>Cliente</SortableTableHead>
+                <SortableTableHead sortKey="valor" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort} className="text-right">Valor Produto</SortableTableHead>
+                <SortableTableHead sortKey="pct" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort} className="text-right">%</SortableTableHead>
+                <SortableTableHead sortKey="comissao" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort} className="text-right">Comissão</SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {detailRows.map((r, i) => (
+              {detailSort.sortedData.map((r, i) => (
                 <MotionTableRow key={i} {...rowMotionProps(i)}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
                   <TableCell>{r.pedidoCliente}</TableCell>
