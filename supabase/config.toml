@@ -1,1 +1,4 @@
 project_id = "zetxbgnhfrnavidhtprw"
+
+[functions.d4sign-webhook]
+verify_jwt = false
