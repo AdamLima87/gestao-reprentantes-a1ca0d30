@@ -219,24 +219,3 @@ function json(body: unknown, status = 200) {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
-      representante_id,
-      d4sign_document_uuid: docUuid,
-      status: "enviado",
-      enviado_por: user.id,
-      enviado_at: new Date().toISOString(),
-    });
-    if (insertErr) return json({ error: "Falha ao registrar", detail: insertErr.message }, 500);
-
-    return json({ success: true, doc_uuid: docUuid });
-
-  } catch (e: any) {
-    return json({ error: e?.message ?? "Erro inesperado" }, 500);
-  }
-});
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
