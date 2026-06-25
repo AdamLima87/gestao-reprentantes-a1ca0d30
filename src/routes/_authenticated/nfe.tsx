@@ -54,6 +54,17 @@ function NfePage() {
     queryFn: async () => (await supabase.from("pedidos").select("id, numero_pedido, valor_produtos, clientes(nome)").not("status", "in", '("cancelado","entregue")').order("criado_em", { ascending: false })).data ?? [],
   });
 
+  const nfeSort = useSortableData(nfes ?? [], {
+    accessors: {
+      pedido: (n: any) => n.pedidos?.numero_pedido,
+      cliente: (n: any) => n.pedidos?.clientes?.nome,
+      rep: (n: any) => n.pedidos?.representantes?.nome,
+      valor_nfe: (n: any) => Number(n.valor_nfe),
+      mes_ano: (n: any) => `${n.ano_ref}-${String(n.mes_ref).padStart(2, "0")}`,
+      observacao: (n: any) => n.observacao ?? "",
+    },
+  });
+
   if (!canVer) {
     return <p className="text-muted-foreground">Você não tem permissão para ver NF-es.</p>;
   }
@@ -79,13 +90,22 @@ function NfePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nº NF-e</TableHead><TableHead>Data</TableHead><TableHead>Pedido</TableHead>
-                    <TableHead>Cliente</TableHead><TableHead>Rep</TableHead><TableHead>Valor</TableHead><TableHead>Mês/Ano ref</TableHead><TableHead>Entrega</TableHead><TableHead>Obs.</TableHead><TableHead></TableHead>
+                    <SortableTableHead sortKey="numero_nfe" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Nº NF-e</SortableTableHead>
+                    <SortableTableHead sortKey="data_nfe" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Data</SortableTableHead>
+                    <SortableTableHead sortKey="pedido" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Pedido</SortableTableHead>
+                    <SortableTableHead sortKey="cliente" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Cliente</SortableTableHead>
+                    <SortableTableHead sortKey="rep" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Rep</SortableTableHead>
+                    <SortableTableHead sortKey="valor_nfe" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Valor</SortableTableHead>
+                    <SortableTableHead sortKey="mes_ano" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Mês/Ano ref</SortableTableHead>
+                    <SortableTableHead sortKey="data_entrega" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Entrega</SortableTableHead>
+                    <SortableTableHead sortKey="observacao" sortConfig={nfeSort.sortConfig} onSort={nfeSort.requestSort}>Obs.</SortableTableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(nfes ?? []).map((n, index) => (
+                  {nfeSort.sortedData.map((n: any, index: number) => (
                     <MotionTableRow key={n.id} {...rowMotionProps(index)}>
+
                       <TableCell className="font-mono text-xs">{n.numero_nfe}</TableCell>
                       <TableCell>{formatarData(n.data_nfe)}</TableCell>
                       <TableCell>{n.pedidos?.numero_pedido}</TableCell>
