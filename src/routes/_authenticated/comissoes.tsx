@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useSortableData } from "@/hooks/use-sortable-data";
 import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
