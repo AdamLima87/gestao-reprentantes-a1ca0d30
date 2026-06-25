@@ -639,7 +639,7 @@ function RepsTab() {
       ? (r.estados as string[]).map((s) => String(s).toUpperCase())
       : (regiaoLegacy ? [regiaoLegacy] : []);
     setForm({
-      nome: r.nome ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      nome: r.nome ?? "", email: r.email ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
       tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
