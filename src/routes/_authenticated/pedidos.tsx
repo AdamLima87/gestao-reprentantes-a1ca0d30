@@ -196,34 +196,23 @@ function PedidosPage() {
       <Card>
         <CardHeader><CardTitle>Lista</CardTitle></CardHeader>
         <CardContent>
-          {isLoading ? <p>Carregando…</p> : (() => {
-            const { sortedData, sortConfig, requestSort } = useSortableData(pedidos ?? [], {
-              accessors: {
-                cliente: (p: any) => p.clientes?.nome,
-                rep: (p: any) => p.representantes?.nome,
-                data_pedido: (p: any) => p.data_pedido,
-                prazo_entrega: (p: any) => p.prazo_entrega,
-                valor_produtos: (p: any) => Number(p.valor_produtos),
-                jefferson_participou: (p: any) => p.jefferson_participou,
-              },
-            });
-            return (
+          {isLoading ? <p>Carregando…</p> : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <SortableTableHead sortKey="numero_pedido" sortConfig={sortConfig} onSort={requestSort}>Nº Pedido</SortableTableHead>
-                  <SortableTableHead sortKey="cliente" sortConfig={sortConfig} onSort={requestSort}>Cliente</SortableTableHead>
-                  <SortableTableHead sortKey="rep" sortConfig={sortConfig} onSort={requestSort}>Rep</SortableTableHead>
-                  <SortableTableHead sortKey="data_pedido" sortConfig={sortConfig} onSort={requestSort}>Data</SortableTableHead>
-                  <SortableTableHead sortKey="prazo_entrega" sortConfig={sortConfig} onSort={requestSort}>Prazo</SortableTableHead>
-                  <SortableTableHead sortKey="valor_produtos" sortConfig={sortConfig} onSort={requestSort}>Valor</SortableTableHead>
-                  <SortableTableHead sortKey="status" sortConfig={sortConfig} onSort={requestSort}>Status</SortableTableHead>
-                  <SortableTableHead sortKey="jefferson_participou" sortConfig={sortConfig} onSort={requestSort}>Vend. Interno</SortableTableHead>
+                  <SortableTableHead sortKey="numero_pedido" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Nº Pedido</SortableTableHead>
+                  <SortableTableHead sortKey="cliente" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="rep" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Rep</SortableTableHead>
+                  <SortableTableHead sortKey="data_pedido" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Data</SortableTableHead>
+                  <SortableTableHead sortKey="prazo_entrega" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Prazo</SortableTableHead>
+                  <SortableTableHead sortKey="valor_produtos" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Valor</SortableTableHead>
+                  <SortableTableHead sortKey="status" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Status</SortableTableHead>
+                  <SortableTableHead sortKey="jefferson_participou" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Vend. Interno</SortableTableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedData.map((p: any, index: number) => {
+                {pedidosSort.sortedData.map((p: any, index: number) => {
                   const editable = canEdit && p.status !== "entregue" && p.status !== "cancelado";
                   return (
                     <MotionTableRow key={p.id} {...rowMotionProps(index)}>
