@@ -588,6 +588,7 @@ type ContratoAssinatura = {
   enviado_por: string | null;
   enviado_at: string | null;
   assinado_at: string | null;
+  url_download: string | null;
   created_at: string;
 };
 
