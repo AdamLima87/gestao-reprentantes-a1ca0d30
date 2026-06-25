@@ -753,7 +753,17 @@ function RepsTab() {
           email_rep: r.email,
         },
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Erro completo:", JSON.stringify(error));
+        console.error("Context:", (error as any)?.context);
+        try {
+          const text = await (error as any)?.context?.text?.();
+          console.error("Body do erro:", text);
+        } catch (logErr) {
+          console.error("Falha ao ler body do erro:", logErr);
+        }
+        throw new Error(error.message);
+      }
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("Contrato enviado para assinatura!");
       qc.invalidateQueries({ queryKey: ["contratos-assinatura"] });
