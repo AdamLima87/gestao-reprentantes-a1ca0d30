@@ -167,5 +167,9 @@ export async function exportPDF(
       doc.setTextColor(0);
     },
   });
+  if (options?.returnBase64) {
+    const dataUri = doc.output("datauristring");
+    return dataUri.split(",")[1] ?? "";
+  }
   doc.save(filename.endsWith(".pdf") ? filename : `${filename}.pdf`);
 }
