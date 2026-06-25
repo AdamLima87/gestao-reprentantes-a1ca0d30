@@ -1,5 +1,5 @@
 // Redeploy: 25/06/2026 v2
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const D4SIGN_BASE = "https://api.d4sign.com.br/api/v1";
 
