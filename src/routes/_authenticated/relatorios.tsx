@@ -707,20 +707,20 @@ function InternoTable({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>NF</TableHead>
-                  <TableHead>Nº Pedido Cliente</TableHead>
-                  <TableHead>Emissão</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Entrega</TableHead>
-                  <TableHead className="text-right">Valor Produto</TableHead>
-                  <TableHead className="text-right">Comissão 1,5%</TableHead>
-                  <TableHead className="text-right">Comissão 1%</TableHead>
-                  <TableHead className="text-right">Comissão 0,5%</TableHead>
-                  <TableHead className="text-right">Total Comissão</TableHead>
+                  <SortableTableHead sortKey="numero" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>NF</SortableTableHead>
+                  <SortableTableHead sortKey="pedidoCliente" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Nº Pedido Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="emissao" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Emissão</SortableTableHead>
+                  <SortableTableHead sortKey="empresa" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Empresa</SortableTableHead>
+                  <SortableTableHead sortKey="entrega" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Entrega</SortableTableHead>
+                  <SortableTableHead sortKey="valor" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Valor Produto</SortableTableHead>
+                  <SortableTableHead sortKey="c15" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 1,5%</SortableTableHead>
+                  <SortableTableHead sortKey="c1" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 1%</SortableTableHead>
+                  <SortableTableHead sortKey="c05" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 0,5%</SortableTableHead>
+                  <SortableTableHead sortKey="total" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Total Comissão</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r, i) => {
+                {internoSort.sortedData.map((r, i) => {
                   const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
                   return (
                     <MotionTableRow key={r.nfeId} {...rowMotionProps(i)}>
