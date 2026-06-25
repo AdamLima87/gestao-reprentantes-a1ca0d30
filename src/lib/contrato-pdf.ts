@@ -60,7 +60,7 @@ const dataPorExtenso = (d = new Date()) => {
   return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
 };
 
-export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
+export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato, opts?: { output?: "save" | "base64" }) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -325,5 +325,10 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
 
   const slug = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
   const dt = new Date().toISOString().slice(0, 10);
+  if (opts?.output === "base64") {
+    const dataUri = doc.output("datauristring");
+    return dataUri.split(",")[1] ?? "";
+  }
   doc.save(`contrato_${slug(rep.nome)}_${dt}.pdf`);
+  return "";
 }

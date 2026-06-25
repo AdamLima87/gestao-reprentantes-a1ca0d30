@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { createUser, listUsers, updateUser, deleteUser, listAllPermissions, resetUserPassword } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
@@ -361,14 +361,14 @@ function ClientesTab() {
 
 // ============== REPS ==============
 type RepFormState = {
-  nome: string; regiao: string; estados: string[]; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
+  nome: string; email: string; regiao: string; estados: string[]; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
   tipo_pessoa: "juridica" | "fisica";
   cnpj: string; razao_social: string; endereco: string; numero: string; bairro: string; cidade: string; estado: string; cep: string; nome_socio: string;
   cpf: string; nome_completo: string; rg: string; data_nascimento: string;
   banco: string; tipo_conta: string; agencia: string; conta_digito: string; chave_pix: string; titular_conta: string; cpf_cnpj_titular: string;
 };
 const emptyRepForm: RepFormState = {
-  nome: "", regiao: "", estados: [], tipo: "externo", percentual_padrao: "5.0", ativo: true,
+  nome: "", email: "", regiao: "", estados: [], tipo: "externo", percentual_padrao: "5.0", ativo: true,
   tipo_pessoa: "juridica",
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
   cpf: "", nome_completo: "", rg: "", data_nascimento: "",
@@ -420,7 +420,10 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
   };
   return (
     <>
-      <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+        <div><Label>E-mail (para envio de contrato)</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="rep@exemplo.com.br" /></div>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>Estados de cobertura</Label>
@@ -577,14 +580,62 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
   );
 }
 
+type ContratoAssinatura = {
+  id: string;
+  representante_id: string;
+  d4sign_document_uuid: string | null;
+  status: string;
+  enviado_por: string | null;
+  enviado_at: string | null;
+  assinado_at: string | null;
+  created_at: string;
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  pendente: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
+  enviado: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
+  visualizado: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
+  assinado: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300",
+  recusado: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300",
+  cancelado: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300",
+};
+
+function StatusContratoBadge({ status }: { status: string | null }) {
+  if (!status) {
+    return <Badge variant="outline" className="bg-muted text-muted-foreground">Sem contrato</Badge>;
+  }
+  const cls = STATUS_COLORS[status] ?? "bg-muted text-muted-foreground";
+  const label = status.charAt(0).toUpperCase() + status.slice(1);
+  return <Badge variant="outline" className={cls}>{label}</Badge>;
+}
+
 function RepsTab() {
   const qc = useQueryClient();
   const { can } = usePermissions();
+  const { roles } = useAuth();
+  const podeEnviarAssinatura = roles.includes("admin") || roles.includes("gestor");
   const { data: reps } = useQuery({ queryKey: ["reps-adm"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const { data: empresa } = useQuery({ queryKey: ["empresa-cfg"], queryFn: async () => (await supabase.from("configuracoes_empresa").select("*").limit(1).maybeSingle()).data });
+  const { data: contratos } = useQuery({
+    queryKey: ["contratos-assinatura"],
+    queryFn: async () => (await supabase.from("contratos_assinatura").select("*").order("created_at", { ascending: false })).data as ContratoAssinatura[] ?? [],
+    enabled: podeEnviarAssinatura,
+  });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<RepFormState>(emptyRepForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [enviandoId, setEnviandoId] = useState<string | null>(null);
+  const [historicoRep, setHistoricoRep] = useState<any | null>(null);
+
+  const contratosPorRep = (() => {
+    const map = new Map<string, ContratoAssinatura[]>();
+    (contratos ?? []).forEach((c) => {
+      const arr = map.get(c.representante_id) ?? [];
+      arr.push(c);
+      map.set(c.representante_id, arr);
+    });
+    return map;
+  })();
 
   const payload = (f: RepFormState) => {
     const isExt = f.tipo === "externo";
@@ -592,7 +643,7 @@ function RepsTab() {
     const isPF = isExt && f.tipo_pessoa === "fisica";
     const regiaoPrincipal = f.estados[0] ? (regiaoDoEstado(f.estados[0]) ?? f.estados[0]) : null;
     return {
-      nome: f.nome, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
+      nome: f.nome, email: f.email || null, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
       percentual_padrao: Number(f.percentual_padrao), ativo: f.ativo,
       tipo_pessoa: isExt ? f.tipo_pessoa : "juridica",
       cnpj: isPJ ? (f.cnpj || null) : null,
@@ -639,7 +690,7 @@ function RepsTab() {
       ? (r.estados as string[]).map((s) => String(s).toUpperCase())
       : (regiaoLegacy ? [regiaoLegacy] : []);
     setForm({
-      nome: r.nome ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      nome: r.nome ?? "", email: r.email ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
       tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
@@ -659,18 +710,58 @@ function RepsTab() {
     qc.invalidateQueries({ queryKey: ["reps-adm"] });
   };
 
-  const gerarContrato = async (r: any) => {
+  const carregarEmpresa = async () => {
     const { data: empresaDb, error } = await supabase
       .from("configuracoes_empresa")
       .select("*")
       .limit(1)
       .maybeSingle();
-    
     if (error || !empresaDb) {
       toast.error("Configure os dados da empresa primeiro (aba Empresa).");
+      return null;
+    }
+    return empresaDb;
+  };
+
+  const gerarContrato = async (r: any) => {
+    const empresaDb = await carregarEmpresa();
+    if (!empresaDb) return;
+    gerarContratoPDF(empresaDb, { ...r, percentual_padrao: Number(r.percentual_padrao ?? 0) });
+  };
+
+  const enviarParaAssinatura = async (r: any) => {
+    if (!r.email) {
+      toast.error("Cadastre o e-mail do representante antes de enviar.");
       return;
     }
-    gerarContratoPDF(empresaDb, { ...r, percentual_padrao: Number(r.percentual_padrao ?? 0) });
+    const empresaDb = await carregarEmpresa();
+    if (!empresaDb) return;
+    setEnviandoId(r.id);
+    try {
+      const pdf_base64 = gerarContratoPDF(
+        empresaDb,
+        { ...r, percentual_padrao: Number(r.percentual_padrao ?? 0) },
+        { output: "base64" }
+      );
+      if (!pdf_base64) throw new Error("Falha ao gerar PDF do contrato.");
+
+      const { data, error } = await supabase.functions.invoke("d4sign-enviar-contrato", {
+        body: {
+          representante_id: r.id,
+          pdf_base64,
+          nome_rep: r.nome,
+          email_rep: r.email,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Contrato enviado para assinatura!");
+      qc.invalidateQueries({ queryKey: ["contratos-assinatura"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao enviar contrato.");
+    } finally {
+      setEnviandoId(null);
+    }
   };
 
   return (
@@ -690,7 +781,15 @@ function RepsTab() {
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Estados</TableHead><TableHead>Tipo</TableHead><TableHead>% padrão</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow>
+            <TableHead>Nome</TableHead>
+            <TableHead>Estados</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>% padrão</TableHead>
+            <TableHead>Contrato</TableHead>
+            <TableHead>Ativo</TableHead>
+            <TableHead>Ações</TableHead>
+          </TableRow></TableHeader>
           <TableBody>
             {(reps ?? []).map((r, index) => {
               const estadosArr: string[] = Array.isArray((r as any).estados) && (r as any).estados.length > 0
@@ -698,6 +797,8 @@ function RepsTab() {
                 : (r.regiao ? [String(r.regiao).length === 2 ? String(r.regiao).toUpperCase() : (NOME_TO_UF[String(r.regiao).toLowerCase()] ?? String(r.regiao).toUpperCase())] : []);
               const visiveis = estadosArr.slice(0, 3);
               const extras = estadosArr.length - visiveis.length;
+              const repContratos = contratosPorRep.get(r.id) ?? [];
+              const ultimoContrato = repContratos[0] ?? null;
               return (
                 <MotionTableRow key={r.id} {...rowMotionProps(index)}>
                   <TableCell>
@@ -732,12 +833,37 @@ function RepsTab() {
                   </TableCell>
                   <TableCell>{r.tipo}</TableCell>
                   <TableCell>{Number(r.percentual_padrao).toFixed(2)}%</TableCell>
+                  <TableCell>
+                    <button
+                      type="button"
+                      className="cursor-pointer disabled:cursor-default"
+                      disabled={repContratos.length === 0}
+                      onClick={() => repContratos.length > 0 && setHistoricoRep({ ...r, _contratos: repContratos })}
+                      title={repContratos.length > 0 ? "Ver histórico" : ""}
+                    >
+                      <StatusContratoBadge status={ultimoContrato?.status ?? null} />
+                    </button>
+                  </TableCell>
                   <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
                       {r.tipo === "externo" && can("gerar_contrato_pdf") && (
                         <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
+                      )}
+                      {r.tipo === "externo" && podeEnviarAssinatura && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => enviarParaAssinatura(r)}
+                          disabled={enviandoId === r.id}
+                          title={r.email ? "Enviar para assinatura via D4Sign" : "Cadastre o e-mail do representante"}
+                        >
+                          {enviandoId === r.id
+                            ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                            : <Send className="h-3.5 w-3.5 mr-1" />}
+                          Enviar p/ assinatura
+                        </Button>
                       )}
                     </div>
                   </TableCell>
@@ -748,9 +874,42 @@ function RepsTab() {
 
         </Table>
       </CardContent>
+
+      <Dialog open={!!historicoRep} onOpenChange={(o) => { if (!o) setHistoricoRep(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Histórico de contratos — {historicoRep?.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {(historicoRep?._contratos ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum contrato enviado.</p>
+            ) : (
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Enviado em</TableHead>
+                  <TableHead>Assinado em</TableHead>
+                  <TableHead>UUID D4Sign</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {(historicoRep?._contratos as ContratoAssinatura[]).map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell><StatusContratoBadge status={c.status} /></TableCell>
+                      <TableCell className="text-sm">{c.enviado_at ? new Date(c.enviado_at).toLocaleString("pt-BR") : "—"}</TableCell>
+                      <TableCell className="text-sm">{c.assinado_at ? new Date(c.assinado_at).toLocaleString("pt-BR") : "—"}</TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground truncate max-w-[180px]">{c.d4sign_document_uuid ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
+
 
 // ============== EMPRESA ==============
 function EmpresaTab() {
