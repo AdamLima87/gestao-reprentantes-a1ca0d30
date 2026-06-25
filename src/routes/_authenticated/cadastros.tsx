@@ -816,16 +816,16 @@ function RepsTab() {
       <CardContent>
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Estados</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>% padrão</TableHead>
+            <SortableTableHead sortKey="nome" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>Nome</SortableTableHead>
+            <SortableTableHead sortKey="estados" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>Estados</SortableTableHead>
+            <SortableTableHead sortKey="tipo" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>Tipo</SortableTableHead>
+            <SortableTableHead sortKey="percentual_padrao" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>% padrão</SortableTableHead>
             <TableHead>Contrato</TableHead>
-            <TableHead>Ativo</TableHead>
+            <SortableTableHead sortKey="ativo" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>Ativo</SortableTableHead>
             <TableHead>Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {(reps ?? []).map((r, index) => {
+            {repsSort.sortedData.map((r: any, index: number) => {
               const estadosArr: string[] = Array.isArray((r as any).estados) && (r as any).estados.length > 0
                 ? ((r as any).estados as string[])
                 : (r.regiao ? [String(r.regiao).length === 2 ? String(r.regiao).toUpperCase() : (NOME_TO_UF[String(r.regiao).toLowerCase()] ?? String(r.regiao).toUpperCase())] : []);
