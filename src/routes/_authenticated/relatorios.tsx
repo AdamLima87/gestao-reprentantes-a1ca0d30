@@ -192,7 +192,13 @@ function ExportButtons({
                 <p>
                   <span className="text-muted-foreground">E-mail:</span>{" "}
                   <span className="font-medium">
-                    {email.destinatarioEmail ?? <em className="text-red-600">não cadastrado</em>}
+                    {email.destinatarioEmail ?? (
+                      email.target.gestor_user_id ? (
+                        <em className="text-muted-foreground">será obtido do cadastro do gestor</em>
+                      ) : (
+                        <em className="text-red-600">não cadastrado</em>
+                      )
+                    )}
                   </span>
                 </p>
                 <p>
@@ -210,7 +216,7 @@ function ExportButtons({
                   Cancelar
                 </Button>
                 <Button
-                  disabled={enviando || !email.destinatarioEmail}
+                  disabled={enviando || (!email.destinatarioEmail && !email.target.gestor_user_id)}
                   onClick={async () => {
                     setEnviando(true);
                     try {
