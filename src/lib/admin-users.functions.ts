@@ -155,7 +155,20 @@ export const updateUser = createServerFn({ method: "POST" })
     }) => {
       if (!input.userId) throw new Error("userId obrigatório.");
       if (input.senha) validarSenhaProvisoria(input.senha);
-      return input;
+      const out: any = { ...input };
+      if (input.email !== undefined) {
+        const emailNorm = String(input.email).trim().toLowerCase();
+        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(emailNorm)) {
+          throw new Error("E-mail inválido.");
+        }
+        out.email = emailNorm;
+      }
+      if (input.nome !== undefined) {
+        const nomeNorm = String(input.nome).replace(/\s+/g, " ").trim();
+        if (!nomeNorm) throw new Error("Nome inválido.");
+        out.nome = nomeNorm;
+      }
+      return out;
     },
   )
   .handler(async ({ data, context }) => {
