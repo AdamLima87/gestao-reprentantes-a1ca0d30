@@ -277,6 +277,44 @@ export type Database = {
           },
         ]
       }
+      extratos_enviados: {
+        Row: {
+          ano: number
+          email_destino: string | null
+          enviado_at: string
+          enviado_por: string | null
+          id: string
+          mes: number
+          representante_id: string
+        }
+        Insert: {
+          ano: number
+          email_destino?: string | null
+          enviado_at?: string
+          enviado_por?: string | null
+          id?: string
+          mes: number
+          representante_id: string
+        }
+        Update: {
+          ano?: number
+          email_destino?: string | null
+          enviado_at?: string
+          enviado_por?: string | null
+          id?: string
+          mes?: number
+          representante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extratos_enviados_representante_id_fkey"
+            columns: ["representante_id"]
+            isOneToOne: false
+            referencedRelation: "representantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           criado_em: string

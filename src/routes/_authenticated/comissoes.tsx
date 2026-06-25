@@ -23,6 +23,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { reprocessarComissoes } from "@/lib/comissoes.functions";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Mail } from "lucide-react";
 import { fmtBRL as fmtBRLUtil } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
@@ -50,7 +51,8 @@ async function gerarExtratoPDF(
   totalPendente: number,
   totalPago: number,
   rep?: any,
-) {
+  opts?: { returnBase64?: boolean },
+): Promise<string | void> {
   const { data: empresa } = await supabase
     .from("configuracoes_empresa")
     .select("razao_social, logo_base64")
@@ -203,6 +205,10 @@ async function gerarExtratoPDF(
   doc.text("Brazil Amortecedores — gestao-reprentantes.lovable.app", pageWidth - margin, pageHeight - margin + 5, { align: "right" });
 
   const slug = repNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_");
+  if (opts?.returnBase64) {
+    const dataUri = doc.output("datauristring");
+    return dataUri.split(",")[1] ?? "";
+  }
   doc.save(`extrato_${slug}_${String(mes).padStart(2, "0")}_${ano}.pdf`);
 }
 
@@ -428,6 +434,7 @@ function ComissoesPage() {
   const canMarcarPago = can("marcar_comissao_paga");
   const canRecalcular = can("recalcular_comissoes");
   const canExportar = can("exportar_relatorios");
+  const canEnviarExtrato = can("enviar_extrato_email");
 
   const isAdmin = roles.includes("admin");
   const isGestor = roles.includes("gestor");
@@ -484,10 +491,12 @@ function ComissoesPage() {
   const [ano, setAno] = useState(now.getFullYear());
   const [repFilter, setRepFilter] = useState<string>("todos");
   const [statusFilter, setStatusFilter] = useState<"todas" | "pendentes" | "pagas">("todas");
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [enviandoEmail, setEnviandoEmail] = useState(false);
 
   const { data: reps } = useQuery({
     queryKey: ["reps"],
-    queryFn: async () => (await supabase.from("representantes").select("id, nome, banco, tipo_conta, agencia, conta_digito, chave_pix, titular_conta, cpf_cnpj_titular").order("nome")).data ?? [],
+    queryFn: async () => (await supabase.from("representantes").select("id, nome, email, banco, tipo_conta, agencia, conta_digito, chave_pix, titular_conta, cpf_cnpj_titular").order("nome")).data ?? [],
   });
 
   const { data, isLoading } = useQuery({
@@ -625,6 +634,18 @@ function ComissoesPage() {
               </Button>
             </div>
           )}
+          {repFilter !== "todos" && canEnviarExtrato && (
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => setEmailDialogOpen(true)}
+                disabled={filtered.length === 0}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Enviar por e-mail
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -706,6 +727,57 @@ function ComissoesPage() {
           currentUserId={user?.id ?? null}
         />
       )}
+
+      <Dialog open={emailDialogOpen} onOpenChange={(o) => !enviandoEmail && setEmailDialogOpen(o)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Enviar extrato por e-mail</DialogTitle></DialogHeader>
+          {(() => {
+            const rep = (reps ?? []).find((r) => r.id === repFilter);
+            const repNome = rep?.nome ?? "—";
+            const repEmail = (rep as any)?.email ?? null;
+            return (
+              <div className="space-y-2 text-sm">
+                <p><span className="text-muted-foreground">Representante:</span> <span className="font-medium">{repNome}</span></p>
+                <p><span className="text-muted-foreground">E-mail de destino:</span> <span className="font-medium">{repEmail ?? <em className="text-red-600">não cadastrado</em>}</span></p>
+                <p><span className="text-muted-foreground">Mês/Ano:</span> <span className="font-medium">{String(mes).padStart(2, "0")}/{ano}</span></p>
+                <p className="text-xs text-muted-foreground pt-2">O PDF do extrato será gerado e enviado em anexo.</p>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEmailDialogOpen(false)} disabled={enviandoEmail}>Cancelar</Button>
+            <Button
+              onClick={async () => {
+                const rep = (reps ?? []).find((r) => r.id === repFilter);
+                if (!rep) return;
+                const repEmail = (rep as any).email;
+                if (!repEmail) { toast.error("Representante sem e-mail cadastrado."); return; }
+                setEnviandoEmail(true);
+                try {
+                  const pdf_base64 = (await gerarExtratoPDF(rep.nome, mes, ano, filtered, totalPendente, totalPago, rep, { returnBase64: true })) as string;
+                  const { data: sess } = await supabase.auth.getSession();
+                  const token = sess.session?.access_token;
+                  const resp = await supabase.functions.invoke("enviar-extrato-email", {
+                    body: { representante_id: rep.id, pdf_base64, mes, ano },
+                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                  });
+                  if (resp.error) throw new Error(resp.error.message || "Falha ao enviar");
+                  if ((resp.data as any)?.error) throw new Error((resp.data as any).error);
+                  toast.success(`Extrato enviado para ${repEmail}`);
+                  setEmailDialogOpen(false);
+                } catch (e: any) {
+                  toast.error(e?.message ?? "Erro ao enviar e-mail");
+                } finally {
+                  setEnviandoEmail(false);
+                }
+              }}
+              disabled={enviandoEmail}
+            >
+              {enviandoEmail ? "Enviando…" : "Confirmar envio"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
