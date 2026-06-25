@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const D4SIGN_BASE_URL = "https://secure.d4sign.com.br/api/v1";
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("OK", { status: 200 });
 
@@ -10,7 +12,6 @@ Deno.serve(async (req) => {
     try { body = Object.fromEntries(await req.formData()); } catch { /* ignore */ }
   }
 
-  // D4Sign envia uuid + type_post (ou type)
   const docUuid: string | undefined = body?.uuid ?? body?.document_uuid;
   const evento: string = (body?.type_post ?? body?.type ?? body?.status ?? "").toString().toLowerCase();
 
@@ -36,7 +37,37 @@ Deno.serve(async (req) => {
     status: novoStatus,
     updated_at: new Date().toISOString(),
   };
-  if (novoStatus === "assinado") updateData.assinado_at = new Date().toISOString();
+
+  if (novoStatus === "assinado") {
+    updateData.assinado_at = new Date().toISOString();
+
+    // Baixar PDF assinado do D4Sign e salvar no storage
+    try {
+      const TOKEN = Deno.env.get("D4SIGN_TOKEN")!;
+      const CRYPT = Deno.env.get("D4SIGN_CRYPT_KEY") ?? "";
+      const qs = `?tokenAPI=${encodeURIComponent(TOKEN)}&cryptKey=${encodeURIComponent(CRYPT)}`;
+
+      const dlResp = await fetch(`${D4SIGN_BASE_URL}/documents/${docUuid}/download${qs}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "PDF" }),
+      });
+      const dlJson = await dlResp.json().catch(() => ({}));
+      const fileUrl: string | undefined = dlJson?.url;
+
+      if (fileUrl) {
+        const pdfResp = await fetch(fileUrl);
+        const pdfBytes = new Uint8Array(await pdfResp.arrayBuffer());
+        const path = `${docUuid}.pdf`;
+
+        const { error: upErr } = await supabase
+          .storage.from("contratos-assinados")
+          .upload(path, pdfBytes, { contentType: "application/pdf", upsert: true });
+
+        if (!upErr) updateData.url_download = path;
+      }
+    } catch (_e) { /* ignora; status já será atualizado */ }
+  }
 
   await supabase.from("contratos_assinatura").update(updateData).eq("d4sign_document_uuid", docUuid);
 
