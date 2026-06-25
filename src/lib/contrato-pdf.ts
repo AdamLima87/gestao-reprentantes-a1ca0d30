@@ -60,7 +60,7 @@ const dataPorExtenso = (d = new Date()) => {
   return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
 };
 
-export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato) {
+export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato, opts?: { output?: "save" | "base64" }) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
