@@ -86,7 +86,19 @@ Deno.serve(async (req) => {
       }),
     }, "Falha ao adicionar signatário D4Sign");
 
-    // 3. Enviar para assinatura
+    // 3. Registrar webhook (para receber notificações de assinatura)
+    const webhookUrl = `${supabaseUrl}/functions/v1/d4sign-webhook`;
+    try {
+      await d4signFetch(`${D4SIGN_BASE_URL}/documents/${docUuid}/webhooks${qs}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: webhookUrl }),
+      }, "Falha ao registrar webhook D4Sign");
+    } catch (_e) {
+      // não bloqueia o envio se o webhook falhar
+    }
+
+    // 4. Enviar para assinatura
     await d4signFetch(`${D4SIGN_BASE_URL}/documents/${docUuid}/sendtosigner${qs}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
