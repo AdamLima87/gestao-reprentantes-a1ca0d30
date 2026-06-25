@@ -1368,6 +1368,10 @@ function UsuariosTab() {
 
   const submitNew = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nome = sanitizeName(form.nome);
+    const email = sanitizeEmail(form.email);
+    if (!nome) return toast.error("Informe o nome do usuário.");
+    if (!isValidEmail(email)) return toast.error("E-mail inválido.");
     if (!form.senha || form.senha.length < 6) {
       toast.error("A senha provisória deve ter ao menos 6 caracteres.");
       return;
@@ -1376,16 +1380,16 @@ function UsuariosTab() {
     try {
       await callCreate({
         data: {
-          nome: form.nome,
-          email: form.email,
+          nome,
+          email,
           senha: form.senha,
           role: form.role,
           representante_id: form.representante_id === "none" ? null : form.representante_id,
           percentual_comissao: form.role === "gestor" ? Number(form.percentual_comissao || 0) : 0,
-          banco: form.banco || null,
-          agencia: form.agencia || null,
-          conta: form.conta || null,
-          pix: form.pix || null,
+          banco: sanitizeText(form.banco) || null,
+          agencia: sanitizeText(form.agencia) || null,
+          conta: sanitizeText(form.conta) || null,
+          pix: sanitizeText(form.pix) || null,
         },
       });
 
