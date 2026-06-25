@@ -1452,6 +1452,10 @@ function UsuariosTab() {
   const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
+    const nome = sanitizeName(editing.nome);
+    const email = sanitizeEmail(editing.email);
+    if (!nome) { toast.error("Informe o nome do usuário."); return; }
+    if (!isValidEmail(email)) { toast.error("E-mail inválido."); return; }
     if (editing.senha && editing.senha.length < 6) {
       toast.error("Nova senha provisória deve ter ao menos 6 caracteres.");
       return;
@@ -1461,16 +1465,16 @@ function UsuariosTab() {
       await callUpdate({
         data: {
           userId: editing.userId,
-          nome: editing.nome,
-          email: editing.email,
+          nome,
+          email,
           senha: editing.senha || null,
           role: editing.role,
           representante_id: editing.representante_id === "none" ? null : editing.representante_id,
           percentual_comissao: editing.role === "gestor" ? Number(editing.percentual_comissao || 0) : 0,
-          banco: editing.banco || null,
-          agencia: editing.agencia || null,
-          conta: editing.conta || null,
-          pix: editing.pix || null,
+          banco: sanitizeText(editing.banco) || null,
+          agencia: sanitizeText(editing.agencia) || null,
+          conta: sanitizeText(editing.conta) || null,
+          pix: sanitizeText(editing.pix) || null,
         },
       });
 
