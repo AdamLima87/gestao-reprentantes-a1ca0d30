@@ -325,5 +325,10 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato, opt
 
   const slug = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
   const dt = new Date().toISOString().slice(0, 10);
+  if (opts?.output === "base64") {
+    const dataUri = doc.output("datauristring");
+    return dataUri.split(",")[1] ?? "";
+  }
   doc.save(`contrato_${slug(rep.nome)}_${dt}.pdf`);
+  return "";
 }
