@@ -1,7 +1,7 @@
-// Redeploy: 25/06/2026
+// Redeploy: 25/06/2026 - prod URL + app_role fix
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const D4SIGN_BASE = "https://sandbox.d4sign.com.br/api/v1";
+const D4SIGN_BASE = "https://api.d4sign.com.br/api/v1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,10 +28,10 @@ Deno.serve(async (req) => {
 
     const { data: roles } = await supabaseUser
       .from("user_roles")
-      .select("role")
+      .select("app_role")
       .eq("user_id", user.id);
 
-    const rolesList = (roles ?? []).map((r: any) => r.role);
+    const rolesList = (roles ?? []).map((r: any) => r.app_role);
     if (!rolesList.includes("admin") && !rolesList.includes("gestor")) {
       return json({ error: "Forbidden" }, 403);
     }
