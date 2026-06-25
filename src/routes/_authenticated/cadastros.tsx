@@ -168,9 +168,13 @@ function ClientesTab() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nome = sanitizeName(form.nome);
+    if (!nome) return toast.error("Informe o nome do cliente.");
+    if (nome.length > 150) return toast.error("Nome muito longo (máx. 150 caracteres).");
+    if (form.cnpj && !isValidCNPJ(form.cnpj)) return toast.error("CNPJ inválido.");
     const payload = {
-      nome: form.nome,
-      cnpj: form.cnpj || null,
+      nome,
+      cnpj: form.cnpj ? maskCNPJ(form.cnpj) : null,
       estado: form.estado || null,
       regiao: form.regiao || null,
       representante_id: form.representante_id || null,
