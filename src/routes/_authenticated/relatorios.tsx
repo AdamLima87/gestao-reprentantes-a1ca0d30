@@ -551,7 +551,33 @@ function ExternosTable({
     <Card ref={cardRef}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Comissões por Representante</CardTitle>
-        <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+        <ExportButtons
+          onCSV={handleCSV}
+          onPDF={handlePDF}
+          email={
+            isDetail && repFiltro
+              ? {
+                  destinatarioNome: repNome,
+                  destinatarioEmail: emailByRepId.get(repFiltro) ?? null,
+                  mes,
+                  ano,
+                  target: { representante_id: repFiltro },
+                  buildPdfBase64: async () =>
+                    (await exportPDF(
+                      `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
+                      `Comissões - ${repNome} - ${periodo}`,
+                      ["NF", "Nº Pedido Cliente", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
+                      [
+                        ...detailRows.map((r) => [r.numero, r.pedidoCliente, formatarData(r.emissao), r.cliente, fmtBRL(r.valor), `${r.pct.toFixed(2)}%`, fmtBRL(r.comissao)]),
+                        ["TOTAL", "", "", "", fmtBRL(detTotalBase), "", fmtBRL(detTotalCom)],
+                      ],
+                      undefined,
+                      { brand: true, logoBase64, returnBase64: true },
+                    )) as string,
+                }
+              : null
+          }
+        />
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm font-medium text-muted-foreground">{modoLabel}</p>
