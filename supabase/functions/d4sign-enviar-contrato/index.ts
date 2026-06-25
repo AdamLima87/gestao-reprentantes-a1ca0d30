@@ -4,7 +4,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const D4SIGN_BASE_URL = "https://api.d4sign.com.br/api/v1";
+const D4SIGN_BASE_URL = "https://secure.d4sign.com.br/api/v1";
 
 type JsonObject = Record<string, unknown>;
 
