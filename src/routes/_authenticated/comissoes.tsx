@@ -433,6 +433,7 @@ function ComissoesPage() {
   const canMarcarPago = can("marcar_comissao_paga");
   const canRecalcular = can("recalcular_comissoes");
   const canExportar = can("exportar_relatorios");
+  const canEnviarExtrato = can("enviar_extrato_email");
 
   const isAdmin = roles.includes("admin");
   const isGestor = roles.includes("gestor");
