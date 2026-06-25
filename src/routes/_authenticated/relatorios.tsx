@@ -1562,13 +1562,13 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead>Primeira compra</TableHead>
+                  <SortableTableHead sortKey="nome" sortConfig={novosSort.sortConfig} onSort={novosSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="rep" sortConfig={novosSort.sortConfig} onSort={novosSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="primeira" sortConfig={novosSort.sortConfig} onSort={novosSort.requestSort}>Primeira compra</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {novos.map((c, i) => (
+                {novosSort.sortedData.map((c, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
