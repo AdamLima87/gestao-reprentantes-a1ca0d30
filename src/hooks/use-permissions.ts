@@ -78,6 +78,9 @@ export const PERMISSION_LABELS: Record<PermissionKey, { titulo: string; descrica
   criar_usuarios: { titulo: "Criar usuários", descricao: "Pode convidar/cadastrar novos usuários do sistema." },
   editar_percentual_cliente: { titulo: "Editar % por cliente", descricao: "Pode alterar percentuais específicos por cliente." },
   gerar_contrato_pdf: { titulo: "Gerar contrato PDF", descricao: "Pode gerar o contrato de representação." },
+  gerar_contrato_pdf: { titulo: "Gerar contrato PDF", descricao: "Pode gerar o contrato de representação." },
+  enviar_contrato_assinatura: { titulo: "Enviar contrato para assinatura", descricao: "Pode enviar o contrato de representação para assinatura via D4Sign." },
+  visualizar_contratos_assinatura: { titulo: "Visualizar contratos enviados", descricao: "Pode ver o status e o histórico de contratos enviados para assinatura." },
   importar_planilhas: { titulo: "Importar planilhas", descricao: "Pode acessar a aba de importação de dados." },
   exportar_relatorios: { titulo: "Exportar relatórios", descricao: "Pode baixar relatórios em PDF/CSV." },
 };
