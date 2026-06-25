@@ -35,7 +35,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // valida usuário
     const userClient = createClient(SUPABASE_URL, ANON, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -48,8 +47,8 @@ Deno.serve(async (req) => {
     const userId = userData.user.id;
 
     const body = await req.json();
-    const { representante_id, pdf_base64, mes, ano } = body ?? {};
-    if (!representante_id || !pdf_base64 || !mes || !ano) {
+    const { representante_id, gestor_user_id, pdf_base64, mes, ano } = body ?? {};
+    if ((!representante_id && !gestor_user_id) || !pdf_base64 || !mes || !ano) {
       return new Response(JSON.stringify({ error: "Parâmetros inválidos" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -57,7 +56,6 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // permissão: admin/gestor
     const [{ data: isAdmin }, { data: isGestor }] = await Promise.all([
       admin.rpc("has_role", { _user_id: userId, _role: "admin" }),
       admin.rpc("has_role", { _user_id: userId, _role: "gestor" }),
@@ -68,27 +66,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: rep, error: repErr } = await admin
-      .from("representantes")
-      .select("id, nome, email")
-      .eq("id", representante_id)
-      .maybeSingle();
-    if (repErr || !rep) {
-      return new Response(JSON.stringify({ error: "Representante não encontrado" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (!rep.email) {
-      return new Response(JSON.stringify({ error: "Representante não possui e-mail cadastrado" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let destNome = "";
+    let destEmail = "";
+
+    if (representante_id) {
+      const { data: rep, error: repErr } = await admin
+        .from("representantes")
+        .select("id, nome, email")
+        .eq("id", representante_id)
+        .maybeSingle();
+      if (repErr || !rep) {
+        return new Response(JSON.stringify({ error: "Representante não encontrado" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!rep.email) {
+        return new Response(JSON.stringify({ error: "Representante não possui e-mail cadastrado" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      destNome = rep.nome;
+      destEmail = rep.email;
+    } else {
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("id, nome")
+        .eq("id", gestor_user_id)
+        .maybeSingle();
+      const { data: authUser, error: authErr } = await admin.auth.admin.getUserById(gestor_user_id);
+      if (authErr || !authUser?.user?.email) {
+        return new Response(JSON.stringify({ error: "Gestor sem e-mail cadastrado" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      destNome = prof?.nome ?? authUser.user.email;
+      destEmail = authUser.user.email;
     }
 
-    const nomeArquivo = `Extrato_${rep.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_")}_${String(mes).padStart(2, "0")}_${ano}.pdf`;
+    const slug = destNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_");
+    const nomeArquivo = `Extrato_${slug}_${String(mes).padStart(2, "0")}_${ano}.pdf`;
     const mesNome = MESES[Number(mes) - 1] ?? String(mes);
     const periodo = `${mesNome}/${ano}`;
 
-    // envio via gateway Resend
     const resp = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
       method: "POST",
       headers: {
@@ -98,10 +117,10 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "Brazil Amortecedores <onboarding@resend.dev>",
-        to: [rep.email],
+        to: [destEmail],
         subject: `Extrato de Comissões — ${periodo} — Brazil Amortecedores`,
         text:
-`Olá ${rep.nome},
+`Olá ${destNome},
 
 Segue em anexo o seu extrato de comissões referente a ${periodo}.
 
@@ -123,14 +142,15 @@ Brazil Amortecedores`,
     }
 
     await admin.from("extratos_enviados").insert({
-      representante_id,
+      representante_id: representante_id ?? null,
+      gestor_user_id: gestor_user_id ?? null,
       mes: Number(mes),
       ano: Number(ano),
       enviado_por: userId,
-      email_destino: rep.email,
+      email_destino: destEmail,
     });
 
-    return new Response(JSON.stringify({ ok: true, email: rep.email }), {
+    return new Response(JSON.stringify({ ok: true, email: destEmail }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
