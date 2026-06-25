@@ -49,7 +49,7 @@ export const PERMISSION_CATEGORIES: { categoria: string; chaves: PermissionKey[]
   { categoria: "Pedidos", chaves: ["criar_pedidos", "editar_pedidos", "cancelar_pedidos", "excluir_pedidos"] },
   { categoria: "NF-e", chaves: ["registrar_nfe", "registrar_entrega", "excluir_nfe"] },
   { categoria: "Comissões", chaves: ["marcar_comissao_paga", "recalcular_comissoes"] },
-  { categoria: "Cadastros", chaves: ["cadastrar_clientes", "cadastrar_representantes", "gerar_contrato_pdf", "editar_percentual_cliente", "importar_planilhas", "criar_usuarios"] },
+  { categoria: "Cadastros", chaves: ["cadastrar_clientes", "cadastrar_representantes", "gerar_contrato_pdf", "enviar_contrato_assinatura", "visualizar_contratos_assinatura", "editar_percentual_cliente", "importar_planilhas", "criar_usuarios"] },
   { categoria: "Relatórios", chaves: ["exportar_relatorios"] },
 ];
 
