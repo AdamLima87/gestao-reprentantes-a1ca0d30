@@ -866,42 +866,9 @@ function GestorTable({
           <p className="text-muted-foreground">Sem comissões de gestor no período.</p>
         ) : (
           <>
-            {grupos.map((g, gi) => {
-              const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
-              return (
-                <div key={gi} className="space-y-2">
-                  <h3 className="text-sm font-semibold">{g.nome}</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>NF-e</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead className="text-right">Valor Produtos</TableHead>
-                        <TableHead className="text-right">%</TableHead>
-                        <TableHead className="text-right">Comissão</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {g.rows.map((c, i) => (
-                        <MotionTableRow key={i} {...rowMotionProps(i)}>
-                          <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
-                          <TableCell>{formatarData(c.nfe?.data_nfe ?? "")}</TableCell>
-                          <TableCell>{c.nfe?.pedidos?.clientes?.nome ?? "—"}</TableCell>
-                          <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
-                          <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
-                          <TableCell className="text-right font-medium">{fmtBRL(c.valor_comissao)}</TableCell>
-                        </MotionTableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-bold">
-                        <TableCell colSpan={5} className="text-right">Subtotal {g.nome}</TableCell>
-                        <TableCell className="text-right">{fmtBRL(sub)}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              );
-            })}
+            {grupos.map((g, gi) => (
+              <GestorRelGroup key={gi} nome={g.nome} rows={g.rows} />
+            ))}
             <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
               <span className="font-semibold">Total Geral</span>
               <span className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</span>
