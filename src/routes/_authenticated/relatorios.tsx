@@ -1109,6 +1109,18 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
 
   const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
 
+  const pedidosSort = useSortableData(filtered, {
+    accessors: {
+      numero_pedido: (p: any) => p.numero_pedido ?? "",
+      cliente: (p: any) => p.clientes?.nome ?? "",
+      representante: (p: any) => p.representantes?.nome ?? "",
+      data_pedido: (p: any) => p.data_pedido ?? "",
+      prazo_entrega: (p: any) => p.prazo_entrega ?? "",
+      valor_produtos: (p: any) => Number(p.valor_produtos),
+      status: (p: any) => p.status ?? "",
+    },
+  });
+
   const handleCSV = () =>
     exportCSV(
       `pedidos-${ano}-${String(mes).padStart(2, "0")}`,
