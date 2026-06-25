@@ -965,14 +965,20 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Pedido</TableHead><TableHead>Cliente</TableHead><TableHead>NF-e</TableHead>
-                <TableHead>Mês ref</TableHead><TableHead>Tipo</TableHead>
-                <TableHead>Base</TableHead><TableHead>%</TableHead><TableHead>Comissão</TableHead>
-                <TableHead>Status</TableHead><TableHead>Pago em</TableHead>
+                <SortableTableHead sortKey="pedido" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Pedido</SortableTableHead>
+                <SortableTableHead sortKey="cliente" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Cliente</SortableTableHead>
+                <SortableTableHead sortKey="nfe" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>NF-e</SortableTableHead>
+                <SortableTableHead sortKey="mes_ref" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Mês ref</SortableTableHead>
+                <SortableTableHead sortKey="tipo" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Tipo</SortableTableHead>
+                <SortableTableHead sortKey="base_calculo" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Base</SortableTableHead>
+                <SortableTableHead sortKey="percentual_aplicado" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>%</SortableTableHead>
+                <SortableTableHead sortKey="valor_comissao" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Comissão</SortableTableHead>
+                <SortableTableHead sortKey="status" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Status</SortableTableHead>
+                <SortableTableHead sortKey="pago_em" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Pago em</SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(doMes ?? []).map((c: any, index: number) => (
+              {repSort.sortedData.map((c: any, index: number) => (
                 <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                   <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
                   <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
