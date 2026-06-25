@@ -708,7 +708,40 @@ function RepsTab() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = payload(form);
+    const nome = sanitizeName(form.nome);
+    if (!nome) return toast.error("Informe o nome do representante.");
+    if (form.email && !isValidEmail(form.email)) return toast.error("E-mail inválido.");
+    if (form.tipo === "externo" && form.tipo_pessoa === "juridica" && form.cnpj && !isValidCNPJ(form.cnpj)) {
+      return toast.error("CNPJ inválido.");
+    }
+    if (form.tipo === "externo" && form.tipo_pessoa === "fisica" && form.cpf && !isValidCPF(form.cpf)) {
+      return toast.error("CPF inválido.");
+    }
+    if (form.cep && !isValidCEP(form.cep)) return toast.error("CEP inválido.");
+    const percentual = Number(form.percentual_padrao);
+    if (!Number.isFinite(percentual) || percentual < 0 || percentual > 100) {
+      return toast.error("Percentual de comissão inválido (0 a 100).");
+    }
+    const cleanForm: RepFormState = {
+      ...form,
+      nome,
+      email: sanitizeEmail(form.email),
+      razao_social: sanitizeText(form.razao_social),
+      nome_socio: sanitizeName(form.nome_socio),
+      nome_completo: sanitizeName(form.nome_completo),
+      endereco: sanitizeText(form.endereco),
+      numero: sanitizeText(form.numero),
+      bairro: sanitizeText(form.bairro),
+      cidade: sanitizeText(form.cidade),
+      estado: sanitizeText(form.estado).toUpperCase().slice(0, 2),
+      banco: sanitizeText(form.banco),
+      agencia: sanitizeText(form.agencia),
+      conta_digito: sanitizeText(form.conta_digito),
+      chave_pix: sanitizeText(form.chave_pix),
+      titular_conta: sanitizeName(form.titular_conta),
+      cpf_cnpj_titular: sanitizeText(form.cpf_cnpj_titular),
+    };
+    const data = payload(cleanForm);
     const { error } = editingId
       ? await supabase.from("representantes").update(data).eq("id", editingId)
       : await supabase.from("representantes").insert(data);
