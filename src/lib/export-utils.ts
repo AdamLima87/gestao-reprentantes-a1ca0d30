@@ -22,6 +22,7 @@ export function exportCSV(filename: string, headers: string[], rows: (string | n
 export type PdfBrandOptions = {
   brand?: boolean;
   logoBase64?: string | null;
+  returnBase64?: boolean;
 };
 
 // Brazil Amortecedores brand palette
