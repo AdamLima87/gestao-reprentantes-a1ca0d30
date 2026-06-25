@@ -904,6 +904,21 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
 
   const previsao = previsaoPagamento(mes, ano);
 
+  const repSort = useSortableData((doMes ?? []) as any[], {
+    accessors: {
+      pedido: (c: any) => c.pedidos?.numero_pedido ?? "",
+      cliente: (c: any) => c.pedidos?.clientes?.nome ?? "",
+      nfe: (c: any) => c.nfe?.numero_nfe ?? "",
+      mes_ref: (c: any) => c.ano_ref * 100 + c.mes_ref,
+      tipo: (c: any) => c.tipo ?? "",
+      base_calculo: (c: any) => Number(c.base_calculo),
+      percentual_aplicado: (c: any) => Number(c.percentual_aplicado),
+      valor_comissao: (c: any) => Number(c.valor_comissao),
+      status: (c: any) => (c.pago_em ? "pago" : "pendente"),
+      pago_em: (c: any) => c.pago_em ?? "",
+    },
+  });
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold border-l-4 border-[#1a6b3a] pl-3">Minhas comissões</h1>
