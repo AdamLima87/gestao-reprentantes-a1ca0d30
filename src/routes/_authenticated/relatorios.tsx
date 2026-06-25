@@ -581,6 +581,21 @@ function InternoTable({
     );
   }, [rows]);
 
+  const internoSort = useSortableData(rows, {
+    accessors: {
+      numero: (r: any) => r.numero,
+      pedidoCliente: (r: any) => r.pedidoCliente,
+      emissao: (r: any) => r.emissao,
+      empresa: (r: any) => r.empresa,
+      entrega: (r: any) => r.entrega,
+      valor: (r: any) => r.valor,
+      c15: (r: any) => r.c15 ?? -Infinity,
+      c1: (r: any) => r.c1 ?? -Infinity,
+      c05: (r: any) => r.c05 ?? -Infinity,
+      total: (r: any) => (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0),
+    },
+  });
+
   const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%", "TOTAL COMISSÃO"];
 
   const totalGeral = totals.c15 + totals.c1 + totals.c05;
