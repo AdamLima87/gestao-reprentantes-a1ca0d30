@@ -1053,15 +1053,15 @@ function VendasTab({ mes, ano }: { mes: number; ano: number }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>#</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead className="text-right">Total Vendido</TableHead>
-                  <TableHead className="text-right">Pedidos</TableHead>
-                  <TableHead className="text-right">Ticket Médio</TableHead>
-                  <TableHead className="text-right">% do Total</TableHead>
+                  <SortableTableHead sortKey="nome" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="total" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Total Vendido</SortableTableHead>
+                  <SortableTableHead sortKey="pedidos" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Pedidos</SortableTableHead>
+                  <SortableTableHead sortKey="ticket" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Ticket Médio</SortableTableHead>
+                  <SortableTableHead sortKey="pct" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">% do Total</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ranking.map((r, i) => (
+                {rankingSort.sortedData.map((r, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell>{i + 1}</TableCell>
                     <TableCell className="font-medium">{r.nome}</TableCell>
