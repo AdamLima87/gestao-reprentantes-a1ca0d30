@@ -27,7 +27,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = requiredEnv("SUPABASE_URL");
     const supabaseAnonKey = requiredEnv("SUPABASE_ANON_KEY");
-    const supabaseServiceRoleKey = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Unauthorized" }, 401);
@@ -35,7 +34,7 @@ Deno.serve(async (req) => {
     const user = await getAuthenticatedUser(supabaseUrl, supabaseAnonKey, authHeader);
     if (!user) return json({ error: "Unauthorized" }, 401);
 
-    const rolesList = await getUserRoles(supabaseUrl, supabaseServiceRoleKey, user.id);
+    const rolesList = await getUserRoles(supabaseUrl, supabaseAnonKey, authHeader, user.id);
     if (!rolesList.includes("admin") && !rolesList.includes("gestor")) {
       return json({ error: "Forbidden" }, 403);
     }
@@ -98,7 +97,7 @@ Deno.serve(async (req) => {
     }, "Falha ao enviar contrato D4Sign");
 
     // 4. Salvar no banco
-    const insertData = await supabaseRestFetch<JsonObject[]>(supabaseUrl, supabaseServiceRoleKey, "/rest/v1/contratos_assinatura", {
+    const insertData = await supabaseRestFetch<JsonObject[]>(supabaseUrl, supabaseAnonKey, authHeader, "/rest/v1/contratos_assinatura", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Prefer": "return=representation" },
       body: JSON.stringify({
@@ -148,10 +147,11 @@ async function getAuthenticatedUser(supabaseUrl: string, supabaseAnonKey: string
   return user?.id ? { id: String(user.id), email: user.email } : null;
 }
 
-async function getUserRoles(supabaseUrl: string, serviceRoleKey: string, userId: string): Promise<string[]> {
+async function getUserRoles(supabaseUrl: string, supabaseAnonKey: string, authHeader: string, userId: string): Promise<string[]> {
   const roles = await supabaseRestFetch<Array<{ role?: string; app_role?: string }>>(
     supabaseUrl,
-    serviceRoleKey,
+    supabaseAnonKey,
+    authHeader,
     `/rest/v1/user_roles?select=role&user_id=eq.${encodeURIComponent(userId)}`,
   );
 
@@ -160,12 +160,12 @@ async function getUserRoles(supabaseUrl: string, serviceRoleKey: string, userId:
     .filter((role): role is string => typeof role === "string" && role.length > 0);
 }
 
-async function supabaseRestFetch<T>(supabaseUrl: string, serviceRoleKey: string, path: string, init: RequestInit = {}): Promise<T> {
+async function supabaseRestFetch<T>(supabaseUrl: string, supabaseAnonKey: string, authHeader: string, path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${supabaseUrl}${path}`, {
     ...init,
     headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: supabaseAnonKey,
+      Authorization: authHeader,
       Accept: "application/json",
       ...(init.headers ?? {}),
     },
