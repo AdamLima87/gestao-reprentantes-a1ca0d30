@@ -614,13 +614,14 @@ function RepsTab() {
   const qc = useQueryClient();
   const { can } = usePermissions();
   const { roles } = useAuth();
-  const podeEnviarAssinatura = roles.includes("admin") || roles.includes("gestor");
+  const podeEnviarAssinatura = can("enviar_contrato_assinatura");
+  const podeVisualizarAssinatura = can("visualizar_contratos_assinatura");
   const { data: reps } = useQuery({ queryKey: ["reps-adm"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const { data: empresa } = useQuery({ queryKey: ["empresa-cfg"], queryFn: async () => (await supabase.from("configuracoes_empresa").select("*").limit(1).maybeSingle()).data });
   const { data: contratos } = useQuery({
     queryKey: ["contratos-assinatura"],
     queryFn: async () => (await supabase.from("contratos_assinatura").select("*").order("created_at", { ascending: false })).data as ContratoAssinatura[] ?? [],
-    enabled: podeEnviarAssinatura,
+    enabled: podeVisualizarAssinatura,
   });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<RepFormState>(emptyRepForm);
