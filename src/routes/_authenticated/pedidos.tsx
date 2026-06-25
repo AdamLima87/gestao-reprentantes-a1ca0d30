@@ -86,6 +86,15 @@ function PedidosPage() {
     },
   });
 
+  const pedidosSort = useSortableData(pedidos ?? [], {
+    accessors: {
+      cliente: (p: any) => p.clientes?.nome,
+      rep: (p: any) => p.representantes?.nome,
+      valor_produtos: (p: any) => Number(p.valor_produtos),
+    },
+  });
+
+
 
   const advance = async (id: string, current: string) => {
     const next = NEXT_STATUS[current];
