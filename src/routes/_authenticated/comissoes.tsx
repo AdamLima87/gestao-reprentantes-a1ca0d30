@@ -793,61 +793,17 @@ function ComissaoGestorSection({
         ) : (
           <div className="space-y-6">
             {grupos.map((g, gi) => {
-              const subtotal = g.rows.reduce(
-                (s: number, c: any) => s + Number(c.valor_comissao || 0),
-                0,
-              );
               const gestorProfile = (gestores ?? []).find((p: any) => p.id === g.id);
               return (
-                <div key={gi} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">{isAdmin ? g.nome : "Minha comissão"}</h3>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        gerarExtratoGestorPDF(
-                          isAdmin ? g.nome : (gestorProfile?.nome ?? "Gestor"),
-                          mes,
-                          ano,
-                          g.rows,
-                          gestorProfile ?? null,
-                        )
-                      }
-                    >
-                      Extrato PDF
-                    </Button>
-                  </div>
-
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>NF-e</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead className="text-right">Valor Produtos</TableHead>
-                        <TableHead className="text-right">%</TableHead>
-                        <TableHead className="text-right">Comissão</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {g.rows.map((c: any, i: number) => (
-                        <MotionTableRow key={c.id} {...rowMotionProps(i)}>
-                          <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
-                          <TableCell>{formatarData(c.nfe?.data_nfe)}</TableCell>
-                          <TableCell>{c.pedidos?.clientes?.nome ?? "—"}</TableCell>
-                          <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
-                          <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
-                          <TableCell className="text-right font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
-                        </MotionTableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-bold">
-                        <TableCell colSpan={5} className="text-right">Subtotal</TableCell>
-                        <TableCell className="text-right text-[#1a6b3a]">{fmtBRL(subtotal)}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
+                <GestorGroup
+                  key={gi}
+                  groupName={isAdmin ? g.nome : "Minha comissão"}
+                  rows={g.rows}
+                  mes={mes}
+                  ano={ano}
+                  gestorProfile={gestorProfile ?? null}
+                  isAdmin={isAdmin}
+                />
               );
             })}
             <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
