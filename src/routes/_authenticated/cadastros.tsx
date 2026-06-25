@@ -314,9 +314,18 @@ function ClientesTab() {
           ))}
         </div>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Região</TableHead><TableHead>Representante</TableHead><TableHead>Atendimento</TableHead><TableHead>Última compra</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow>
+            <SortableTableHead sortKey="nome" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Nome</SortableTableHead>
+            <SortableTableHead sortKey="cnpj" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>CNPJ</SortableTableHead>
+            <SortableTableHead sortKey="regiao" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Região</SortableTableHead>
+            <SortableTableHead sortKey="representante" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Representante</SortableTableHead>
+            <SortableTableHead sortKey="atendimento" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Atendimento</SortableTableHead>
+            <SortableTableHead sortKey="ultima_compra_at" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Última compra</SortableTableHead>
+            <SortableTableHead sortKey="ativo" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Ativo</SortableTableHead>
+            <TableHead>Ações</TableHead>
+          </TableRow></TableHeader>
           <TableBody>
-            {filtrados.map((c: any, index: number) => (
+            {clientesSort.sortedData.map((c: any, index: number) => (
               <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                 <TableCell>{c.nome}</TableCell>
                 <TableCell>{c.cnpj ? maskCNPJ(c.cnpj) : "—"}</TableCell>
