@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useSortableData } from "@/hooks/use-sortable-data";
 import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -515,6 +517,20 @@ function ComissoesPage() {
   const totalPago = (data ?? []).filter((c: any) => c.pago_em).reduce((s, c: any) => s + Number(c.valor_comissao), 0);
   const totalVisivel = filtered.reduce((s: number, c: any) => s + Number(c.valor_comissao), 0);
 
+  const comissoesSort = useSortableData(filtered, {
+    accessors: {
+      rep: (c: any) => c.representantes?.nome ?? "",
+      pedido: (c: any) => c.pedidos?.numero_pedido ?? "",
+      cliente: (c: any) => c.pedidos?.clientes?.nome ?? "",
+      nfe: (c: any) => c.nfe?.numero_nfe ?? "",
+      valor_nfe: (c: any) => Number(c.nfe?.valor_nfe ?? 0),
+      tipo: (c: any) => c.tipo ?? "",
+      percentual: (c: any) => Number(c.percentual_aplicado ?? 0),
+      valor_comissao: (c: any) => Number(c.valor_comissao),
+      status: (c: any) => c.pago_em ? "pago" : "pendente",
+    },
+  });
+
 
 
 
@@ -620,15 +636,20 @@ function ComissoesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Rep</TableHead><TableHead>Pedido</TableHead><TableHead>Cliente</TableHead>
-                    <TableHead>NF-e</TableHead><TableHead>Valor NF-e</TableHead><TableHead>Tipo</TableHead>
-                    <TableHead>%</TableHead><TableHead>Comissão</TableHead>
-                    <TableHead>Status pagamento</TableHead>
+                    <SortableTableHead sortKey="rep" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Rep</SortableTableHead>
+                    <SortableTableHead sortKey="pedido" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Pedido</SortableTableHead>
+                    <SortableTableHead sortKey="cliente" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Cliente</SortableTableHead>
+                    <SortableTableHead sortKey="nfe" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>NF-e</SortableTableHead>
+                    <SortableTableHead sortKey="base_calculo" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Valor NF-e</SortableTableHead>
+                    <SortableTableHead sortKey="tipo" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Tipo</SortableTableHead>
+                    <SortableTableHead sortKey="percentual" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>%</SortableTableHead>
+                    <SortableTableHead sortKey="valor_comissao" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Comissão</SortableTableHead>
+                    <SortableTableHead sortKey="status" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Status pagamento</SortableTableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((c: any, index: number) => (
+                  {comissoesSort.sortedData.map((c: any, index: number) => (
                     <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                       <TableCell>{c.representantes?.nome}</TableCell>
                       <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
@@ -772,61 +793,17 @@ function ComissaoGestorSection({
         ) : (
           <div className="space-y-6">
             {grupos.map((g, gi) => {
-              const subtotal = g.rows.reduce(
-                (s: number, c: any) => s + Number(c.valor_comissao || 0),
-                0,
-              );
               const gestorProfile = (gestores ?? []).find((p: any) => p.id === g.id);
               return (
-                <div key={gi} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">{isAdmin ? g.nome : "Minha comissão"}</h3>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        gerarExtratoGestorPDF(
-                          isAdmin ? g.nome : (gestorProfile?.nome ?? "Gestor"),
-                          mes,
-                          ano,
-                          g.rows,
-                          gestorProfile ?? null,
-                        )
-                      }
-                    >
-                      Extrato PDF
-                    </Button>
-                  </div>
-
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>NF-e</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead className="text-right">Valor Produtos</TableHead>
-                        <TableHead className="text-right">%</TableHead>
-                        <TableHead className="text-right">Comissão</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {g.rows.map((c: any, i: number) => (
-                        <MotionTableRow key={c.id} {...rowMotionProps(i)}>
-                          <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
-                          <TableCell>{formatarData(c.nfe?.data_nfe)}</TableCell>
-                          <TableCell>{c.pedidos?.clientes?.nome ?? "—"}</TableCell>
-                          <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
-                          <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
-                          <TableCell className="text-right font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
-                        </MotionTableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-bold">
-                        <TableCell colSpan={5} className="text-right">Subtotal</TableCell>
-                        <TableCell className="text-right text-[#1a6b3a]">{fmtBRL(subtotal)}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
+                <GestorGroup
+                  key={gi}
+                  groupName={isAdmin ? g.nome : "Minha comissão"}
+                  rows={g.rows}
+                  mes={mes}
+                  ano={ano}
+                  gestorProfile={gestorProfile ?? null}
+                  isAdmin={isAdmin}
+                />
               );
             })}
             <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
@@ -840,6 +817,84 @@ function ComissaoGestorSection({
   );
 }
 
+
+function GestorGroup({
+  groupName,
+  rows,
+  mes,
+  ano,
+  gestorProfile,
+  isAdmin,
+}: {
+  groupName: string;
+  rows: any[];
+  mes: number;
+  ano: number;
+  gestorProfile: any | null;
+  isAdmin: boolean;
+}) {
+  const sort = useSortableData(rows, {
+    accessors: {
+      nfe: (c: any) => c.nfe?.numero_nfe ?? "",
+      data: (c: any) => c.nfe?.data_nfe ?? "",
+      cliente: (c: any) => c.pedidos?.clientes?.nome ?? "",
+      base_calculo: (c: any) => Number(c.base_calculo),
+      percentual_aplicado: (c: any) => Number(c.percentual_aplicado),
+      valor_comissao: (c: any) => Number(c.valor_comissao),
+    },
+  });
+  const subtotal = rows.reduce((s: number, c: any) => s + Number(c.valor_comissao || 0), 0);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">{groupName}</h3>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            gerarExtratoGestorPDF(
+              isAdmin ? groupName : (gestorProfile?.nome ?? "Gestor"),
+              mes,
+              ano,
+              rows,
+              gestorProfile,
+            )
+          }
+        >
+          Extrato PDF
+        </Button>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <SortableTableHead sortKey="nfe" sortConfig={sort.sortConfig} onSort={sort.requestSort}>NF-e</SortableTableHead>
+            <SortableTableHead sortKey="data" sortConfig={sort.sortConfig} onSort={sort.requestSort}>Data</SortableTableHead>
+            <SortableTableHead sortKey="cliente" sortConfig={sort.sortConfig} onSort={sort.requestSort}>Cliente</SortableTableHead>
+            <SortableTableHead sortKey="base_calculo" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">Valor Produtos</SortableTableHead>
+            <SortableTableHead sortKey="percentual_aplicado" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">%</SortableTableHead>
+            <SortableTableHead sortKey="valor_comissao" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">Comissão</SortableTableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sort.sortedData.map((c: any, i: number) => (
+            <MotionTableRow key={c.id} {...rowMotionProps(i)}>
+              <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
+              <TableCell>{formatarData(c.nfe?.data_nfe)}</TableCell>
+              <TableCell>{c.pedidos?.clientes?.nome ?? "—"}</TableCell>
+              <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
+              <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
+              <TableCell className="text-right font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
+            </MotionTableRow>
+          ))}
+          <TableRow className="bg-muted/50 font-bold">
+            <TableCell colSpan={5} className="text-right">Subtotal</TableCell>
+            <TableCell className="text-right text-[#1a6b3a]">{fmtBRL(subtotal)}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
 
 function PainelRepresentante({ representanteId }: { representanteId: string | null }) {
   const now = new Date();
@@ -882,6 +937,21 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
   const totalAcumuladoPendente = (pendentesTotais ?? []).reduce((s, c: any) => s + Number(c.valor_comissao), 0);
 
   const previsao = previsaoPagamento(mes, ano);
+
+  const repSort = useSortableData((doMes ?? []) as any[], {
+    accessors: {
+      pedido: (c: any) => c.pedidos?.numero_pedido ?? "",
+      cliente: (c: any) => c.pedidos?.clientes?.nome ?? "",
+      nfe: (c: any) => c.nfe?.numero_nfe ?? "",
+      mes_ref: (c: any) => c.ano_ref * 100 + c.mes_ref,
+      tipo: (c: any) => c.tipo ?? "",
+      base_calculo: (c: any) => Number(c.base_calculo),
+      percentual_aplicado: (c: any) => Number(c.percentual_aplicado),
+      valor_comissao: (c: any) => Number(c.valor_comissao),
+      status: (c: any) => (c.pago_em ? "pago" : "pendente"),
+      pago_em: (c: any) => c.pago_em ?? "",
+    },
+  });
 
   return (
     <div className="space-y-4">
@@ -929,14 +999,20 @@ function PainelRepresentante({ representanteId }: { representanteId: string | nu
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Pedido</TableHead><TableHead>Cliente</TableHead><TableHead>NF-e</TableHead>
-                <TableHead>Mês ref</TableHead><TableHead>Tipo</TableHead>
-                <TableHead>Base</TableHead><TableHead>%</TableHead><TableHead>Comissão</TableHead>
-                <TableHead>Status</TableHead><TableHead>Pago em</TableHead>
+                <SortableTableHead sortKey="pedido" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Pedido</SortableTableHead>
+                <SortableTableHead sortKey="cliente" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Cliente</SortableTableHead>
+                <SortableTableHead sortKey="nfe" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>NF-e</SortableTableHead>
+                <SortableTableHead sortKey="mes_ref" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Mês ref</SortableTableHead>
+                <SortableTableHead sortKey="tipo" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Tipo</SortableTableHead>
+                <SortableTableHead sortKey="base_calculo" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Base</SortableTableHead>
+                <SortableTableHead sortKey="percentual_aplicado" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>%</SortableTableHead>
+                <SortableTableHead sortKey="valor_comissao" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Comissão</SortableTableHead>
+                <SortableTableHead sortKey="status" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Status</SortableTableHead>
+                <SortableTableHead sortKey="pago_em" sortConfig={repSort.sortConfig} onSort={repSort.requestSort}>Pago em</SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(doMes ?? []).map((c: any, index: number) => (
+              {repSort.sortedData.map((c: any, index: number) => (
                 <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                   <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
                   <TableCell>{c.pedidos?.clientes?.nome}</TableCell>

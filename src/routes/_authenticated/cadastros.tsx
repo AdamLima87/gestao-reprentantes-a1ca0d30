@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useSortableData } from "@/hooks/use-sortable-data";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -212,6 +214,17 @@ function ClientesTab() {
     return nomeMatch || repMatch || cnpjMatch;
   });
 
+  const clientesSort = useSortableData(filtrados, {
+    accessors: {
+      cnpj: (c: any) => c.cnpj ?? "",
+      regiao: (c: any) => c.regiao ?? "",
+      representante: (c: any) => c.representantes?.nome ?? "",
+      atendimento: (c: any) => c.atendimento_interno ? "Interno" : (c.representantes?.nome ?? ""),
+      ultima_compra_at: (c: any) => c.ultima_compra_at,
+      ativo: (c: any) => c.ativo,
+    },
+  });
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
@@ -301,9 +314,18 @@ function ClientesTab() {
           ))}
         </div>
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Região</TableHead><TableHead>Representante</TableHead><TableHead>Atendimento</TableHead><TableHead>Última compra</TableHead><TableHead>Ativo</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow>
+            <SortableTableHead sortKey="nome" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Nome</SortableTableHead>
+            <SortableTableHead sortKey="cnpj" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>CNPJ</SortableTableHead>
+            <SortableTableHead sortKey="regiao" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Região</SortableTableHead>
+            <SortableTableHead sortKey="representante" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Representante</SortableTableHead>
+            <SortableTableHead sortKey="atendimento" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Atendimento</SortableTableHead>
+            <SortableTableHead sortKey="ultima_compra_at" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Última compra</SortableTableHead>
+            <SortableTableHead sortKey="ativo" sortConfig={clientesSort.sortConfig} onSort={clientesSort.requestSort}>Ativo</SortableTableHead>
+            <TableHead>Ações</TableHead>
+          </TableRow></TableHeader>
           <TableBody>
-            {filtrados.map((c: any, index: number) => (
+            {clientesSort.sortedData.map((c: any, index: number) => (
               <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                 <TableCell>{c.nome}</TableCell>
                 <TableCell>{c.cnpj ? maskCNPJ(c.cnpj) : "—"}</TableCell>
@@ -629,6 +651,14 @@ function RepsTab() {
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
   const [historicoRep, setHistoricoRep] = useState<any | null>(null);
 
+  const repsSort = useSortableData(reps ?? [], {
+    accessors: {
+      estados: (r: any) => Array.isArray(r.estados) ? r.estados.length : 0,
+      percentual_padrao: (r: any) => Number(r.percentual_padrao ?? 0),
+      ativo: (r: any) => r.ativo,
+    },
+  });
+
   const contratosPorRep = (() => {
     const map = new Map<string, ContratoAssinatura[]>();
     (contratos ?? []).forEach((c) => {
@@ -786,16 +816,16 @@ function RepsTab() {
       <CardContent>
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Estados</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>% padrão</TableHead>
+            <SortableTableHead sortKey="nome" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>Nome</SortableTableHead>
+            <SortableTableHead sortKey="estados" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>Estados</SortableTableHead>
+            <SortableTableHead sortKey="tipo" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>Tipo</SortableTableHead>
+            <SortableTableHead sortKey="percentual_padrao" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>% padrão</SortableTableHead>
             <TableHead>Contrato</TableHead>
-            <TableHead>Ativo</TableHead>
+            <SortableTableHead sortKey="ativo" sortConfig={repsSort.sortConfig} onSort={repsSort.requestSort}>Ativo</SortableTableHead>
             <TableHead>Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {(reps ?? []).map((r, index) => {
+            {repsSort.sortedData.map((r: any, index: number) => {
               const estadosArr: string[] = Array.isArray((r as any).estados) && (r as any).estados.length > 0
                 ? ((r as any).estados as string[])
                 : (r.regiao ? [String(r.regiao).length === 2 ? String(r.regiao).toUpperCase() : (NOME_TO_UF[String(r.regiao).toLowerCase()] ?? String(r.regiao).toUpperCase())] : []);
@@ -1256,6 +1286,17 @@ function UsuariosTab() {
     queryFn: async () => await callListPerms(),
   });
 
+  const usersSort = useSortableData((users ?? []) as any[], {
+    accessors: {
+      nome: (u: any) => u.nome ?? "",
+      email: (u: any) => u.email ?? "",
+      role: (u: any) => u.roles?.[0] ?? "",
+      representante: (u: any) => u.representante_nome ?? "",
+    },
+  });
+
+
+
   const callCreate = useServerFn(createUser);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1507,14 +1548,14 @@ function UsuariosTab() {
       <CardContent>
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>E-mail</TableHead>
-            <TableHead>Perfil</TableHead>
-            <TableHead>Representante vinculado</TableHead>
+            <SortableTableHead sortKey="nome" sortConfig={usersSort.sortConfig} onSort={usersSort.requestSort}>Nome</SortableTableHead>
+            <SortableTableHead sortKey="email" sortConfig={usersSort.sortConfig} onSort={usersSort.requestSort}>E-mail</SortableTableHead>
+            <SortableTableHead sortKey="role" sortConfig={usersSort.sortConfig} onSort={usersSort.requestSort}>Perfil</SortableTableHead>
+            <SortableTableHead sortKey="representante" sortConfig={usersSort.sortConfig} onSort={usersSort.requestSort}>Representante vinculado</SortableTableHead>
             <TableHead className="w-32 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {(users ?? []).map((u: any, index: number) => {
+            {usersSort.sortedData.map((u: any, index: number) => {
               const userPerms = (allUserPerms ?? []) as unknown as Array<{ user_id: string; permissao: string; concedida: boolean }>;
               const role = (u.roles?.[0] ?? null) as keyof typeof ROLE_DEFAULTS | null;
               const defaults = role ? ROLE_DEFAULTS[role] : new Set<string>();

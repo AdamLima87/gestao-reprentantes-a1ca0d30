@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useSortableData } from "@/hooks/use-sortable-data";
 import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +85,15 @@ function PedidosPage() {
       return (await q).data ?? [];
     },
   });
+
+  const pedidosSort = useSortableData(pedidos ?? [], {
+    accessors: {
+      cliente: (p: any) => p.clientes?.nome,
+      rep: (p: any) => p.representantes?.nome,
+      valor_produtos: (p: any) => Number(p.valor_produtos),
+    },
+  });
+
 
 
   const advance = async (id: string, current: string) => {
@@ -198,19 +209,19 @@ function PedidosPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nº Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Rep</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Prazo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Vend. Interno</TableHead>
+                  <SortableTableHead sortKey="numero_pedido" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Nº Pedido</SortableTableHead>
+                  <SortableTableHead sortKey="cliente" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="rep" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Rep</SortableTableHead>
+                  <SortableTableHead sortKey="data_pedido" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Data</SortableTableHead>
+                  <SortableTableHead sortKey="prazo_entrega" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Prazo</SortableTableHead>
+                  <SortableTableHead sortKey="valor_produtos" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Valor</SortableTableHead>
+                  <SortableTableHead sortKey="status" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Status</SortableTableHead>
+                  <SortableTableHead sortKey="jefferson_participou" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Vend. Interno</SortableTableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(pedidos ?? []).map((p, index) => {
+                {pedidosSort.sortedData.map((p: any, index: number) => {
                   const editable = canEdit && p.status !== "entregue" && p.status !== "cancelado";
                   return (
                     <MotionTableRow key={p.id} {...rowMotionProps(index)}>

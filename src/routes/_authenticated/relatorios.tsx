@@ -29,6 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useSortableData } from "@/hooks/use-sortable-data";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/lib/status-badge";
 import { Download, FileText, MessageSquareText } from "lucide-react";
@@ -333,6 +335,27 @@ function ExternosTable({
   const detTotalCom = detailRows.reduce((s, r) => s + r.comissao, 0);
   const repNome = repsOptions.find((r) => r.id === repFiltro)?.nome ?? "";
 
+  const rowsSort = useSortableData(rows, {
+    accessors: {
+      rep: (r: any) => r.rep,
+      tipo: (r: any) => r.tipo,
+      nfes: (r: any) => r.nfes.size,
+      base: (r: any) => r.base,
+      valor: (r: any) => r.valor,
+    },
+  });
+  const detailSort = useSortableData(detailRows, {
+    accessors: {
+      numero: (r: any) => r.numero,
+      pedidoCliente: (r: any) => r.pedidoCliente,
+      emissao: (r: any) => r.emissao,
+      cliente: (r: any) => r.cliente,
+      valor: (r: any) => r.valor,
+      pct: (r: any) => r.pct,
+      comissao: (r: any) => r.comissao,
+    },
+  });
+
   const isDetail = repFiltro !== "todos";
 
   useEffect(() => {
@@ -411,15 +434,15 @@ function ExternosTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Representante</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Qtd NF-e</TableHead>
-                <TableHead className="text-right">Base de Cálculo</TableHead>
-                <TableHead className="text-right">Comissão</TableHead>
+                <SortableTableHead sortKey="rep" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort}>Representante</SortableTableHead>
+                <SortableTableHead sortKey="tipo" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort}>Tipo</SortableTableHead>
+                <SortableTableHead sortKey="nfes" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort} className="text-right">Qtd NF-e</SortableTableHead>
+                <SortableTableHead sortKey="base" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort} className="text-right">Base de Cálculo</SortableTableHead>
+                <SortableTableHead sortKey="valor" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort} className="text-right">Comissão</SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r, i) => (
+              {rowsSort.sortedData.map((r, i) => (
                 <MotionTableRow key={i} {...rowMotionProps(i)}>
                   <TableCell className="font-medium">{r.rep}</TableCell>
                   <TableCell>{r.tipo}</TableCell>
@@ -444,17 +467,17 @@ function ExternosTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>NF</TableHead>
-                <TableHead>Nº Pedido Cliente</TableHead>
-                <TableHead>Data Emissão</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="text-right">Valor Produto</TableHead>
-                <TableHead className="text-right">%</TableHead>
-                <TableHead className="text-right">Comissão</TableHead>
+                <SortableTableHead sortKey="numero" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort}>NF</SortableTableHead>
+                <SortableTableHead sortKey="pedidoCliente" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort}>Nº Pedido Cliente</SortableTableHead>
+                <SortableTableHead sortKey="emissao" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort}>Data Emissão</SortableTableHead>
+                <SortableTableHead sortKey="cliente" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort}>Cliente</SortableTableHead>
+                <SortableTableHead sortKey="valor" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort} className="text-right">Valor Produto</SortableTableHead>
+                <SortableTableHead sortKey="pct" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort} className="text-right">%</SortableTableHead>
+                <SortableTableHead sortKey="comissao" sortConfig={detailSort.sortConfig} onSort={detailSort.requestSort} className="text-right">Comissão</SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {detailRows.map((r, i) => (
+              {detailSort.sortedData.map((r, i) => (
                 <MotionTableRow key={i} {...rowMotionProps(i)}>
                   <TableCell className="font-medium">{r.numero}</TableCell>
                   <TableCell>{r.pedidoCliente}</TableCell>
@@ -557,6 +580,21 @@ function InternoTable({
       { valor: 0, c15: 0, c1: 0, c05: 0 },
     );
   }, [rows]);
+
+  const internoSort = useSortableData(rows, {
+    accessors: {
+      numero: (r: any) => r.numero,
+      pedidoCliente: (r: any) => r.pedidoCliente,
+      emissao: (r: any) => r.emissao,
+      empresa: (r: any) => r.empresa,
+      entrega: (r: any) => r.entrega,
+      valor: (r: any) => r.valor,
+      c15: (r: any) => r.c15 ?? -Infinity,
+      c1: (r: any) => r.c1 ?? -Infinity,
+      c05: (r: any) => r.c05 ?? -Infinity,
+      total: (r: any) => (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0),
+    },
+  });
 
   const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%", "TOTAL COMISSÃO"];
 
@@ -669,20 +707,20 @@ function InternoTable({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>NF</TableHead>
-                  <TableHead>Nº Pedido Cliente</TableHead>
-                  <TableHead>Emissão</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Entrega</TableHead>
-                  <TableHead className="text-right">Valor Produto</TableHead>
-                  <TableHead className="text-right">Comissão 1,5%</TableHead>
-                  <TableHead className="text-right">Comissão 1%</TableHead>
-                  <TableHead className="text-right">Comissão 0,5%</TableHead>
-                  <TableHead className="text-right">Total Comissão</TableHead>
+                  <SortableTableHead sortKey="numero" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>NF</SortableTableHead>
+                  <SortableTableHead sortKey="pedidoCliente" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Nº Pedido Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="emissao" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Emissão</SortableTableHead>
+                  <SortableTableHead sortKey="empresa" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Empresa</SortableTableHead>
+                  <SortableTableHead sortKey="entrega" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Entrega</SortableTableHead>
+                  <SortableTableHead sortKey="valor" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Valor Produto</SortableTableHead>
+                  <SortableTableHead sortKey="c15" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 1,5%</SortableTableHead>
+                  <SortableTableHead sortKey="c1" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 1%</SortableTableHead>
+                  <SortableTableHead sortKey="c05" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 0,5%</SortableTableHead>
+                  <SortableTableHead sortKey="total" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Total Comissão</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r, i) => {
+                {internoSort.sortedData.map((r, i) => {
                   const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
                   return (
                     <MotionTableRow key={r.nfeId} {...rowMotionProps(i)}>
@@ -828,42 +866,9 @@ function GestorTable({
           <p className="text-muted-foreground">Sem comissões de gestor no período.</p>
         ) : (
           <>
-            {grupos.map((g, gi) => {
-              const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
-              return (
-                <div key={gi} className="space-y-2">
-                  <h3 className="text-sm font-semibold">{g.nome}</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>NF-e</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead className="text-right">Valor Produtos</TableHead>
-                        <TableHead className="text-right">%</TableHead>
-                        <TableHead className="text-right">Comissão</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {g.rows.map((c, i) => (
-                        <MotionTableRow key={i} {...rowMotionProps(i)}>
-                          <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
-                          <TableCell>{formatarData(c.nfe?.data_nfe ?? "")}</TableCell>
-                          <TableCell>{c.nfe?.pedidos?.clientes?.nome ?? "—"}</TableCell>
-                          <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
-                          <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
-                          <TableCell className="text-right font-medium">{fmtBRL(c.valor_comissao)}</TableCell>
-                        </MotionTableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-bold">
-                        <TableCell colSpan={5} className="text-right">Subtotal {g.nome}</TableCell>
-                        <TableCell className="text-right">{fmtBRL(sub)}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              );
-            })}
+            {grupos.map((g, gi) => (
+              <GestorRelGroup key={gi} nome={g.nome} rows={g.rows} />
+            ))}
             <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
               <span className="font-semibold">Total Geral</span>
               <span className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</span>
@@ -874,6 +879,55 @@ function GestorTable({
     </Card>
   );
 }
+
+function GestorRelGroup({ nome, rows }: { nome: string; rows: any[] }) {
+  const sort = useSortableData(rows, {
+    accessors: {
+      nfe: (c: any) => c.nfe?.numero_nfe ?? "",
+      data: (c: any) => c.nfe?.data_nfe ?? "",
+      cliente: (c: any) => c.nfe?.pedidos?.clientes?.nome ?? "",
+      base_calculo: (c: any) => Number(c.base_calculo),
+      percentual_aplicado: (c: any) => Number(c.percentual_aplicado),
+      valor_comissao: (c: any) => Number(c.valor_comissao),
+    },
+  });
+  const sub = rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold">{nome}</h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <SortableTableHead sortKey="nfe" sortConfig={sort.sortConfig} onSort={sort.requestSort}>NF-e</SortableTableHead>
+            <SortableTableHead sortKey="data" sortConfig={sort.sortConfig} onSort={sort.requestSort}>Data</SortableTableHead>
+            <SortableTableHead sortKey="cliente" sortConfig={sort.sortConfig} onSort={sort.requestSort}>Cliente</SortableTableHead>
+            <SortableTableHead sortKey="base_calculo" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">Valor Produtos</SortableTableHead>
+            <SortableTableHead sortKey="percentual_aplicado" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">%</SortableTableHead>
+            <SortableTableHead sortKey="valor_comissao" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">Comissão</SortableTableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sort.sortedData.map((c: any, i: number) => (
+            <MotionTableRow key={i} {...rowMotionProps(i)}>
+              <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
+              <TableCell>{formatarData(c.nfe?.data_nfe ?? "")}</TableCell>
+              <TableCell>{c.nfe?.pedidos?.clientes?.nome ?? "—"}</TableCell>
+              <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
+              <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
+              <TableCell className="text-right font-medium">{fmtBRL(c.valor_comissao)}</TableCell>
+            </MotionTableRow>
+          ))}
+          <TableRow className="bg-muted/50 font-bold">
+            <TableCell colSpan={5} className="text-right">Subtotal {nome}</TableCell>
+            <TableCell className="text-right">{fmtBRL(sub)}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+
 
 
 
@@ -944,6 +998,16 @@ function VendasTab({ mes, ano }: { mes: number; ano: number }) {
       .sort((a, b) => b.total - a.total);
   }, [data]);
 
+  const rankingSort = useSortableData(ranking, {
+    accessors: {
+      nome: (r: any) => r.nome,
+      total: (r: any) => r.total,
+      pedidos: (r: any) => r.pedidos,
+      ticket: (r: any) => r.ticket,
+      pct: (r: any) => r.pct,
+    },
+  });
+
   const handleCSV = () =>
     exportCSV(
       `vendas-${ano}-${String(mes).padStart(2, "0")}`,
@@ -1005,15 +1069,15 @@ function VendasTab({ mes, ano }: { mes: number; ano: number }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>#</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead className="text-right">Total Vendido</TableHead>
-                  <TableHead className="text-right">Pedidos</TableHead>
-                  <TableHead className="text-right">Ticket Médio</TableHead>
-                  <TableHead className="text-right">% do Total</TableHead>
+                  <SortableTableHead sortKey="nome" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="total" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Total Vendido</SortableTableHead>
+                  <SortableTableHead sortKey="pedidos" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Pedidos</SortableTableHead>
+                  <SortableTableHead sortKey="ticket" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Ticket Médio</SortableTableHead>
+                  <SortableTableHead sortKey="pct" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">% do Total</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ranking.map((r, i) => (
+                {rankingSort.sortedData.map((r, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell>{i + 1}</TableCell>
                     <TableCell className="font-medium">{r.nome}</TableCell>
@@ -1060,6 +1124,18 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
   }));
 
   const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
+
+  const pedidosSort = useSortableData(filtered, {
+    accessors: {
+      numero_pedido: (p: any) => p.numero_pedido ?? "",
+      cliente: (p: any) => p.clientes?.nome ?? "",
+      representante: (p: any) => p.representantes?.nome ?? "",
+      data_pedido: (p: any) => p.data_pedido ?? "",
+      prazo_entrega: (p: any) => p.prazo_entrega ?? "",
+      valor_produtos: (p: any) => Number(p.valor_produtos),
+      status: (p: any) => p.status ?? "",
+    },
+  });
 
   const handleCSV = () =>
     exportCSV(
@@ -1130,17 +1206,17 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nº Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Prazo</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Status</TableHead>
+                  <SortableTableHead sortKey="numero_pedido" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Nº Pedido</SortableTableHead>
+                  <SortableTableHead sortKey="cliente" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="representante" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="data_pedido" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Data</SortableTableHead>
+                  <SortableTableHead sortKey="prazo_entrega" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Prazo</SortableTableHead>
+                  <SortableTableHead sortKey="valor_produtos" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort} className="text-right">Valor</SortableTableHead>
+                  <SortableTableHead sortKey="status" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Status</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((p, i) => (
+                {pedidosSort.sortedData.map((p, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{p.numero_pedido}</TableCell>
                     <TableCell>{(p.clientes as { nome?: string } | null)?.nome ?? "—"}</TableCell>
@@ -1199,6 +1275,18 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
   );
   const totalNfe = notas.reduce((s, n) => s + Number(n.valor_nfe ?? 0), 0);
   const diferenca = totalNfe - totalProdutos;
+
+  const notasSort = useSortableData(notas, {
+    accessors: {
+      numero_nfe: (n: any) => n.numero_nfe ?? "",
+      data_nfe: (n: any) => n.data_nfe ?? "",
+      cnpj: (n: any) => n.pedidos?.clientes?.cnpj ?? "",
+      cliente: (n: any) => n.pedidos?.clientes?.nome ?? "",
+      valor_produtos: (n: any) => Number(n.pedidos?.valor_produtos ?? 0),
+      valor_nfe: (n: any) => Number(n.valor_nfe ?? 0),
+      observacao: (n: any) => n.observacao ?? "",
+    },
+  });
 
   const handleCSV = () =>
     exportCSV(
@@ -1282,17 +1370,17 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nº NF-e</TableHead>
-                  <TableHead>Data Emissão</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead className="text-right">Valor Produtos</TableHead>
-                  <TableHead className="text-right">Valor NF-e</TableHead>
-                  <TableHead>Obs</TableHead>
+                  <SortableTableHead sortKey="numero_nfe" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>Nº NF-e</SortableTableHead>
+                  <SortableTableHead sortKey="data_nfe" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>Data Emissão</SortableTableHead>
+                  <SortableTableHead sortKey="cnpj" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>CNPJ</SortableTableHead>
+                  <SortableTableHead sortKey="cliente" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="valor_produtos" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort} className="text-right">Valor Produtos</SortableTableHead>
+                  <SortableTableHead sortKey="valor_nfe" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort} className="text-right">Valor NF-e</SortableTableHead>
+                  <SortableTableHead sortKey="observacao" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>Obs</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {notas.map((n, i) => {
+                {notasSort.sortedData.map((n, i) => {
                   const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
                   return (
                     <MotionTableRow key={i} {...rowMotionProps(i)}>
@@ -1435,6 +1523,16 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
     );
   };
 
+  const inativosSort = useSortableData(inativos, {
+    accessors: { nome: (c: any) => c.nome, rep: (c: any) => c.rep, ultima: (c: any) => c.ultima },
+  });
+  const novosSort = useSortableData(novos, {
+    accessors: { nome: (c: any) => c.nome, rep: (c: any) => c.rep, primeira: (c: any) => c.primeira },
+  });
+  const rankingSort = useSortableData(ranking, {
+    accessors: { nome: (c: any) => c.nome, rep: (c: any) => c.rep, total: (c: any) => c.total, pedidos: (c: any) => c.pedidos },
+  });
+
   if (isLoading || !data) return <p className="text-muted-foreground">Carregando…</p>;
 
   return (
@@ -1452,13 +1550,13 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead>Última compra</TableHead>
+                  <SortableTableHead sortKey="nome" sortConfig={inativosSort.sortConfig} onSort={inativosSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="rep" sortConfig={inativosSort.sortConfig} onSort={inativosSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="ultima" sortConfig={inativosSort.sortConfig} onSort={inativosSort.requestSort}>Última compra</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {inativos.map((c, i) => (
+                {inativosSort.sortedData.map((c, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
@@ -1480,13 +1578,13 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead>Primeira compra</TableHead>
+                  <SortableTableHead sortKey="nome" sortConfig={novosSort.sortConfig} onSort={novosSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="rep" sortConfig={novosSort.sortConfig} onSort={novosSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="primeira" sortConfig={novosSort.sortConfig} onSort={novosSort.requestSort}>Primeira compra</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {novos.map((c, i) => (
+                {novosSort.sortedData.map((c, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
@@ -1508,14 +1606,14 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead className="text-right">Total Comprado</TableHead>
-                  <TableHead className="text-right">Pedidos</TableHead>
+                  <SortableTableHead sortKey="nome" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="rep" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="total" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Total Comprado</SortableTableHead>
+                  <SortableTableHead sortKey="pedidos" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Pedidos</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ranking.map((c, i) => (
+                {rankingSort.sortedData.map((c, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
