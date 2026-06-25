@@ -138,21 +138,122 @@ function RelatoriosPage() {
 
 function ExportButtons({ onCSV, onPDF }: { onCSV: () => void; onPDF: () => void }) {
   const { can } = usePermissions();
-  if (!can("exportar_relatorios")) return null;
+type EmailExtratoPayload = {
+  destinatarioNome: string;
+  destinatarioEmail: string | null;
+  mes: number;
+  ano: number;
+  buildPdfBase64: () => Promise<string>;
+  target: { representante_id?: string; gestor_user_id?: string };
+};
+
+function ExportButtons({
+  onCSV,
+  onPDF,
+  email,
+}: {
+  onCSV: () => void;
+  onPDF: () => void;
+  email?: EmailExtratoPayload | null;
+}) {
+  const { can } = usePermissions();
+  const canExport = can("exportar_relatorios");
+  const canEmail = can("enviar_extrato_email");
+  const [open, setOpen] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+
+  if (!canExport && !(canEmail && email)) return null;
+
   return (
     <div className="flex gap-2">
-      <Button variant="outline" size="sm" onClick={onCSV}>
-        <Download className="h-4 w-4 mr-1" /> CSV
-      </Button>
-      <Button variant="outline" size="sm" onClick={onPDF}>
-        <FileText className="h-4 w-4 mr-1" /> PDF
-      </Button>
+      {canExport && (
+        <>
+          <Button variant="outline" size="sm" onClick={onCSV}>
+            <Download className="h-4 w-4 mr-1" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={onPDF}>
+            <FileText className="h-4 w-4 mr-1" /> PDF
+          </Button>
+        </>
+      )}
+      {canEmail && email && (
+        <>
+          <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+            <Mail className="h-4 w-4 mr-1" /> Enviar por e-mail
+          </Button>
+          <Dialog open={open} onOpenChange={(o) => !enviando && setOpen(o)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Enviar extrato por e-mail</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="text-muted-foreground">Destinatário:</span>{" "}
+                  <span className="font-medium">{email.destinatarioNome}</span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">E-mail:</span>{" "}
+                  <span className="font-medium">
+                    {email.destinatarioEmail ?? <em className="text-red-600">não cadastrado</em>}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Mês/Ano:</span>{" "}
+                  <span className="font-medium">
+                    {String(email.mes).padStart(2, "0")}/{email.ano}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground pt-2">
+                  O PDF do extrato será gerado e enviado em anexo.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpen(false)} disabled={enviando}>
+                  Cancelar
+                </Button>
+                <Button
+                  disabled={enviando || !email.destinatarioEmail}
+                  onClick={async () => {
+                    setEnviando(true);
+                    try {
+                      const pdf_base64 = await email.buildPdfBase64();
+                      const { data: sess } = await supabase.auth.getSession();
+                      const token = sess.session?.access_token;
+                      const resp = await supabase.functions.invoke("enviar-extrato-email", {
+                        body: {
+                          ...email.target,
+                          pdf_base64,
+                          mes: email.mes,
+                          ano: email.ano,
+                        },
+                        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                      });
+                      if (resp.error) throw new Error(resp.error.message || "Falha ao enviar");
+                      if ((resp.data as any)?.error) throw new Error((resp.data as any).error);
+                      toast.success(`Extrato enviado para ${email.destinatarioEmail}`);
+                      setOpen(false);
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Erro ao enviar e-mail");
+                    } finally {
+                      setEnviando(false);
+                    }
+                  }}
+                >
+                  {enviando ? "Enviando…" : "Confirmar envio"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }
 
 /* ============ COMISSÕES ============ */
 type Visao = "todos" | "externos" | "interno" | "gestor";
+
+
 
 function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
   const [visao, setVisao] = useState<Visao>("todos");
