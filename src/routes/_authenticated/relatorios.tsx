@@ -335,6 +335,27 @@ function ExternosTable({
   const detTotalCom = detailRows.reduce((s, r) => s + r.comissao, 0);
   const repNome = repsOptions.find((r) => r.id === repFiltro)?.nome ?? "";
 
+  const rowsSort = useSortableData(rows, {
+    accessors: {
+      rep: (r: any) => r.rep,
+      tipo: (r: any) => r.tipo,
+      nfes: (r: any) => r.nfes.size,
+      base: (r: any) => r.base,
+      valor: (r: any) => r.valor,
+    },
+  });
+  const detailSort = useSortableData(detailRows, {
+    accessors: {
+      numero: (r: any) => r.numero,
+      pedidoCliente: (r: any) => r.pedidoCliente,
+      emissao: (r: any) => r.emissao,
+      cliente: (r: any) => r.cliente,
+      valor: (r: any) => r.valor,
+      pct: (r: any) => r.pct,
+      comissao: (r: any) => r.comissao,
+    },
+  });
+
   const isDetail = repFiltro !== "todos";
 
   useEffect(() => {
