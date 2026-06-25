@@ -50,7 +50,8 @@ async function gerarExtratoPDF(
   totalPendente: number,
   totalPago: number,
   rep?: any,
-) {
+  opts?: { returnBase64?: boolean },
+): Promise<string | void> {
   const { data: empresa } = await supabase
     .from("configuracoes_empresa")
     .select("razao_social, logo_base64")
@@ -203,6 +204,10 @@ async function gerarExtratoPDF(
   doc.text("Brazil Amortecedores — gestao-reprentantes.lovable.app", pageWidth - margin, pageHeight - margin + 5, { align: "right" });
 
   const slug = repNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_");
+  if (opts?.returnBase64) {
+    const dataUri = doc.output("datauristring");
+    return dataUri.split(",")[1] ?? "";
+  }
   doc.save(`extrato_${slug}_${String(mes).padStart(2, "0")}_${ano}.pdf`);
 }
 
