@@ -434,15 +434,15 @@ function ExternosTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Representante</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Qtd NF-e</TableHead>
-                <TableHead className="text-right">Base de Cálculo</TableHead>
-                <TableHead className="text-right">Comissão</TableHead>
+                <SortableTableHead sortKey="rep" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort}>Representante</SortableTableHead>
+                <SortableTableHead sortKey="tipo" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort}>Tipo</SortableTableHead>
+                <SortableTableHead sortKey="nfes" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort} className="text-right">Qtd NF-e</SortableTableHead>
+                <SortableTableHead sortKey="base" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort} className="text-right">Base de Cálculo</SortableTableHead>
+                <SortableTableHead sortKey="valor" sortConfig={rowsSort.sortConfig} onSort={rowsSort.requestSort} className="text-right">Comissão</SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r, i) => (
+              {rowsSort.sortedData.map((r, i) => (
                 <MotionTableRow key={i} {...rowMotionProps(i)}>
                   <TableCell className="font-medium">{r.rep}</TableCell>
                   <TableCell>{r.tipo}</TableCell>
