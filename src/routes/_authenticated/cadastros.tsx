@@ -420,7 +420,10 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
   };
   return (
     <>
-      <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+        <div><Label>E-mail (para envio de contrato)</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="rep@exemplo.com.br" /></div>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>Estados de cobertura</Label>
