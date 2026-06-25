@@ -754,15 +754,7 @@ function RepsTab() {
         },
       });
       if (error) {
-        console.error("Erro completo:", JSON.stringify(error));
-        console.error("Context:", (error as any)?.context);
-        try {
-          const text = await (error as any)?.context?.text?.();
-          console.error("Body do erro:", text);
-        } catch (logErr) {
-          console.error("Falha ao ler body do erro:", logErr);
-        }
-        throw new Error(error.message);
+        throw new Error(await extractFunctionError(error));
       }
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("Contrato enviado para assinatura!");
@@ -918,6 +910,26 @@ function RepsTab() {
       </Dialog>
     </Card>
   );
+}
+
+async function extractFunctionError(error: any): Promise<string> {
+  const fallback = error?.message || "Erro ao enviar contrato.";
+  const context = error?.context;
+  if (!context?.text) return fallback;
+
+  try {
+    const response = typeof context.clone === "function" ? context.clone() : context;
+    const text = await response.text();
+    if (!text) return fallback;
+    try {
+      const body = JSON.parse(text);
+      return body?.error || body?.message || body?.detail || fallback;
+    } catch {
+      return text;
+    }
+  } catch {
+    return fallback;
+  }
 }
 
 

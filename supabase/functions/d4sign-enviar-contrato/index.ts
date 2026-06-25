@@ -61,7 +61,8 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        base64_binary_file: `data:application/pdf;base64,${normalizedPdfBase64}`,
+        base64_binary_file: normalizedPdfBase64,
+        mime_type: "application/pdf",
         name: `Contrato_${safeName}.pdf`,
       }),
     }, "Falha no upload D4Sign");
