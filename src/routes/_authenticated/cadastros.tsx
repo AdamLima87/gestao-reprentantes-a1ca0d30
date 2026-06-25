@@ -883,7 +883,7 @@ function RepsTab() {
         </Table>
       </CardContent>
 
-      <Dialog open={!!historicoRep} onOpenChange={(o) => { if (!o) setHistoricoRep(null); }}>
+      <Dialog open={!!historicoRep && podeVisualizarAssinatura} onOpenChange={(o) => { if (!o) setHistoricoRep(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Histórico de contratos — {historicoRep?.nome}</DialogTitle>
