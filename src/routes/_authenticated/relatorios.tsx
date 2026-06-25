@@ -1190,17 +1190,17 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nº Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Prazo</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Status</TableHead>
+                  <SortableTableHead sortKey="numero_pedido" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Nº Pedido</SortableTableHead>
+                  <SortableTableHead sortKey="cliente" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="representante" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="data_pedido" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Data</SortableTableHead>
+                  <SortableTableHead sortKey="prazo_entrega" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Prazo</SortableTableHead>
+                  <SortableTableHead sortKey="valor_produtos" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort} className="text-right">Valor</SortableTableHead>
+                  <SortableTableHead sortKey="status" sortConfig={pedidosSort.sortConfig} onSort={pedidosSort.requestSort}>Status</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((p, i) => (
+                {pedidosSort.sortedData.map((p, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{p.numero_pedido}</TableCell>
                     <TableCell>{(p.clientes as { nome?: string } | null)?.nome ?? "—"}</TableCell>
