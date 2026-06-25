@@ -517,6 +517,20 @@ function ComissoesPage() {
   const totalPago = (data ?? []).filter((c: any) => c.pago_em).reduce((s, c: any) => s + Number(c.valor_comissao), 0);
   const totalVisivel = filtered.reduce((s: number, c: any) => s + Number(c.valor_comissao), 0);
 
+  const comissoesSort = useSortableData(filtered, {
+    accessors: {
+      rep: (c: any) => c.representantes?.nome ?? "",
+      pedido: (c: any) => c.pedidos?.numero_pedido ?? "",
+      cliente: (c: any) => c.pedidos?.clientes?.nome ?? "",
+      nfe: (c: any) => c.nfe?.numero_nfe ?? "",
+      valor_nfe: (c: any) => Number(c.nfe?.valor_nfe ?? 0),
+      tipo: (c: any) => c.tipo_comissao ?? "",
+      percentual: (c: any) => Number(c.percentual_aplicado ?? 0),
+      valor_comissao: (c: any) => Number(c.valor_comissao),
+      status: (c: any) => c.pago_em ? "pago" : "pendente",
+    },
+  });
+
 
 
 
