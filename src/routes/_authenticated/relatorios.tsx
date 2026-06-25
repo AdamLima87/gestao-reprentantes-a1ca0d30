@@ -836,7 +836,58 @@ function InternoTable({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Cálculo de Comissão — Vendedor Interno</CardTitle>
-        <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+        <ExportButtons
+          onCSV={handleCSV}
+          onPDF={handlePDF}
+          email={
+            internoRep && rows.length > 0
+              ? {
+                  destinatarioNome: internoRep.nome,
+                  destinatarioEmail: internoRep.email,
+                  mes,
+                  ano,
+                  target: { representante_id: internoRep.id },
+                  buildPdfBase64: async () =>
+                    (await exportPDF(
+                      `comissoes-interno-${ano}-${String(mes).padStart(2, "0")}`,
+                      `BRAZIL AMORTECEDORES - CÁLCULO DE COMISSÃO POR REPRESENTANTE - ${vendedorNome.toUpperCase()}`,
+                      headers,
+                      [
+                        ...rows.map((r) => {
+                          const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
+                          return [
+                            r.numero,
+                            r.pedidoCliente,
+                            formatarData(r.emissao),
+                            r.empresa,
+                            formatarData(r.entrega),
+                            fmtBRL(r.valor),
+                            r.c15 == null ? "—" : fmtBRL(r.c15),
+                            r.c1 == null ? "—" : fmtBRL(r.c1),
+                            r.c05 == null ? "—" : fmtBRL(r.c05),
+                            fmtBRL(tot),
+                          ];
+                        }),
+                        [
+                          "TOTAL",
+                          "",
+                          "",
+                          "",
+                          "",
+                          fmtBRL(totals.valor),
+                          fmtBRL(totals.c15),
+                          fmtBRL(totals.c1),
+                          fmtBRL(totals.c05),
+                          fmtBRL(totalGeral),
+                        ],
+                      ],
+                      `Período: ${periodo}  |  ${summaryLine}`,
+                      { brand: true, logoBase64, returnBase64: true },
+                    )) as string,
+                }
+              : null
+          }
+        />
       </CardHeader>
       <CardContent className="space-y-4">
         {rows.length === 0 ? (
