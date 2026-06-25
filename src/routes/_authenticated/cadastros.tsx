@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
 import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, PERMISSION_CATEGORIES, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
-import { maskCNPJ } from "@/lib/masks";
+import { maskCNPJ, maskCPF, maskPhone, maskCEP, isValidCNPJ, isValidCPF, isValidEmail, isValidPhone, isValidCEP, sanitizeText, sanitizeName, sanitizeEmail } from "@/lib/masks";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
   component: CadastrosPage,
@@ -168,9 +168,13 @@ function ClientesTab() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nome = sanitizeName(form.nome);
+    if (!nome) return toast.error("Informe o nome do cliente.");
+    if (nome.length > 150) return toast.error("Nome muito longo (máx. 150 caracteres).");
+    if (form.cnpj && !isValidCNPJ(form.cnpj)) return toast.error("CNPJ inválido.");
     const payload = {
-      nome: form.nome,
-      cnpj: form.cnpj || null,
+      nome,
+      cnpj: form.cnpj ? maskCNPJ(form.cnpj) : null,
       estado: form.estado || null,
       regiao: form.regiao || null,
       representante_id: form.representante_id || null,
@@ -528,7 +532,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} /></div>
-            <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} /></div>
+            <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: maskCEP(e.target.value) })} placeholder="00000-000" inputMode="numeric" maxLength={9} /></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></div>
@@ -542,7 +546,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           <div>
             <Label>CPF</Label>
             <div className="flex gap-2">
-              <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" />
+              <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: maskCPF(e.target.value) })} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} />
               <Button type="button" variant="outline" onClick={buscarCpf} disabled={buscandoCpf}>
                 <Search className="h-4 w-4 mr-1" />{buscandoCpf ? "Buscando…" : "Buscar"}
               </Button>
@@ -559,7 +563,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} /></div>
-            <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} /></div>
+            <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: maskCEP(e.target.value) })} placeholder="00000-000" inputMode="numeric" maxLength={9} /></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></div>
@@ -704,7 +708,40 @@ function RepsTab() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = payload(form);
+    const nome = sanitizeName(form.nome);
+    if (!nome) return toast.error("Informe o nome do representante.");
+    if (form.email && !isValidEmail(form.email)) return toast.error("E-mail inválido.");
+    if (form.tipo === "externo" && form.tipo_pessoa === "juridica" && form.cnpj && !isValidCNPJ(form.cnpj)) {
+      return toast.error("CNPJ inválido.");
+    }
+    if (form.tipo === "externo" && form.tipo_pessoa === "fisica" && form.cpf && !isValidCPF(form.cpf)) {
+      return toast.error("CPF inválido.");
+    }
+    if (form.cep && !isValidCEP(form.cep)) return toast.error("CEP inválido.");
+    const percentual = Number(form.percentual_padrao);
+    if (!Number.isFinite(percentual) || percentual < 0 || percentual > 100) {
+      return toast.error("Percentual de comissão inválido (0 a 100).");
+    }
+    const cleanForm: RepFormState = {
+      ...form,
+      nome,
+      email: sanitizeEmail(form.email),
+      razao_social: sanitizeText(form.razao_social),
+      nome_socio: sanitizeName(form.nome_socio),
+      nome_completo: sanitizeName(form.nome_completo),
+      endereco: sanitizeText(form.endereco),
+      numero: sanitizeText(form.numero),
+      bairro: sanitizeText(form.bairro),
+      cidade: sanitizeText(form.cidade),
+      estado: sanitizeText(form.estado).toUpperCase().slice(0, 2),
+      banco: sanitizeText(form.banco),
+      agencia: sanitizeText(form.agencia),
+      conta_digito: sanitizeText(form.conta_digito),
+      chave_pix: sanitizeText(form.chave_pix),
+      titular_conta: sanitizeName(form.titular_conta),
+      cpf_cnpj_titular: sanitizeText(form.cpf_cnpj_titular),
+    };
+    const data = payload(cleanForm);
     const { error } = editingId
       ? await supabase.from("representantes").update(data).eq("id", editingId)
       : await supabase.from("representantes").insert(data);
@@ -1044,8 +1081,23 @@ function EmpresaTab() {
   const EMPRESA_ID = "00000000-0000-0000-0000-000000000001";
   const salvar = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.cnpj && !isValidCNPJ(form.cnpj)) return toast.error("CNPJ inválido.");
+    if (form.cep && !isValidCEP(form.cep)) return toast.error("CEP inválido.");
+    if (form.email && !isValidEmail(form.email)) return toast.error("E-mail inválido.");
+    if (form.telefone && !isValidPhone(form.telefone)) return toast.error("Telefone inválido.");
     setSalvando(true);
-    const payload = { id: empresa?.id ?? EMPRESA_ID, ...form };
+    const sanitized = {
+      ...form,
+      razao_social: sanitizeText(form.razao_social),
+      endereco: sanitizeText(form.endereco),
+      numero: sanitizeText(form.numero),
+      bairro: sanitizeText(form.bairro),
+      cidade: sanitizeText(form.cidade),
+      estado: sanitizeText(form.estado).toUpperCase().slice(0, 2),
+      nome_socio: sanitizeName(form.nome_socio),
+      email: sanitizeEmail(form.email),
+    };
+    const payload = { id: empresa?.id ?? EMPRESA_ID, ...sanitized };
     const res = await supabase
       .from("configuracoes_empresa")
       .upsert(payload, { onConflict: "id" });
@@ -1077,7 +1129,7 @@ function EmpresaTab() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} /></div>
-              <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} /></div>
+              <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: maskCEP(e.target.value) })} placeholder="00000-000" inputMode="numeric" maxLength={9} /></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></div>
@@ -1088,7 +1140,7 @@ function EmpresaTab() {
               <div><Label>Nome do sócio administrador *</Label><Input value={form.nome_socio} onChange={(e) => setForm({ ...form, nome_socio: e.target.value })} required /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
+                <div><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })} placeholder="(11) 99999-9999" inputMode="numeric" maxLength={15} /></div>
               </div>
             </div>
             <div className="border-t pt-4 space-y-2">
@@ -1316,6 +1368,10 @@ function UsuariosTab() {
 
   const submitNew = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nome = sanitizeName(form.nome);
+    const email = sanitizeEmail(form.email);
+    if (!nome) return toast.error("Informe o nome do usuário.");
+    if (!isValidEmail(email)) return toast.error("E-mail inválido.");
     if (!form.senha || form.senha.length < 6) {
       toast.error("A senha provisória deve ter ao menos 6 caracteres.");
       return;
@@ -1324,16 +1380,16 @@ function UsuariosTab() {
     try {
       await callCreate({
         data: {
-          nome: form.nome,
-          email: form.email,
+          nome,
+          email,
           senha: form.senha,
           role: form.role,
           representante_id: form.representante_id === "none" ? null : form.representante_id,
           percentual_comissao: form.role === "gestor" ? Number(form.percentual_comissao || 0) : 0,
-          banco: form.banco || null,
-          agencia: form.agencia || null,
-          conta: form.conta || null,
-          pix: form.pix || null,
+          banco: sanitizeText(form.banco) || null,
+          agencia: sanitizeText(form.agencia) || null,
+          conta: sanitizeText(form.conta) || null,
+          pix: sanitizeText(form.pix) || null,
         },
       });
 
@@ -1396,6 +1452,10 @@ function UsuariosTab() {
   const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
+    const nome = sanitizeName(editing.nome);
+    const email = sanitizeEmail(editing.email);
+    if (!nome) { toast.error("Informe o nome do usuário."); return; }
+    if (!isValidEmail(email)) { toast.error("E-mail inválido."); return; }
     if (editing.senha && editing.senha.length < 6) {
       toast.error("Nova senha provisória deve ter ao menos 6 caracteres.");
       return;
@@ -1405,16 +1465,16 @@ function UsuariosTab() {
       await callUpdate({
         data: {
           userId: editing.userId,
-          nome: editing.nome,
-          email: editing.email,
+          nome,
+          email,
           senha: editing.senha || null,
           role: editing.role,
           representante_id: editing.representante_id === "none" ? null : editing.representante_id,
           percentual_comissao: editing.role === "gestor" ? Number(editing.percentual_comissao || 0) : 0,
-          banco: editing.banco || null,
-          agencia: editing.agencia || null,
-          conta: editing.conta || null,
-          pix: editing.pix || null,
+          banco: sanitizeText(editing.banco) || null,
+          agencia: sanitizeText(editing.agencia) || null,
+          conta: sanitizeText(editing.conta) || null,
+          pix: sanitizeText(editing.pix) || null,
         },
       });
 
