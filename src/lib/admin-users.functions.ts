@@ -38,8 +38,14 @@ export const createUser = createServerFn({ method: "POST" })
       if (!input.email || !input.senha || !input.nome || !input.role) {
         throw new Error("Campos obrigatórios faltando.");
       }
+      const emailNorm = String(input.email).trim().toLowerCase();
+      if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(emailNorm)) {
+        throw new Error("E-mail inválido.");
+      }
+      const nomeNorm = String(input.nome).replace(/\s+/g, " ").trim();
+      if (!nomeNorm) throw new Error("Nome inválido.");
       validarSenhaProvisoria(input.senha);
-      return input;
+      return { ...input, email: emailNorm, nome: nomeNorm };
     },
   )
   .handler(async ({ data, context }) => {
