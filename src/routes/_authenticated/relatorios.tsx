@@ -1067,7 +1067,48 @@ function GestorTable({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Comissão do Gestor</CardTitle>
-        <ExportButtons onCSV={handleCSV} onPDF={handlePDF} />
+        <ExportButtons
+          onCSV={handleCSV}
+          onPDF={handlePDF}
+          email={
+            grupos.length === 1 && grupos[0].id !== "—"
+              ? {
+                  destinatarioNome: grupos[0].nome,
+                  destinatarioEmail: null,
+                  mes,
+                  ano,
+                  target: { gestor_user_id: grupos[0].id },
+                  buildPdfBase64: async () => {
+                    const linhas: (string | number)[][] = [];
+                    for (const g of grupos) {
+                      linhas.push([{ content: `Gestor: ${g.nome}`, colSpan: 6, styles: { fontStyle: "bold", fillColor: [255, 248, 225] } } as any]);
+                      for (const c of g.rows) {
+                        linhas.push([
+                          c.nfe?.numero_nfe ?? "—",
+                          formatarData(c.nfe?.data_nfe ?? ""),
+                          c.nfe?.pedidos?.clientes?.nome ?? "—",
+                          fmtBRL(c.base_calculo),
+                          `${Number(c.percentual_aplicado).toFixed(2)}%`,
+                          fmtBRL(c.valor_comissao),
+                        ]);
+                      }
+                      const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+                      linhas.push([{ content: `Subtotal ${g.nome}`, colSpan: 5, styles: { fontStyle: "bold", halign: "right" } } as any, fmtBRL(sub)]);
+                    }
+                    linhas.push([{ content: "TOTAL GERAL", colSpan: 5, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any, { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any]);
+                    return (await exportPDF(
+                      `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
+                      `BRAZIL AMORTECEDORES — COMISSÃO DO GESTOR — ${grupos[0].nome} — ${periodo}`,
+                      ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"],
+                      linhas,
+                      undefined,
+                      { brand: true, logoBase64, returnBase64: true },
+                    )) as string;
+                  },
+                }
+              : null
+          }
+        />
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm font-medium text-muted-foreground">Período: {periodo}</p>
