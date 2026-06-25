@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
 import { usePermissions, PERMISSION_KEYS, PERMISSION_LABELS, PERMISSION_CATEGORIES, ROLE_DEFAULTS, type PermissionKey } from "@/hooks/use-permissions";
 import { BR_STATES, NOME_TO_UF, regiaoDoEstado } from "@/lib/estados-brasil";
-import { maskCNPJ } from "@/lib/masks";
+import { maskCNPJ, maskCPF, maskPhone, maskCEP, isValidCNPJ, isValidCPF, isValidEmail, isValidPhone, isValidCEP, sanitizeText, sanitizeName, sanitizeEmail } from "@/lib/masks";
 
 export const Route = createFileRoute("/_authenticated/cadastros")({
   component: CadastrosPage,
