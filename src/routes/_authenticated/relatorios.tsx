@@ -280,6 +280,15 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: repsFull } = useQuery({
+    queryKey: ["rel-comissoes-reps"],
+    queryFn: async () => {
+      const res = await supabase.from("representantes").select("id, nome, email, tipo");
+      return (res.data ?? []) as { id: string; nome: string; email: string | null; tipo: string }[];
+    },
+    staleTime: 60_000,
+  });
+
   const periodo = `${String(mes).padStart(2, "0")}/${ano}`;
   const mostraRepFiltro = visao === "todos" || visao === "externos";
 
@@ -292,6 +301,16 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
     }
     return [...m.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [data]);
+
+  const internoRep = useMemo(
+    () => (repsFull ?? []).find((r) => r.tipo === "interno") ?? null,
+    [repsFull],
+  );
+  const emailByRepId = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const r of repsFull ?? []) m.set(r.id, r.email);
+    return m;
+  }, [repsFull]);
 
   return (
     <div className="space-y-4">
