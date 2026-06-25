@@ -56,7 +56,7 @@ export async function exportPDF(
   rows: (string | number)[][],
   subtitle?: string,
   options?: PdfBrandOptions,
-) {
+): Promise<string | void> {
   const doc = new jsPDF({ orientation: "landscape" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
