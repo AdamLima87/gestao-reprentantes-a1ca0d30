@@ -896,7 +896,7 @@ function GestorGroup({
   );
 }
 
-
+function PainelRepresentante({ representanteId }: { representanteId: string | null }) {
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
