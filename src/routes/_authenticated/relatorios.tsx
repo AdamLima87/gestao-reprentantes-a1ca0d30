@@ -1534,13 +1534,13 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead>Última compra</TableHead>
+                  <SortableTableHead sortKey="nome" sortConfig={inativosSort.sortConfig} onSort={inativosSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="rep" sortConfig={inativosSort.sortConfig} onSort={inativosSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="ultima" sortConfig={inativosSort.sortConfig} onSort={inativosSort.requestSort}>Última compra</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {inativos.map((c, i) => (
+                {inativosSort.sortedData.map((c, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
