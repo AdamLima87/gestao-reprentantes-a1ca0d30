@@ -880,6 +880,55 @@ function GestorTable({
   );
 }
 
+function GestorRelGroup({ nome, rows }: { nome: string; rows: any[] }) {
+  const sort = useSortableData(rows, {
+    accessors: {
+      nfe: (c: any) => c.nfe?.numero_nfe ?? "",
+      data: (c: any) => c.nfe?.data_nfe ?? "",
+      cliente: (c: any) => c.nfe?.pedidos?.clientes?.nome ?? "",
+      base_calculo: (c: any) => Number(c.base_calculo),
+      percentual_aplicado: (c: any) => Number(c.percentual_aplicado),
+      valor_comissao: (c: any) => Number(c.valor_comissao),
+    },
+  });
+  const sub = rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold">{nome}</h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <SortableTableHead sortKey="nfe" sortConfig={sort.sortConfig} onSort={sort.requestSort}>NF-e</SortableTableHead>
+            <SortableTableHead sortKey="data" sortConfig={sort.sortConfig} onSort={sort.requestSort}>Data</SortableTableHead>
+            <SortableTableHead sortKey="cliente" sortConfig={sort.sortConfig} onSort={sort.requestSort}>Cliente</SortableTableHead>
+            <SortableTableHead sortKey="base_calculo" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">Valor Produtos</SortableTableHead>
+            <SortableTableHead sortKey="percentual_aplicado" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">%</SortableTableHead>
+            <SortableTableHead sortKey="valor_comissao" sortConfig={sort.sortConfig} onSort={sort.requestSort} className="text-right">Comissão</SortableTableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sort.sortedData.map((c: any, i: number) => (
+            <MotionTableRow key={i} {...rowMotionProps(i)}>
+              <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
+              <TableCell>{formatarData(c.nfe?.data_nfe ?? "")}</TableCell>
+              <TableCell>{c.nfe?.pedidos?.clientes?.nome ?? "—"}</TableCell>
+              <TableCell className="text-right">{fmtBRL(c.base_calculo)}</TableCell>
+              <TableCell className="text-right">{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
+              <TableCell className="text-right font-medium">{fmtBRL(c.valor_comissao)}</TableCell>
+            </MotionTableRow>
+          ))}
+          <TableRow className="bg-muted/50 font-bold">
+            <TableCell colSpan={5} className="text-right">Subtotal {nome}</TableCell>
+            <TableCell className="text-right">{fmtBRL(sub)}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+
+
 
 
 /* ============ VENDAS ============ */
