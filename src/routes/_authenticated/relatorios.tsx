@@ -1354,17 +1354,17 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nº NF-e</TableHead>
-                  <TableHead>Data Emissão</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead className="text-right">Valor Produtos</TableHead>
-                  <TableHead className="text-right">Valor NF-e</TableHead>
-                  <TableHead>Obs</TableHead>
+                  <SortableTableHead sortKey="numero_nfe" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>Nº NF-e</SortableTableHead>
+                  <SortableTableHead sortKey="data_nfe" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>Data Emissão</SortableTableHead>
+                  <SortableTableHead sortKey="cnpj" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>CNPJ</SortableTableHead>
+                  <SortableTableHead sortKey="cliente" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="valor_produtos" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort} className="text-right">Valor Produtos</SortableTableHead>
+                  <SortableTableHead sortKey="valor_nfe" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort} className="text-right">Valor NF-e</SortableTableHead>
+                  <SortableTableHead sortKey="observacao" sortConfig={notasSort.sortConfig} onSort={notasSort.requestSort}>Obs</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {notas.map((n, i) => {
+                {notasSort.sortedData.map((n, i) => {
                   const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
                   return (
                     <MotionTableRow key={i} {...rowMotionProps(i)}>
