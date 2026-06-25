@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useSortableData } from "@/hooks/use-sortable-data";
 import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
