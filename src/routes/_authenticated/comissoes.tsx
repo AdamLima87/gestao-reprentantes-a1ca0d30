@@ -524,7 +524,7 @@ function ComissoesPage() {
       cliente: (c: any) => c.pedidos?.clientes?.nome ?? "",
       nfe: (c: any) => c.nfe?.numero_nfe ?? "",
       valor_nfe: (c: any) => Number(c.nfe?.valor_nfe ?? 0),
-      tipo: (c: any) => c.tipo_comissao ?? "",
+      tipo: (c: any) => c.tipo ?? "",
       percentual: (c: any) => Number(c.percentual_aplicado ?? 0),
       valor_comissao: (c: any) => Number(c.valor_comissao),
       status: (c: any) => c.pago_em ? "pago" : "pendente",
