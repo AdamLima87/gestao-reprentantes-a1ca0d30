@@ -212,6 +212,17 @@ function ClientesTab() {
     return nomeMatch || repMatch || cnpjMatch;
   });
 
+  const clientesSort = useSortableData(filtrados, {
+    accessors: {
+      cnpj: (c: any) => c.cnpj ?? "",
+      regiao: (c: any) => c.regiao ?? "",
+      representante: (c: any) => c.representantes?.nome ?? "",
+      atendimento: (c: any) => c.atendimento_interno ? "Interno" : (c.representantes?.nome ?? ""),
+      ultima_compra_at: (c: any) => c.ultima_compra_at,
+      ativo: (c: any) => c.ativo,
+    },
+  });
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
