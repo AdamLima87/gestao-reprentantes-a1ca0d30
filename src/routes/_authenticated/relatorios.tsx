@@ -1590,14 +1590,14 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Representante</TableHead>
-                  <TableHead className="text-right">Total Comprado</TableHead>
-                  <TableHead className="text-right">Pedidos</TableHead>
+                  <SortableTableHead sortKey="nome" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort}>Cliente</SortableTableHead>
+                  <SortableTableHead sortKey="rep" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort}>Representante</SortableTableHead>
+                  <SortableTableHead sortKey="total" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Total Comprado</SortableTableHead>
+                  <SortableTableHead sortKey="pedidos" sortConfig={rankingSort.sortConfig} onSort={rankingSort.requestSort} className="text-right">Pedidos</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ranking.map((c, i) => (
+                {rankingSort.sortedData.map((c, i) => (
                   <MotionTableRow key={i} {...rowMotionProps(i)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.rep}</TableCell>
