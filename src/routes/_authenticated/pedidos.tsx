@@ -295,7 +295,8 @@ function PedidosPage() {
                 )}
               </TableBody>
             </Table>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
 
