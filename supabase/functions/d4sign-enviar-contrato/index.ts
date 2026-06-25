@@ -196,11 +196,18 @@ async function supabaseRestFetch<T>(supabaseUrl: string, supabaseAnonKey: string
 }
 
 async function d4signFetch(url: string, init: RequestInit, fallbackMessage: string): Promise<JsonObject> {
-  const response = await fetch(url, init);
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    // Mask token/cryptKey antes de propagar — runtimes podem ecoar a URL na mensagem
+    throw new Error(`${fallbackMessage}: ${maskSecrets(reason)}`);
+  }
   const detail = await readResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(`${fallbackMessage}: ${detail}`);
+    throw new Error(`${fallbackMessage}: ${maskSecrets(detail)}`);
   }
 
   if (!detail) return {};
@@ -209,6 +216,13 @@ async function d4signFetch(url: string, init: RequestInit, fallbackMessage: stri
   } catch {
     return { raw: detail };
   }
+}
+
+function maskSecrets(input: string): string {
+  if (!input) return input;
+  return input
+    .replace(/(tokenAPI=)[^&\s"']+/gi, "$1***")
+    .replace(/(cryptKey=)[^&\s"']+/gi, "$1***");
 }
 
 async function readResponseBody(response: Response): Promise<string> {
