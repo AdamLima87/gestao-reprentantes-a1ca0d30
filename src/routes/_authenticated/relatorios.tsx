@@ -1507,6 +1507,16 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
     );
   };
 
+  const inativosSort = useSortableData(inativos, {
+    accessors: { nome: (c: any) => c.nome, rep: (c: any) => c.rep, ultima: (c: any) => c.ultima },
+  });
+  const novosSort = useSortableData(novos, {
+    accessors: { nome: (c: any) => c.nome, rep: (c: any) => c.rep, primeira: (c: any) => c.primeira },
+  });
+  const rankingSort = useSortableData(ranking, {
+    accessors: { nome: (c: any) => c.nome, rep: (c: any) => c.rep, total: (c: any) => c.total, pedidos: (c: any) => c.pedidos },
+  });
+
   if (isLoading || !data) return <p className="text-muted-foreground">Carregando…</p>;
 
   return (
