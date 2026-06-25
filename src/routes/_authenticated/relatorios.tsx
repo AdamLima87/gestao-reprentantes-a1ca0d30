@@ -982,6 +982,16 @@ function VendasTab({ mes, ano }: { mes: number; ano: number }) {
       .sort((a, b) => b.total - a.total);
   }, [data]);
 
+  const rankingSort = useSortableData(ranking, {
+    accessors: {
+      nome: (r: any) => r.nome,
+      total: (r: any) => r.total,
+      pedidos: (r: any) => r.pedidos,
+      ticket: (r: any) => r.ticket,
+      pct: (r: any) => r.pct,
+    },
+  });
+
   const handleCSV = () =>
     exportCSV(
       `vendas-${ano}-${String(mes).padStart(2, "0")}`,
