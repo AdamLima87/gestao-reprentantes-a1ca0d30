@@ -358,11 +358,19 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
               ano={ano}
               repFiltro={repFiltro}
               repsOptions={repsOptions}
+              emailByRepId={emailByRepId}
               logoBase64={logoBase64 ?? null}
             />
           )}
           {(visao === "todos" || visao === "interno") && (
-            <InternoTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
+            <InternoTable
+              data={data ?? []}
+              periodo={periodo}
+              mes={mes}
+              ano={ano}
+              logoBase64={logoBase64 ?? null}
+              internoRep={internoRep}
+            />
           )}
           {(visao === "todos" || visao === "gestor") && (
             <GestorTable data={data ?? []} periodo={periodo} mes={mes} ano={ano} logoBase64={logoBase64 ?? null} />
