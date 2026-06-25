@@ -546,7 +546,7 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
           <div>
             <Label>CPF</Label>
             <div className="flex gap-2">
-              <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="000.000.000-00" />
+              <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: maskCPF(e.target.value) })} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} />
               <Button type="button" variant="outline" onClick={buscarCpf} disabled={buscandoCpf}>
                 <Search className="h-4 w-4 mr-1" />{buscandoCpf ? "Buscando…" : "Buscar"}
               </Button>
