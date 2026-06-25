@@ -33,10 +33,13 @@ export const PERMISSION_KEYS = [
   "criar_usuarios",
   "editar_percentual_cliente",
   "gerar_contrato_pdf",
+  "enviar_contrato_assinatura",
+  "visualizar_contratos_assinatura",
   "importar_planilhas",
   // Relatórios
   "exportar_relatorios",
 ] as const;
+
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
 
@@ -46,7 +49,7 @@ export const PERMISSION_CATEGORIES: { categoria: string; chaves: PermissionKey[]
   { categoria: "Pedidos", chaves: ["criar_pedidos", "editar_pedidos", "cancelar_pedidos", "excluir_pedidos"] },
   { categoria: "NF-e", chaves: ["registrar_nfe", "registrar_entrega", "excluir_nfe"] },
   { categoria: "Comissões", chaves: ["marcar_comissao_paga", "recalcular_comissoes"] },
-  { categoria: "Cadastros", chaves: ["cadastrar_clientes", "cadastrar_representantes", "gerar_contrato_pdf", "editar_percentual_cliente", "importar_planilhas", "criar_usuarios"] },
+  { categoria: "Cadastros", chaves: ["cadastrar_clientes", "cadastrar_representantes", "gerar_contrato_pdf", "enviar_contrato_assinatura", "visualizar_contratos_assinatura", "editar_percentual_cliente", "importar_planilhas", "criar_usuarios"] },
   { categoria: "Relatórios", chaves: ["exportar_relatorios"] },
 ];
 
@@ -75,6 +78,8 @@ export const PERMISSION_LABELS: Record<PermissionKey, { titulo: string; descrica
   criar_usuarios: { titulo: "Criar usuários", descricao: "Pode convidar/cadastrar novos usuários do sistema." },
   editar_percentual_cliente: { titulo: "Editar % por cliente", descricao: "Pode alterar percentuais específicos por cliente." },
   gerar_contrato_pdf: { titulo: "Gerar contrato PDF", descricao: "Pode gerar o contrato de representação." },
+  enviar_contrato_assinatura: { titulo: "Enviar contrato para assinatura", descricao: "Pode enviar o contrato de representação para assinatura via D4Sign." },
+  visualizar_contratos_assinatura: { titulo: "Visualizar contratos enviados", descricao: "Pode ver o status e o histórico de contratos enviados para assinatura." },
   importar_planilhas: { titulo: "Importar planilhas", descricao: "Pode acessar a aba de importação de dados." },
   exportar_relatorios: { titulo: "Exportar relatórios", descricao: "Pode baixar relatórios em PDF/CSV." },
 };

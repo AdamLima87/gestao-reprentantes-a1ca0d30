@@ -613,14 +613,15 @@ function StatusContratoBadge({ status }: { status: string | null }) {
 function RepsTab() {
   const qc = useQueryClient();
   const { can } = usePermissions();
-  const { roles } = useAuth();
-  const podeEnviarAssinatura = roles.includes("admin") || roles.includes("gestor");
+  
+  const podeEnviarAssinatura = can("enviar_contrato_assinatura");
+  const podeVisualizarAssinatura = can("visualizar_contratos_assinatura");
   const { data: reps } = useQuery({ queryKey: ["reps-adm"], queryFn: async () => (await supabase.from("representantes").select("*").order("nome")).data ?? [] });
   const { data: empresa } = useQuery({ queryKey: ["empresa-cfg"], queryFn: async () => (await supabase.from("configuracoes_empresa").select("*").limit(1).maybeSingle()).data });
   const { data: contratos } = useQuery({
     queryKey: ["contratos-assinatura"],
     queryFn: async () => (await supabase.from("contratos_assinatura").select("*").order("created_at", { ascending: false })).data as ContratoAssinatura[] ?? [],
-    enabled: podeEnviarAssinatura,
+    enabled: podeVisualizarAssinatura,
   });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<RepFormState>(emptyRepForm);
@@ -837,15 +838,19 @@ function RepsTab() {
                   <TableCell>{r.tipo}</TableCell>
                   <TableCell>{Number(r.percentual_padrao).toFixed(2)}%</TableCell>
                   <TableCell>
-                    <button
-                      type="button"
-                      className="cursor-pointer disabled:cursor-default"
-                      disabled={repContratos.length === 0}
-                      onClick={() => repContratos.length > 0 && setHistoricoRep({ ...r, _contratos: repContratos })}
-                      title={repContratos.length > 0 ? "Ver histórico" : ""}
-                    >
-                      <StatusContratoBadge status={ultimoContrato?.status ?? null} />
-                    </button>
+                    {podeVisualizarAssinatura ? (
+                      <button
+                        type="button"
+                        className="cursor-pointer disabled:cursor-default"
+                        disabled={repContratos.length === 0}
+                        onClick={() => repContratos.length > 0 && setHistoricoRep({ ...r, _contratos: repContratos })}
+                        title={repContratos.length > 0 ? "Ver histórico" : ""}
+                      >
+                        <StatusContratoBadge status={ultimoContrato?.status ?? null} />
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
                   <TableCell>
@@ -878,7 +883,7 @@ function RepsTab() {
         </Table>
       </CardContent>
 
-      <Dialog open={!!historicoRep} onOpenChange={(o) => { if (!o) setHistoricoRep(null); }}>
+      <Dialog open={!!historicoRep && podeVisualizarAssinatura} onOpenChange={(o) => { if (!o) setHistoricoRep(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Histórico de contratos — {historicoRep?.nome}</DialogTitle>
