@@ -651,6 +651,14 @@ function RepsTab() {
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
   const [historicoRep, setHistoricoRep] = useState<any | null>(null);
 
+  const repsSort = useSortableData(reps ?? [], {
+    accessors: {
+      estados: (r: any) => Array.isArray(r.estados) ? r.estados.length : 0,
+      percentual_padrao: (r: any) => Number(r.percentual_padrao ?? 0),
+      ativo: (r: any) => r.ativo,
+    },
+  });
+
   const contratosPorRep = (() => {
     const map = new Map<string, ContratoAssinatura[]>();
     (contratos ?? []).forEach((c) => {
