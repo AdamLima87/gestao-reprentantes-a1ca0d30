@@ -727,6 +727,57 @@ function ComissoesPage() {
           currentUserId={user?.id ?? null}
         />
       )}
+
+      <Dialog open={emailDialogOpen} onOpenChange={(o) => !enviandoEmail && setEmailDialogOpen(o)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Enviar extrato por e-mail</DialogTitle></DialogHeader>
+          {(() => {
+            const rep = (reps ?? []).find((r) => r.id === repFilter);
+            const repNome = rep?.nome ?? "—";
+            const repEmail = (rep as any)?.email ?? null;
+            return (
+              <div className="space-y-2 text-sm">
+                <p><span className="text-muted-foreground">Representante:</span> <span className="font-medium">{repNome}</span></p>
+                <p><span className="text-muted-foreground">E-mail de destino:</span> <span className="font-medium">{repEmail ?? <em className="text-red-600">não cadastrado</em>}</span></p>
+                <p><span className="text-muted-foreground">Mês/Ano:</span> <span className="font-medium">{String(mes).padStart(2, "0")}/{ano}</span></p>
+                <p className="text-xs text-muted-foreground pt-2">O PDF do extrato será gerado e enviado em anexo.</p>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEmailDialogOpen(false)} disabled={enviandoEmail}>Cancelar</Button>
+            <Button
+              onClick={async () => {
+                const rep = (reps ?? []).find((r) => r.id === repFilter);
+                if (!rep) return;
+                const repEmail = (rep as any).email;
+                if (!repEmail) { toast.error("Representante sem e-mail cadastrado."); return; }
+                setEnviandoEmail(true);
+                try {
+                  const pdf_base64 = (await gerarExtratoPDF(rep.nome, mes, ano, filtered, totalPendente, totalPago, rep, { returnBase64: true })) as string;
+                  const { data: sess } = await supabase.auth.getSession();
+                  const token = sess.session?.access_token;
+                  const resp = await supabase.functions.invoke("enviar-extrato-email", {
+                    body: { representante_id: rep.id, pdf_base64, mes, ano },
+                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                  });
+                  if (resp.error) throw new Error(resp.error.message || "Falha ao enviar");
+                  if ((resp.data as any)?.error) throw new Error((resp.data as any).error);
+                  toast.success(`Extrato enviado para ${repEmail}`);
+                  setEmailDialogOpen(false);
+                } catch (e: any) {
+                  toast.error(e?.message ?? "Erro ao enviar e-mail");
+                } finally {
+                  setEnviandoEmail(false);
+                }
+              }}
+              disabled={enviandoEmail}
+            >
+              {enviandoEmail ? "Enviando…" : "Confirmar envio"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
