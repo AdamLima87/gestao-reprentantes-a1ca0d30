@@ -636,15 +636,20 @@ function ComissoesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Rep</TableHead><TableHead>Pedido</TableHead><TableHead>Cliente</TableHead>
-                    <TableHead>NF-e</TableHead><TableHead>Valor NF-e</TableHead><TableHead>Tipo</TableHead>
-                    <TableHead>%</TableHead><TableHead>Comissão</TableHead>
-                    <TableHead>Status pagamento</TableHead>
+                    <SortableTableHead sortKey="rep" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Rep</SortableTableHead>
+                    <SortableTableHead sortKey="pedido" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Pedido</SortableTableHead>
+                    <SortableTableHead sortKey="cliente" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Cliente</SortableTableHead>
+                    <SortableTableHead sortKey="nfe" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>NF-e</SortableTableHead>
+                    <SortableTableHead sortKey="base_calculo" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Valor NF-e</SortableTableHead>
+                    <SortableTableHead sortKey="tipo" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Tipo</SortableTableHead>
+                    <SortableTableHead sortKey="percentual" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>%</SortableTableHead>
+                    <SortableTableHead sortKey="valor_comissao" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Comissão</SortableTableHead>
+                    <SortableTableHead sortKey="status" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Status pagamento</SortableTableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((c: any, index: number) => (
+                  {comissoesSort.sortedData.map((c: any, index: number) => (
                     <MotionTableRow key={c.id} {...rowMotionProps(index)}>
                       <TableCell>{c.representantes?.nome}</TableCell>
                       <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
