@@ -1286,6 +1286,17 @@ function UsuariosTab() {
     queryFn: async () => await callListPerms(),
   });
 
+  const usersSort = useSortableData((users ?? []) as any[], {
+    accessors: {
+      nome: (u: any) => u.nome ?? "",
+      email: (u: any) => u.email ?? "",
+      role: (u: any) => u.roles?.[0] ?? "",
+      representante: (u: any) => u.representante_nome ?? "",
+    },
+  });
+
+
+
   const callCreate = useServerFn(createUser);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
