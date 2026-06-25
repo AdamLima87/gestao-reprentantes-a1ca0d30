@@ -38,6 +38,7 @@ export const PERMISSION_KEYS = [
   "importar_planilhas",
   // Relatórios
   "exportar_relatorios",
+  "enviar_extrato_email",
 ] as const;
 
 
@@ -50,7 +51,7 @@ export const PERMISSION_CATEGORIES: { categoria: string; chaves: PermissionKey[]
   { categoria: "NF-e", chaves: ["registrar_nfe", "registrar_entrega", "excluir_nfe"] },
   { categoria: "Comissões", chaves: ["marcar_comissao_paga", "recalcular_comissoes"] },
   { categoria: "Cadastros", chaves: ["cadastrar_clientes", "cadastrar_representantes", "gerar_contrato_pdf", "enviar_contrato_assinatura", "visualizar_contratos_assinatura", "editar_percentual_cliente", "importar_planilhas", "criar_usuarios"] },
-  { categoria: "Relatórios", chaves: ["exportar_relatorios"] },
+  { categoria: "Relatórios", chaves: ["exportar_relatorios", "enviar_extrato_email"] },
 ];
 
 export const PERMISSION_LABELS: Record<PermissionKey, { titulo: string; descricao: string }> = {
@@ -82,6 +83,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, { titulo: string; descrica
   visualizar_contratos_assinatura: { titulo: "Visualizar contratos enviados", descricao: "Pode ver o status e o histórico de contratos enviados para assinatura." },
   importar_planilhas: { titulo: "Importar planilhas", descricao: "Pode acessar a aba de importação de dados." },
   exportar_relatorios: { titulo: "Exportar relatórios", descricao: "Pode baixar relatórios em PDF/CSV." },
+  enviar_extrato_email: { titulo: "Enviar extrato por e-mail", descricao: "Pode enviar o extrato de comissões do representante por e-mail." },
 };
 
 export const ROLE_DEFAULTS: Record<AppRole, ReadonlySet<PermissionKey>> = {
