@@ -675,6 +675,7 @@ function StatusContratoBadge({ contrato }: { contrato: ContratoAssinatura | null
 function RepsTab() {
   const qc = useQueryClient();
   const { can } = usePermissions();
+  const { user } = useAuth();
   
   const podeEnviarAssinatura = can("enviar_contrato_assinatura");
   const podeVisualizarAssinatura = can("visualizar_contratos_assinatura");
@@ -690,6 +691,50 @@ function RepsTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
   const [historicoRep, setHistoricoRep] = useState<any | null>(null);
+  const [anexarRep, setAnexarRep] = useState<any | null>(null);
+  const [anexarFile, setAnexarFile] = useState<File | null>(null);
+  const [anexarData, setAnexarData] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [anexarObs, setAnexarObs] = useState("");
+  const [anexarSaving, setAnexarSaving] = useState(false);
+
+  async function salvarAnexarContrato() {
+    if (!anexarRep) return;
+    if (!anexarFile) { toast.error("Selecione um arquivo PDF."); return; }
+    if (anexarFile.type !== "application/pdf" && !anexarFile.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("O arquivo deve ser PDF."); return;
+    }
+    if (!anexarData) { toast.error("Informe a data de assinatura."); return; }
+    setAnexarSaving(true);
+    try {
+      const ts = Date.now();
+      const path = `${anexarRep.id}/contrato_externo_${ts}.pdf`;
+      const up = await supabase.storage.from("contratos").upload(path, anexarFile, {
+        contentType: "application/pdf",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      const ins = await supabase.from("contratos_assinatura").insert({
+        representante_id: anexarRep.id,
+        status: "assinado",
+        tipo: "externo",
+        assinado_at: new Date(anexarData + "T12:00:00").toISOString(),
+        enviado_por: user?.id ?? null,
+        url_download: path,
+        observacao: anexarObs.trim() || null,
+      } as any);
+      if (ins.error) throw ins.error;
+      toast.success("Contrato anexado com sucesso!");
+      setAnexarRep(null);
+      setAnexarFile(null);
+      setAnexarObs("");
+      setAnexarData(new Date().toISOString().slice(0, 10));
+      qc.invalidateQueries({ queryKey: ["contratos-assinatura"] });
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao anexar contrato.");
+    } finally {
+      setAnexarSaving(false);
+    }
+  }
 
   const repsSort = useSortableData(reps ?? [], {
     accessors: {
