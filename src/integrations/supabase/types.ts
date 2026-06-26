@@ -238,8 +238,10 @@ export type Database = {
           enviado_at: string | null
           enviado_por: string | null
           id: string
+          observacao: string | null
           representante_id: string
           status: string
+          tipo: string
           updated_at: string
           url_download: string | null
         }
@@ -250,8 +252,10 @@ export type Database = {
           enviado_at?: string | null
           enviado_por?: string | null
           id?: string
+          observacao?: string | null
           representante_id: string
           status?: string
+          tipo?: string
           updated_at?: string
           url_download?: string | null
         }
@@ -262,8 +266,10 @@ export type Database = {
           enviado_at?: string | null
           enviado_por?: string | null
           id?: string
+          observacao?: string | null
           representante_id?: string
           status?: string
+          tipo?: string
           updated_at?: string
           url_download?: string | null
         }
