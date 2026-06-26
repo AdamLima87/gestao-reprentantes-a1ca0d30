@@ -23,13 +23,48 @@ function TrocarSenhaPage() {
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    let settled = false;
+    const finish = (s: Session | null) => {
       setSession(s);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
       setAuthReady(true);
-    }).catch(() => setAuthReady(true));
+      settled = true;
+    };
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      // PASSWORD_RECOVERY / SIGNED_IN podem chegar após o getSession inicial,
+      // quando o supabase-js termina de processar o hash (#access_token=...)
+      // ou o ?code= do link de recuperação enviado por e-mail.
+      if (s) finish(s);
+      else if (event === "SIGNED_OUT") finish(null);
+    });
+
+    // Se a URL traz tokens de recuperação, dá tempo do supabase-js processar
+    // antes de decidir que não há sessão.
+    const hasRecoveryHash =
+      typeof window !== "undefined" &&
+      (window.location.hash.includes("access_token") ||
+        window.location.hash.includes("type=recovery") ||
+        window.location.search.includes("code="));
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (settled) return;
+        if (data.session) {
+          finish(data.session);
+        } else if (!hasRecoveryHash) {
+          finish(null);
+        } else {
+          // aguarda onAuthStateChange; fallback de 5s
+          setTimeout(() => {
+            if (!settled) finish(null);
+          }, 5000);
+        }
+      })
+      .catch(() => {
+        if (!settled) finish(null);
+      });
+
     return () => sub.subscription.unsubscribe();
   }, []);
 
