@@ -1017,7 +1017,6 @@ function RepsTab() {
                           </Button>
                         ) : "—"}
                       </TableCell>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
