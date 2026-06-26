@@ -949,7 +949,7 @@ function RepsTab() {
                         onClick={() => repContratos.length > 0 && setHistoricoRep({ ...r, _contratos: repContratos })}
                         title={repContratos.length > 0 ? "Ver histórico" : ""}
                       >
-                        <StatusContratoBadge status={ultimoContrato?.status ?? null} />
+                        <StatusContratoBadge contrato={ultimoContrato ?? null} />
                       </button>
                     ) : (
                       <span className="text-muted-foreground">—</span>
