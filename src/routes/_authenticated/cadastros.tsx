@@ -1819,19 +1819,36 @@ function UsuariosTab() {
                 </TableCell>
                 <TableCell>{u.representante_nome ?? "—"}</TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(u)} title="Editar">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    {isAdmin && (
-                      <Button size="sm" variant="ghost" onClick={() => setResetting({ id: u.id, nome: u.nome || u.email })} title="Redefinir senha">
-                        <KeyRound className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={() => handleDelete(u)} title="Excluir">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+                  <TooltipProvider delayDuration={500}>
+                    <div className="flex justify-end gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(u)} aria-label="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar</TooltipContent>
+                      </Tooltip>
+                      {isAdmin && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setResetting({ id: u.id, nome: u.nome || u.email })} aria-label="Redefinir senha">
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Redefinir senha</TooltipContent>
+                        </Tooltip>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDelete(u)} aria-label="Excluir">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Excluir</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
                 </TableCell>
               </MotionTableRow>
               );
