@@ -22,7 +22,8 @@ import { toast } from "sonner";
 import { createUser, listUsers, updateUser, deleteUser, listAllPermissions, resetUserPassword } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send, Paperclip, Calendar as CalendarIcon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PasswordStrengthMeter, isPasswordOk } from "@/components/password-strength-meter";
@@ -611,6 +612,8 @@ type ContratoAssinatura = {
   representante_id: string;
   d4sign_document_uuid: string | null;
   status: string;
+  tipo: string | null;
+  observacao: string | null;
   enviado_por: string | null;
   enviado_at: string | null;
   assinado_at: string | null;
@@ -618,27 +621,61 @@ type ContratoAssinatura = {
   created_at: string;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
-  enviado: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
-  visualizado: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
-  assinado: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300",
-  recusado: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300",
-  cancelado: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300",
-};
+function bucketForContrato(c: { tipo: string | null }) {
+  return c.tipo === "externo" ? "contratos" : "contratos-assinados";
+}
 
-function StatusContratoBadge({ status }: { status: string | null }) {
-  if (!status) {
+async function abrirContratoAssinado(c: ContratoAssinatura) {
+  if (!c.url_download) return;
+  const { data, error } = await supabase.storage
+    .from(bucketForContrato(c))
+    .createSignedUrl(c.url_download, 3600);
+  if (error || !data?.signedUrl) {
+    toast.error("Falha ao abrir documento");
+    return;
+  }
+  window.open(data.signedUrl, "_blank");
+}
+
+const STATUS_PENDENTE = new Set(["pendente", "enviado", "visualizado"]);
+const STATUS_RECUSADO = new Set(["recusado", "cancelado"]);
+
+function StatusContratoBadge({ contrato }: { contrato: ContratoAssinatura | null }) {
+  if (!contrato) {
     return <Badge variant="outline" className="bg-muted text-muted-foreground">Sem contrato</Badge>;
   }
-  const cls = STATUS_COLORS[status] ?? "bg-muted text-muted-foreground";
-  const label = status.charAt(0).toUpperCase() + status.slice(1);
-  return <Badge variant="outline" className={cls}>{label}</Badge>;
+  const s = contrato.status;
+  if (s === "assinado") {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300">Assinado</Badge>
+        {contrato.url_download && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); abrirContratoAssinado(contrato); }}
+            className="text-green-700 hover:text-green-900 dark:text-green-300"
+            title="Baixar contrato assinado"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </span>
+    );
+  }
+  if (STATUS_PENDENTE.has(s)) {
+    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300">Aguardando assinatura</Badge>;
+  }
+  if (STATUS_RECUSADO.has(s)) {
+    const label = s.charAt(0).toUpperCase() + s.slice(1);
+    return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300">{label}</Badge>;
+  }
+  return <Badge variant="outline" className="bg-muted text-muted-foreground">{s}</Badge>;
 }
 
 function RepsTab() {
   const qc = useQueryClient();
   const { can } = usePermissions();
+  const { user } = useAuth();
   
   const podeEnviarAssinatura = can("enviar_contrato_assinatura");
   const podeVisualizarAssinatura = can("visualizar_contratos_assinatura");
@@ -654,6 +691,50 @@ function RepsTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
   const [historicoRep, setHistoricoRep] = useState<any | null>(null);
+  const [anexarRep, setAnexarRep] = useState<any | null>(null);
+  const [anexarFile, setAnexarFile] = useState<File | null>(null);
+  const [anexarData, setAnexarData] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [anexarObs, setAnexarObs] = useState("");
+  const [anexarSaving, setAnexarSaving] = useState(false);
+
+  async function salvarAnexarContrato() {
+    if (!anexarRep) return;
+    if (!anexarFile) { toast.error("Selecione um arquivo PDF."); return; }
+    if (anexarFile.type !== "application/pdf" && !anexarFile.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("O arquivo deve ser PDF."); return;
+    }
+    if (!anexarData) { toast.error("Informe a data de assinatura."); return; }
+    setAnexarSaving(true);
+    try {
+      const ts = Date.now();
+      const path = `${anexarRep.id}/contrato_externo_${ts}.pdf`;
+      const up = await supabase.storage.from("contratos").upload(path, anexarFile, {
+        contentType: "application/pdf",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      const ins = await supabase.from("contratos_assinatura").insert({
+        representante_id: anexarRep.id,
+        status: "assinado",
+        tipo: "externo",
+        assinado_at: new Date(anexarData + "T12:00:00").toISOString(),
+        enviado_por: user?.id ?? null,
+        url_download: path,
+        observacao: anexarObs.trim() || null,
+      } as any);
+      if (ins.error) throw ins.error;
+      toast.success("Contrato anexado com sucesso!");
+      setAnexarRep(null);
+      setAnexarFile(null);
+      setAnexarObs("");
+      setAnexarData(new Date().toISOString().slice(0, 10));
+      qc.invalidateQueries({ queryKey: ["contratos-assinatura"] });
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao anexar contrato.");
+    } finally {
+      setAnexarSaving(false);
+    }
+  }
 
   const repsSort = useSortableData(reps ?? [], {
     accessors: {
@@ -913,7 +994,7 @@ function RepsTab() {
                         onClick={() => repContratos.length > 0 && setHistoricoRep({ ...r, _contratos: repContratos })}
                         title={repContratos.length > 0 ? "Ver histórico" : ""}
                       >
-                        <StatusContratoBadge status={ultimoContrato?.status ?? null} />
+                        <StatusContratoBadge contrato={ultimoContrato ?? null} />
                       </button>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -938,6 +1019,16 @@ function RepsTab() {
                             ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
                             : <Send className="h-3.5 w-3.5 mr-1" />}
                           Enviar p/ assinatura
+                        </Button>
+                      )}
+                      {podeEnviarAssinatura && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setAnexarRep(r); setAnexarFile(null); setAnexarObs(""); setAnexarData(new Date().toISOString().slice(0, 10)); }}
+                          title="Anexar contrato assinado externamente"
+                        >
+                          <Paperclip className="h-3.5 w-3.5 mr-1" />Anexar contrato
                         </Button>
                       )}
                     </div>
@@ -970,19 +1061,13 @@ function RepsTab() {
                 <TableBody>
                   {(historicoRep?._contratos as ContratoAssinatura[]).map((c) => (
                     <TableRow key={c.id}>
-                      <TableCell><StatusContratoBadge status={c.status} /></TableCell>
+                      <TableCell><StatusContratoBadge contrato={c} /></TableCell>
                       <TableCell className="text-sm">{c.enviado_at ? new Date(c.enviado_at).toLocaleString("pt-BR") : "—"}</TableCell>
                       <TableCell className="text-sm">{c.assinado_at ? new Date(c.assinado_at).toLocaleString("pt-BR") : "—"}</TableCell>
-                      <TableCell className="text-xs font-mono text-muted-foreground truncate max-w-[180px]">{c.d4sign_document_uuid ?? "—"}</TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground truncate max-w-[180px]">{c.d4sign_document_uuid ?? (c.tipo === "externo" ? "Externo" : "—")}</TableCell>
                       <TableCell>
                         {c.url_download ? (
-                          <Button size="sm" variant="outline" onClick={async () => {
-                            const { data, error } = await supabase.storage
-                              .from("contratos-assinados")
-                              .createSignedUrl(c.url_download!, 3600);
-                            if (error || !data?.signedUrl) { toast.error("Falha ao abrir documento"); return; }
-                            window.open(data.signedUrl, "_blank");
-                          }}>
+                          <Button size="sm" variant="outline" onClick={() => abrirContratoAssinado(c)}>
                             <FileText className="h-3.5 w-3.5 mr-1" />Visualizar
                           </Button>
                         ) : "—"}
@@ -993,6 +1078,61 @@ function RepsTab() {
               </Table>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!anexarRep} onOpenChange={(o) => { if (!o && !anexarSaving) setAnexarRep(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Anexar contrato assinado externamente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {anexarRep && (
+              <p className="text-sm text-muted-foreground">
+                Representante: <span className="font-medium text-foreground">{anexarRep.nome}</span>
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="anexar-file">Arquivo PDF *</Label>
+              <Input
+                id="anexar-file"
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setAnexarFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="anexar-data">Data de assinatura *</Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="anexar-data"
+                  type="date"
+                  className="pl-8"
+                  value={anexarData}
+                  onChange={(e) => setAnexarData(e.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="anexar-obs">Observação (opcional)</Label>
+              <Textarea
+                id="anexar-obs"
+                placeholder="Ex.: Assinado via Gov.br"
+                value={anexarObs}
+                onChange={(e) => setAnexarObs(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAnexarRep(null)} disabled={anexarSaving}>Cancelar</Button>
+            <Button onClick={salvarAnexarContrato} disabled={anexarSaving}>
+              {anexarSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              Salvar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>
