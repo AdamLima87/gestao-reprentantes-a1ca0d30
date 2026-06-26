@@ -83,10 +83,17 @@ export function AppLayout() {
     .toUpperCase();
 
   const sidebarWidth = isMobile ? 240 : expanded ? 240 : 64;
+  const spacerWidth = isMobile ? 0 : 64;
 
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex min-h-screen bg-muted/20">
+        {!isMobile && expanded && (
+          <div
+            className="fixed inset-0 z-20 bg-black/30 backdrop-blur-[1px] transition-opacity duration-300"
+            aria-hidden
+          />
+        )}
         <aside
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -95,7 +102,7 @@ export function AppLayout() {
             "flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shrink-0",
             "transition-all duration-300 ease-in-out overflow-hidden",
             "[&_*::-webkit-scrollbar]:w-1.5 [&_*::-webkit-scrollbar-track]:bg-transparent [&_*::-webkit-scrollbar-thumb]:bg-green-800 [&_*::-webkit-scrollbar-thumb]:rounded-full",
-            !isMobile && "fixed inset-y-0 left-0 z-30"
+            !isMobile && "fixed inset-y-0 left-0 z-30 shadow-xl"
           )}
         >
           <div
@@ -205,11 +212,12 @@ export function AppLayout() {
 
         {!isMobile && (
           <div
-            style={{ width: sidebarWidth }}
-            className="shrink-0 transition-all duration-300 ease-in-out"
+            style={{ width: spacerWidth }}
+            className="shrink-0"
             aria-hidden
           />
         )}
+
 
         <main className="flex-1 overflow-auto">
           <div className="p-6 max-w-7xl mx-auto">
