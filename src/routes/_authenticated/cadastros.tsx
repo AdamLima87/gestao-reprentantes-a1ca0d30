@@ -1021,6 +1021,16 @@ function RepsTab() {
                           Enviar p/ assinatura
                         </Button>
                       )}
+                      {podeEnviarAssinatura && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setAnexarRep(r); setAnexarFile(null); setAnexarObs(""); setAnexarData(new Date().toISOString().slice(0, 10)); }}
+                          title="Anexar contrato assinado externamente"
+                        >
+                          <Paperclip className="h-3.5 w-3.5 mr-1" />Anexar contrato
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </MotionTableRow>
