@@ -612,6 +612,8 @@ type ContratoAssinatura = {
   representante_id: string;
   d4sign_document_uuid: string | null;
   status: string;
+  tipo: string | null;
+  observacao: string | null;
   enviado_por: string | null;
   enviado_at: string | null;
   assinado_at: string | null;
@@ -619,22 +621,55 @@ type ContratoAssinatura = {
   created_at: string;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
-  enviado: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
-  visualizado: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
-  assinado: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300",
-  recusado: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300",
-  cancelado: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300",
-};
+function bucketForContrato(c: { tipo: string | null }) {
+  return c.tipo === "externo" ? "contratos" : "contratos-assinados";
+}
 
-function StatusContratoBadge({ status }: { status: string | null }) {
-  if (!status) {
+async function abrirContratoAssinado(c: ContratoAssinatura) {
+  if (!c.url_download) return;
+  const { data, error } = await supabase.storage
+    .from(bucketForContrato(c))
+    .createSignedUrl(c.url_download, 3600);
+  if (error || !data?.signedUrl) {
+    toast.error("Falha ao abrir documento");
+    return;
+  }
+  window.open(data.signedUrl, "_blank");
+}
+
+const STATUS_PENDENTE = new Set(["pendente", "enviado", "visualizado"]);
+const STATUS_RECUSADO = new Set(["recusado", "cancelado"]);
+
+function StatusContratoBadge({ contrato }: { contrato: ContratoAssinatura | null }) {
+  if (!contrato) {
     return <Badge variant="outline" className="bg-muted text-muted-foreground">Sem contrato</Badge>;
   }
-  const cls = STATUS_COLORS[status] ?? "bg-muted text-muted-foreground";
-  const label = status.charAt(0).toUpperCase() + status.slice(1);
-  return <Badge variant="outline" className={cls}>{label}</Badge>;
+  const s = contrato.status;
+  if (s === "assinado") {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300">Assinado</Badge>
+        {contrato.url_download && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); abrirContratoAssinado(contrato); }}
+            className="text-green-700 hover:text-green-900 dark:text-green-300"
+            title="Baixar contrato assinado"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </span>
+    );
+  }
+  if (STATUS_PENDENTE.has(s)) {
+    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300">Aguardando assinatura</Badge>;
+  }
+  if (STATUS_RECUSADO.has(s)) {
+    const label = s.charAt(0).toUpperCase() + s.slice(1);
+    return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300">{label}</Badge>;
+  }
+  return <Badge variant="outline" className="bg-muted text-muted-foreground">{s}</Badge>;
 }
 
 function RepsTab() {
