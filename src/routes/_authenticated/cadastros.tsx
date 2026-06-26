@@ -1006,22 +1006,17 @@ function RepsTab() {
                 <TableBody>
                   {(historicoRep?._contratos as ContratoAssinatura[]).map((c) => (
                     <TableRow key={c.id}>
-                      <TableCell><StatusContratoBadge status={c.status} /></TableCell>
+                      <TableCell><StatusContratoBadge contrato={c} /></TableCell>
                       <TableCell className="text-sm">{c.enviado_at ? new Date(c.enviado_at).toLocaleString("pt-BR") : "—"}</TableCell>
                       <TableCell className="text-sm">{c.assinado_at ? new Date(c.assinado_at).toLocaleString("pt-BR") : "—"}</TableCell>
-                      <TableCell className="text-xs font-mono text-muted-foreground truncate max-w-[180px]">{c.d4sign_document_uuid ?? "—"}</TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground truncate max-w-[180px]">{c.d4sign_document_uuid ?? (c.tipo === "externo" ? "Externo" : "—")}</TableCell>
                       <TableCell>
                         {c.url_download ? (
-                          <Button size="sm" variant="outline" onClick={async () => {
-                            const { data, error } = await supabase.storage
-                              .from("contratos-assinados")
-                              .createSignedUrl(c.url_download!, 3600);
-                            if (error || !data?.signedUrl) { toast.error("Falha ao abrir documento"); return; }
-                            window.open(data.signedUrl, "_blank");
-                          }}>
+                          <Button size="sm" variant="outline" onClick={() => abrirContratoAssinado(c)}>
                             <FileText className="h-3.5 w-3.5 mr-1" />Visualizar
                           </Button>
                         ) : "—"}
+                      </TableCell>
                       </TableCell>
                     </TableRow>
                   ))}
