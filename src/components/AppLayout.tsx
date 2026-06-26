@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import brazilLogo from "@/assets/brazil-amortecedores-logo.png.asset.json";
 
 interface NavItem {
   to: string;
