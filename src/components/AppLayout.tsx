@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -7,6 +8,8 @@ import { LayoutDashboard, FileText, Receipt, DollarSign, Settings, LogOut, BarCh
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NavItem {
   to: string;
@@ -30,6 +33,9 @@ export function AppLayout() {
   const { can } = usePermissions();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isMobile = useIsMobile();
+  const [hovered, setHovered] = useState(false);
+  const expanded = isMobile ? true : hovered;
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -76,81 +82,151 @@ export function AppLayout() {
     .join("")
     .toUpperCase();
 
+  const sidebarWidth = isMobile ? 240 : expanded ? 240 : 64;
+
   return (
-    <div className="flex min-h-screen bg-muted/20">
-      <aside className="w-64 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border [&_*::-webkit-scrollbar]:w-1.5 [&_*::-webkit-scrollbar-track]:bg-transparent [&_*::-webkit-scrollbar-thumb]:bg-green-800 [&_*::-webkit-scrollbar-thumb]:rounded-full">
-        <div className="px-5 py-4 border-b border-green-800">
-          <h1 className="font-bold text-2xl leading-tight text-green-100 tracking-tight">Brazil</h1>
-          <p className="text-sm text-green-300 -mt-0.5">Amortecedores</p>
-          <p className="text-[10px] text-green-400 mt-2 capitalize tracking-wide">{roleLabel.replace("_", " ")}</p>
-        </div>
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {visible.map((n) => {
-            const Icon = n.icon;
-            const active = pathname === n.to || pathname.startsWith(n.to + "/");
-            return (
-              <Link
-                key={n.to}
-                to={n.to}
-                className={cn(
-                  "relative group flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 border-l-2 hover:translate-x-1",
-                  active
-                    ? "text-white border-primary"
-                    : "text-green-200 border-transparent hover:bg-sidebar-primary/30 hover:text-white"
-                )}
-              >
-                {active && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute inset-0 rounded-md bg-sidebar-primary -z-0"
-                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                  />
-                )}
-                <Icon
-                  className="relative z-10 h-4 w-4 transition-colors"
-                  style={{ color: n.colorVar }}
-                />
-                <span className="relative z-10">{n.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="p-4 bg-green-950 border-t border-green-800 space-y-3">
-          <ThemeSwitcher />
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-green-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
-              {initials}
-            </div>
-            <div className="min-w-0 text-xs">
-              <div className="font-medium text-white truncate">{nome || user?.email}</div>
-              <div className="text-green-300 truncate capitalize">{roleLabel.replace("_", " ")}</div>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-green-200 hover:bg-sidebar-primary/30 hover:text-white transition-all duration-200"
-            onClick={signOut}
+    <TooltipProvider delayDuration={300}>
+      <div className="flex min-h-screen bg-muted/20">
+        <aside
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{ width: sidebarWidth }}
+          className={cn(
+            "flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shrink-0",
+            "transition-all duration-300 ease-in-out overflow-hidden",
+            "[&_*::-webkit-scrollbar]:w-1.5 [&_*::-webkit-scrollbar-track]:bg-transparent [&_*::-webkit-scrollbar-thumb]:bg-green-800 [&_*::-webkit-scrollbar-thumb]:rounded-full",
+            !isMobile && "fixed inset-y-0 left-0 z-30"
+          )}
+        >
+          <div
+            className={cn(
+              "border-b border-green-800 h-[72px] flex items-center",
+              expanded ? "px-5" : "px-0 justify-center"
+            )}
           >
-            <LogOut className="h-4 w-4 mr-2" /> Sair
-          </Button>
-        </div>
-      </aside>
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 max-w-7xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
-    </div>
+            {expanded ? (
+              <div className="min-w-0">
+                <h1 className="font-bold text-2xl leading-tight text-green-100 tracking-tight whitespace-nowrap">Brazil</h1>
+                <p className="text-sm text-green-300 -mt-0.5 whitespace-nowrap">Amortecedores</p>
+                <p className="text-[10px] text-green-400 mt-1 capitalize tracking-wide whitespace-nowrap">{roleLabel.replace("_", " ")}</p>
+              </div>
+            ) : (
+              <div className="h-9 w-9 rounded-md bg-green-700 text-white flex items-center justify-center font-bold text-lg">
+                B
+              </div>
+            )}
+          </div>
+
+          <nav className={cn("flex-1 py-3 space-y-1 overflow-y-auto overflow-x-hidden", expanded ? "px-3" : "px-2")}>
+            {visible.map((n) => {
+              const Icon = n.icon;
+              const active = pathname === n.to || pathname.startsWith(n.to + "/");
+              const link = (
+                <Link
+                  to={n.to}
+                  className={cn(
+                    "relative group flex items-center gap-3 rounded-md text-sm transition-all duration-200 border-l-2",
+                    expanded ? "px-3 py-2 hover:translate-x-1" : "px-0 py-2 justify-center",
+                    active
+                      ? "text-white border-primary"
+                      : "text-green-200 border-transparent hover:bg-sidebar-primary/30 hover:text-white"
+                  )}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute inset-0 rounded-md bg-sidebar-primary -z-0"
+                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                    />
+                  )}
+                  <Icon className="relative z-10 h-4 w-4 shrink-0 transition-colors" style={{ color: n.colorVar }} />
+                  {expanded && <span className="relative z-10 whitespace-nowrap">{n.label}</span>}
+                </Link>
+              );
+              return (
+                <div key={n.to}>
+                  {!expanded && !isMobile ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>{link}</TooltipTrigger>
+                      <TooltipContent side="right">{n.label}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    link
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          <div className={cn("bg-green-950 border-t border-green-800 space-y-3", expanded ? "p-4" : "p-2")}>
+            {expanded ? (
+              <>
+                <ThemeSwitcher />
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-green-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 text-xs">
+                    <div className="font-medium text-white truncate">{nome || user?.email}</div>
+                    <div className="text-green-300 truncate capitalize">{roleLabel.replace("_", " ")}</div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-green-200 hover:bg-sidebar-primary/30 hover:text-white transition-all duration-200"
+                  onClick={signOut}
+                >
+                  <LogOut className="h-4 w-4 mr-2" /> Sair
+                </Button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-9 w-9 rounded-full bg-green-700 text-white flex items-center justify-center text-xs font-semibold">
+                  {initials}
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-green-200 hover:bg-sidebar-primary/30 hover:text-white"
+                      onClick={signOut}
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Sair</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {!isMobile && (
+          <div
+            style={{ width: sidebarWidth }}
+            className="shrink-0 transition-all duration-300 ease-in-out"
+            aria-hidden
+          />
+        )}
+
+        <main className="flex-1 overflow-auto">
+          <div className="p-6 max-w-7xl mx-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </main>
+      </div>
+    </TooltipProvider>
   );
 }
