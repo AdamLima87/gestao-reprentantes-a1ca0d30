@@ -113,15 +113,20 @@ export function AppLayout() {
             )}
           >
             {expanded ? (
-              <div className="min-w-0">
-                <h1 className="font-bold text-2xl leading-tight text-green-100 tracking-tight whitespace-nowrap">Brazil</h1>
-                <p className="text-sm text-green-300 -mt-0.5 whitespace-nowrap">Amortecedores</p>
+              <div className="min-w-0 flex flex-col items-start">
+                <img
+                  src={brazilLogo.url}
+                  alt="Brazil Amortecedores"
+                  className="h-10 w-auto object-contain"
+                />
                 <p className="text-[10px] text-green-400 mt-1 capitalize tracking-wide whitespace-nowrap">{roleLabel.replace("_", " ")}</p>
               </div>
             ) : (
-              <div className="h-9 w-9 rounded-md bg-green-700 text-white flex items-center justify-center font-bold text-lg">
-                B
-              </div>
+              <img
+                src={brazilLogo.url}
+                alt="Brazil"
+                className="h-9 w-9 object-contain"
+              />
             )}
           </div>
 
