@@ -1080,6 +1080,61 @@ function RepsTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!anexarRep} onOpenChange={(o) => { if (!o && !anexarSaving) setAnexarRep(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Anexar contrato assinado externamente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {anexarRep && (
+              <p className="text-sm text-muted-foreground">
+                Representante: <span className="font-medium text-foreground">{anexarRep.nome}</span>
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="anexar-file">Arquivo PDF *</Label>
+              <Input
+                id="anexar-file"
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setAnexarFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="anexar-data">Data de assinatura *</Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="anexar-data"
+                  type="date"
+                  className="pl-8"
+                  value={anexarData}
+                  onChange={(e) => setAnexarData(e.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="anexar-obs">Observação (opcional)</Label>
+              <Textarea
+                id="anexar-obs"
+                placeholder="Ex.: Assinado via Gov.br"
+                value={anexarObs}
+                onChange={(e) => setAnexarObs(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAnexarRep(null)} disabled={anexarSaving}>Cancelar</Button>
+            <Button onClick={salvarAnexarContrato} disabled={anexarSaving}>
+              {anexarSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
