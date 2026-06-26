@@ -1002,36 +1002,63 @@ function RepsTab() {
                   </TableCell>
                   <TableCell><Switch checked={r.ativo} onCheckedChange={(v) => toggleAtivo(r.id, v)} /></TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>
-                      {r.tipo === "externo" && can("gerar_contrato_pdf") && (
-                        <Button size="sm" variant="outline" onClick={() => gerarContrato(r)}><FileText className="h-3.5 w-3.5 mr-1" />Gerar Contrato</Button>
-                      )}
-                      {r.tipo === "externo" && podeEnviarAssinatura && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => enviarParaAssinatura(r)}
-                          disabled={enviandoId === r.id}
-                          title={r.email ? "Enviar para assinatura via D4Sign" : "Cadastre o e-mail do representante"}
-                        >
-                          {enviandoId === r.id
-                            ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                            : <Send className="h-3.5 w-3.5 mr-1" />}
-                          Enviar p/ assinatura
-                        </Button>
-                      )}
-                      {podeEnviarAssinatura && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => { setAnexarRep(r); setAnexarFile(null); setAnexarObs(""); setAnexarData(new Date().toISOString().slice(0, 10)); }}
-                          title="Anexar contrato assinado externamente"
-                        >
-                          <Paperclip className="h-3.5 w-3.5 mr-1" />Anexar contrato
-                        </Button>
-                      )}
-                    </div>
+                    <TooltipProvider delayDuration={500}>
+                      <div className="flex flex-wrap gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => openEdit(r)} aria-label="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
+                        {r.tipo === "externo" && can("gerar_contrato_pdf") && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => gerarContrato(r)} aria-label="Gerar Contrato">
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Gerar Contrato</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {r.tipo === "externo" && podeEnviarAssinatura && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8"
+                                onClick={() => enviarParaAssinatura(r)}
+                                disabled={enviandoId === r.id}
+                                aria-label="Enviar para assinatura"
+                              >
+                                {enviandoId === r.id
+                                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                                  : <Send className="h-4 w-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{r.email ? "Enviar p/ assinatura" : "Cadastre o e-mail do representante"}</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {podeEnviarAssinatura && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8"
+                                onClick={() => { setAnexarRep(r); setAnexarFile(null); setAnexarObs(""); setAnexarData(new Date().toISOString().slice(0, 10)); }}
+                                aria-label="Anexar contrato"
+                              >
+                                <Paperclip className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Anexar contrato</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TooltipProvider>
                   </TableCell>
                 </MotionTableRow>
               );
