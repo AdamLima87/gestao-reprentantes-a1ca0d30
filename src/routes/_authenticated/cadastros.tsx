@@ -2177,11 +2177,13 @@ function ImportarTab() {
           <TabsTrigger value="imp-ped">Importar Pedidos</TabsTrigger>
           <TabsTrigger value="edit-cli">Editar Clientes</TabsTrigger>
           <TabsTrigger value="edit-ped">Editar Pedidos</TabsTrigger>
+          <TabsTrigger value="imp-ia">Importação Inteligente com IA</TabsTrigger>
         </TabsList>
         <TabsContent value="imp-cli" className="mt-4"><ImportClientesSection /></TabsContent>
         <TabsContent value="imp-ped" className="mt-4"><ImportPedidosSection /></TabsContent>
         <TabsContent value="edit-cli" className="mt-4"><EditClientesSection /></TabsContent>
         <TabsContent value="edit-ped" className="mt-4"><EditPedidosSection /></TabsContent>
+        <TabsContent value="imp-ia" className="mt-4"><AIImportSection /></TabsContent>
       </Tabs>
     </div>
   );
