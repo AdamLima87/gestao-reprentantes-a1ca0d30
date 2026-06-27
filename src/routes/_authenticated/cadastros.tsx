@@ -22,7 +22,9 @@ import { toast } from "sonner";
 import { createUser, listUsers, updateUser, deleteUser, listAllPermissions, resetUserPassword } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send, Paperclip, Calendar as CalendarIcon } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send, Paperclip, Calendar as CalendarIcon, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import * as XLSX from "xlsx";
+import { interpretarPlanilhas, type AIImportRow } from "@/lib/ai-import.functions";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -2177,11 +2179,13 @@ function ImportarTab() {
           <TabsTrigger value="imp-ped">Importar Pedidos</TabsTrigger>
           <TabsTrigger value="edit-cli">Editar Clientes</TabsTrigger>
           <TabsTrigger value="edit-ped">Editar Pedidos</TabsTrigger>
+          <TabsTrigger value="imp-ia">Importação Inteligente com IA</TabsTrigger>
         </TabsList>
         <TabsContent value="imp-cli" className="mt-4"><ImportClientesSection /></TabsContent>
         <TabsContent value="imp-ped" className="mt-4"><ImportPedidosSection /></TabsContent>
         <TabsContent value="edit-cli" className="mt-4"><EditClientesSection /></TabsContent>
         <TabsContent value="edit-ped" className="mt-4"><EditPedidosSection /></TabsContent>
+        <TabsContent value="imp-ia" className="mt-4"><AIImportSection /></TabsContent>
       </Tabs>
     </div>
   );
@@ -2995,3 +2999,275 @@ function EditPedidosSection() {
     </div>
   );
 }
+
+// ---------- Importação Inteligente com IA ----------
+type AIRowState = AIImportRow & { selected: boolean };
+
+function rowKey(r: AIRowState) {
+  return `${r.sheet ?? ""}-${r.row}`;
+}
+
+function AIImportSection() {
+  const qc = useQueryClient();
+  const interpretar = useServerFn(interpretarPlanilhas);
+  const [files, setFiles] = useState<File[]>([]);
+  const [processing, setProcessing] = useState(false);
+  const [rows, setRows] = useState<AIRowState[]>([]);
+  const [summary, setSummary] = useState<string>("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ ok: number; skipped: number; errors: { row: number; reason: string }[] } | null>(null);
+
+  const stats = {
+    ok: rows.filter((r) => r.status === "ok").length,
+    warning: rows.filter((r) => r.status === "warning").length,
+    error: rows.filter((r) => r.status === "error").length,
+  };
+
+  const handleFiles = (list: FileList | null) => {
+    if (!list) return;
+    const arr = Array.from(list).filter((f) => /\.(xlsx|xls|csv)$/i.test(f.name));
+    if (!arr.length) { toast.error("Envie arquivos .xlsx, .xls ou .csv"); return; }
+    setFiles(arr);
+    setRows([]); setImportResult(null); setSummary("");
+  };
+
+  const processar = async () => {
+    if (!files.length) return;
+    setProcessing(true);
+    setImportResult(null);
+    try {
+      const sheets: { name: string; rows: Record<string, unknown>[] }[] = [];
+      for (const f of files) {
+        const buf = await f.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array", cellDates: true });
+        for (const sheetName of wb.SheetNames) {
+          const ws = wb.Sheets[sheetName];
+          const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, raw: false });
+          if (json.length) sheets.push({ name: `${f.name}::${sheetName}`, rows: json });
+        }
+      }
+      if (!sheets.length) { toast.error("Nenhuma planilha com dados encontrada."); return; }
+      const result = await interpretar({ data: { sheets } });
+      setRows(result.rows.map((r) => ({ ...r, selected: r.status !== "error" })));
+      setSummary(result.summary ?? "");
+      toast.success(`IA interpretou ${result.rows.length} linha(s).`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao processar.");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const baixarCorrigivel = () => {
+    if (!rows.length) return;
+    const data = rows.map((r) => ({
+      linha: r.row,
+      aba: r.sheet ?? "",
+      status: r.status,
+      erros: r.errors.join(" | "),
+      avisos: r.warnings.join(" | "),
+      numero_pedido: r.pedido.numero_pedido ?? "",
+      numero_pedido_cliente: r.pedido.numero_pedido_cliente ?? "",
+      cnpj_cliente: r.pedido.cnpj_cliente ?? "",
+      nome_cliente: r.pedido.nome_cliente ?? "",
+      nome_representante: r.pedido.nome_representante ?? "",
+      data_pedido: r.pedido.data_pedido ?? "",
+      prazo_entrega: r.pedido.prazo_entrega ?? "",
+      valor_produtos: r.pedido.valor_produtos ?? "",
+      status_pedido: r.pedido.status ?? "",
+      vendedor_interno_participou: r.pedido.vendedor_interno_participou ? "sim" : "nao",
+      nfe_emitida: r.nfe ? "sim" : "nao",
+      numero_nfe: r.nfe?.numero_nfe ?? "",
+      valor_nfe: r.nfe?.valor_nfe ?? "",
+      data_nfe: r.nfe?.data_nfe ?? "",
+      data_entrega_nfe: r.nfe?.data_entrega ?? "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pedidos IA");
+    XLSX.writeFile(wb, "pedidos-ia-corrigir.xlsx");
+  };
+
+  const confirmar = async () => {
+    const elegiveis = rows.filter((r) => r.selected && r.status !== "error");
+    if (!elegiveis.length) { toast.error("Nenhuma linha válida selecionada."); return; }
+    setImporting(true);
+    const errors: { row: number; reason: string }[] = [];
+    let ok = 0;
+
+    const { data: clientes } = await supabase.from("clientes").select("id, nome, cnpj");
+    const { data: reps } = await supabase.from("representantes").select("id, nome");
+    const clienteByCnpj = new Map((clientes ?? []).map((c: any) => [(c.cnpj ?? "").replace(/\D/g, ""), c.id]));
+    const clienteByName = new Map((clientes ?? []).map((c: any) => [(c.nome ?? "").trim().toLowerCase(), c.id]));
+    const repByName = new Map((reps ?? []).map((r: any) => [(r.nome ?? "").trim().toLowerCase(), r.id]));
+
+    for (const r of elegiveis) {
+      const p = r.pedido;
+      const cnpjDigits = (p.cnpj_cliente ?? "").replace(/\D/g, "");
+      const cliente_id = (cnpjDigits && clienteByCnpj.get(cnpjDigits)) || (p.nome_cliente && clienteByName.get(p.nome_cliente.trim().toLowerCase()));
+      if (!cliente_id) { errors.push({ row: r.row, reason: `Cliente não encontrado (${p.nome_cliente ?? p.cnpj_cliente ?? "-"})` }); continue; }
+      let representante_id: string | null = null;
+      if (p.nome_representante) {
+        representante_id = repByName.get(p.nome_representante.trim().toLowerCase()) ?? null;
+        if (!representante_id) { errors.push({ row: r.row, reason: `Representante não encontrado: "${p.nome_representante}"` }); continue; }
+      }
+      const data_pedido = p.data_pedido || new Date().toISOString().slice(0, 10);
+      const d = new Date(data_pedido);
+      const status = (p.status || "pedido") as "pedido" | "producao" | "faturado" | "entregue" | "cancelado";
+      const { data: pedIns, error: pedErr } = await supabase.from("pedidos").insert({
+        numero_pedido: p.numero_pedido!,
+        numero_pedido_cliente: p.numero_pedido_cliente || null,
+        cliente_id, representante_id,
+        data_pedido,
+        prazo_entrega: p.prazo_entrega || null,
+        valor_produtos: Number(p.valor_produtos ?? 0),
+        mes_ref: d.getMonth() + 1,
+        ano_ref: d.getFullYear(),
+        status,
+        jefferson_participou: Boolean(p.vendedor_interno_participou),
+      }).select("id").single();
+      if (pedErr || !pedIns) { errors.push({ row: r.row, reason: pedErr?.message ?? "falha ao inserir pedido" }); continue; }
+      ok++;
+      if (r.nfe) {
+        const dn = new Date(r.nfe.data_nfe || data_pedido);
+        await supabase.from("nfe").insert({
+          pedido_id: pedIns.id,
+          numero_nfe: r.nfe.numero_nfe || p.numero_pedido!,
+          valor_nfe: Number(r.nfe.valor_nfe ?? p.valor_produtos ?? 0),
+          data_nfe: r.nfe.data_nfe || data_pedido,
+          data_entrega: r.nfe.data_entrega || null,
+          mes_ref: dn.getMonth() + 1,
+          ano_ref: dn.getFullYear(),
+        });
+      }
+    }
+
+    const skipped = rows.length - ok;
+    setImportResult({ ok, skipped, errors });
+    setImporting(false);
+    if (ok) {
+      toast.success(`${ok} pedido(s) importado(s).`);
+      qc.invalidateQueries({ queryKey: ["pedidos"] });
+      qc.invalidateQueries({ queryKey: ["nfes"] });
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
+    }
+    if (errors.length) toast.error(`${errors.length} erro(s) durante a importação.`);
+  };
+
+  const rowBg = (s: AIImportRow["status"]) =>
+    s === "error" ? "bg-destructive/10" : s === "warning" ? "bg-amber-500/10" : "bg-emerald-500/10";
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> Passo 1 — Envie suas planilhas</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Aceita .xlsx, .xls ou .csv. A IA tenta entender qualquer layout — colunas com nomes diferentes, várias abas, etc.
+          </p>
+          <Input type="file" accept=".xlsx,.xls,.csv" multiple onChange={(e) => handleFiles(e.target.files)} />
+          {files.length > 0 && (
+            <ul className="text-xs text-muted-foreground list-disc pl-5">
+              {files.map((f) => <li key={f.name}>{f.name} <span className="opacity-60">({Math.round(f.size / 1024)} KB)</span></li>)}
+            </ul>
+          )}
+          <Button onClick={processar} disabled={!files.length || processing} className="bg-primary hover:bg-primary/90">
+            {processing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando com IA…</> : <><Sparkles className="h-4 w-4 mr-2" /> Processar com IA</>}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {rows.length > 0 && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5" /> Passo 2 — Prévia interpretada</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {summary && <p className="text-sm text-muted-foreground italic">{summary}</p>}
+              <div className="flex flex-wrap gap-2 text-sm">
+                <Badge className="bg-emerald-600 hover:bg-emerald-600"><CheckCircle2 className="h-3 w-3 mr-1" /> {stats.ok} ok</Badge>
+                <Badge className="bg-amber-500 hover:bg-amber-500"><AlertTriangle className="h-3 w-3 mr-1" /> {stats.warning} avisos</Badge>
+                <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" /> {stats.error} erros</Badge>
+              </div>
+              <div className="max-h-[28rem] overflow-auto border rounded">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Linha</TableHead>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Representante</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>NF-e</TableHead>
+                      <TableHead>Observações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r) => (
+                      <TableRow key={rowKey(r)} className={rowBg(r.status)}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            disabled={r.status === "error"}
+                            checked={r.selected}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setRows((prev) => prev.map((x) => x.row === r.row && x.sheet === r.sheet ? { ...x, selected: checked } : x));
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs uppercase font-semibold">{r.status}</TableCell>
+                        <TableCell className="text-xs">{r.row}</TableCell>
+                        <TableCell className="text-xs font-mono">{r.pedido.numero_pedido ?? "-"}</TableCell>
+                        <TableCell className="text-xs">{r.pedido.nome_cliente ?? "-"}</TableCell>
+                        <TableCell className="text-xs">{r.pedido.nome_representante ?? "-"}</TableCell>
+                        <TableCell className="text-xs">{r.pedido.data_pedido ?? "-"}</TableCell>
+                        <TableCell className="text-xs">{r.pedido.valor_produtos != null ? Number(r.pedido.valor_produtos).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</TableCell>
+                        <TableCell className="text-xs">{r.nfe ? `NF ${r.nfe.numero_nfe ?? ""}`.trim() : "-"}</TableCell>
+                        <TableCell className="text-xs">
+                          {r.errors.map((e, i) => <div key={`e${i}`} className="text-destructive">• {e}</div>)}
+                          {r.warnings.map((w, i) => <div key={`w${i}`} className="text-amber-700 dark:text-amber-400">• {w}</div>)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={baixarCorrigivel}><Download className="h-4 w-4 mr-2" /> Corrigir no Excel</Button>
+                <Button onClick={confirmar} disabled={importing || stats.ok + stats.warning === 0} className="bg-primary hover:bg-primary/90">
+                  {importing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando…</> : <>Confirmar importação</>}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {importResult && (
+            <Card>
+              <CardHeader><CardTitle>Resumo da importação</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-sm">
+                  ✅ Importados: <strong>{importResult.ok}</strong> &nbsp;|&nbsp;
+                  ⏭️ Ignorados: <strong>{importResult.skipped}</strong> &nbsp;|&nbsp;
+                  ❌ Erros: <strong>{importResult.errors.length}</strong>
+                </p>
+                {importResult.errors.length > 0 && (
+                  <ul className="text-xs text-destructive list-disc pl-5 max-h-48 overflow-auto">
+                    {importResult.errors.map((e, i) => <li key={i}>Linha {e.row}: {e.reason}</li>)}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
