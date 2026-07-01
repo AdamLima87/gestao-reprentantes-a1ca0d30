@@ -259,7 +259,23 @@ function Dashboard() {
         <h1 className="text-2xl font-bold border-l-4 border-[#34a85a] pl-3">
           Dashboard <span className="text-muted-foreground font-normal text-lg">— {String(mes).padStart(2, "0")}/{ano}</span>
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+            <SelectTrigger className="h-9 w-[130px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MESES_ABREV.map((label, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+            <SelectTrigger className="h-9 w-[100px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Badge
             className="gap-1 px-3 py-1.5 text-sm font-semibold"
             style={{
