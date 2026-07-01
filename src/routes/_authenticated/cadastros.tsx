@@ -2427,7 +2427,8 @@ function ImportPedidosSection() {
         if (!rid) { errors.push({ line, reason: `Representante não encontrado: "${r.nome_representante}"` }); continue; }
         representante_id = rid;
       }
-      const data_pedido = r.data_pedido || new Date().toISOString().slice(0, 10);
+      const data_pedido = normalizeDate(r.data_pedido) || new Date().toISOString().slice(0, 10);
+      const prazo_entrega = normalizeDate(r.prazo_entrega) || null;
       const d = new Date(data_pedido);
       const mes_ref = r.mes_ref ? Number(r.mes_ref) : d.getMonth() + 1;
       const ano_ref = r.ano_ref ? Number(r.ano_ref) : d.getFullYear();
@@ -2437,8 +2438,8 @@ function ImportPedidosSection() {
         numero_pedido: r.numero_pedido,
         numero_pedido_cliente: r.numero_pedido_cliente || null,
         cliente_id, representante_id,
-        data_pedido, prazo_entrega: r.prazo_entrega || null,
-        valor_produtos: Number(r.valor_produtos || 0),
+        data_pedido, prazo_entrega,
+        valor_produtos: parseBRNumber(r.valor_produtos),
         mes_ref, ano_ref, status,
         jefferson_participou: isSim(r.vendedor_interno_participou),
       }).select("id").single();
@@ -2446,14 +2447,14 @@ function ImportPedidosSection() {
       pedidosOk++;
 
       if (isSim(r.nfe_emitida)) {
-        const data_nfe = r.data_nfe || data_pedido;
+        const data_nfe = normalizeDate(r.data_nfe) || data_pedido;
         const dn = new Date(data_nfe);
         const { error: nfeErr } = await supabase.from("nfe").insert({
           pedido_id: pedidoIns.id,
           numero_nfe: r.numero_nfe || r.numero_pedido,
-          valor_nfe: Number(r.valor_nfe || r.valor_produtos || 0),
+          valor_nfe: parseBRNumber(r.valor_nfe || r.valor_produtos),
           data_nfe,
-          data_entrega: r.data_entrega_nfe || null,
+          data_entrega: normalizeDate(r.data_entrega_nfe) || null,
           mes_ref: dn.getMonth() + 1,
           ano_ref: dn.getFullYear(),
         });
