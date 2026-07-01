@@ -497,7 +497,35 @@ function ComissoesPage() {
 
   const { data: reps } = useQuery({
     queryKey: ["reps"],
-    queryFn: async () => (await supabase.from("representantes").select("id, nome, email, banco, tipo_conta, agencia, conta_digito, chave_pix, titular_conta, cpf_cnpj_titular").order("nome")).data ?? [],
+    queryFn: async () => (await supabase.from("representantes").select("id, nome, email, tipo, banco, tipo_conta, agencia, conta_digito, chave_pix, titular_conta, cpf_cnpj_titular").order("nome")).data ?? [],
+  });
+
+  const { data: gestoresProfiles } = useQuery({
+    queryKey: ["gestores-profiles-full"],
+    enabled: podeVerGestor,
+    queryFn: async () => {
+      const { data: gr } = await supabase.from("user_roles").select("user_id").eq("role", "gestor");
+      const ids = (gr ?? []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [] as any[];
+      const { data: profs } = await supabase.from("profiles").select("id, nome, banco, agencia, conta, pix").in("id", ids);
+      return (profs ?? []) as any[];
+    },
+  });
+
+  const { data: gestorComissoes } = useQuery({
+    queryKey: ["comissoes-gestor", mes, ano, isAdmin, user?.id],
+    enabled: podeVerGestor,
+    queryFn: async () => {
+      let q = supabase
+        .from("comissoes")
+        .select("*, pedidos(numero_pedido, clientes(nome)), nfe(numero_nfe, valor_nfe, data_nfe)")
+        .eq("tipo", "gestor" as any)
+        .eq("mes_ref", mes)
+        .eq("ano_ref", ano)
+        .order("criado_em", { ascending: false });
+      if (!isAdmin && user?.id) q = q.eq("gestor_user_id", user.id);
+      return (await q).data ?? [];
+    },
   });
 
   const { data, isLoading } = useQuery({
