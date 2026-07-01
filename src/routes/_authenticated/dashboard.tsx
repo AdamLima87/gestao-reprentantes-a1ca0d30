@@ -29,7 +29,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
