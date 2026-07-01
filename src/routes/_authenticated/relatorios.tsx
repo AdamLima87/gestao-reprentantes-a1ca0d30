@@ -1031,9 +1031,10 @@ function GestorTable({
         ]);
       }
       const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
-      linhas.push([`Subtotal ${g.nome}`, "", "", "", "", sub.toFixed(2)]);
+      const subProd = g.rows.reduce((s, r) => s + Number(r.base_calculo), 0);
+      linhas.push([`Subtotal ${g.nome}`, "", "", subProd.toFixed(2), "", sub.toFixed(2)]);
     }
-    linhas.push(["TOTAL GERAL", "", "", "", "", totalGeral.toFixed(2)]);
+    linhas.push(["TOTAL GERAL", "", "", totalProdutos.toFixed(2), "", totalGeral.toFixed(2)]);
     exportCSV(
       `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
       ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"],
