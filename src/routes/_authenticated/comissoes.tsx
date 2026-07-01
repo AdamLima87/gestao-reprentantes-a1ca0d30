@@ -816,7 +816,7 @@ function GruposComissoes({
         nome: rep?.nome ?? c.representantes?.nome ?? "Representante",
         kind,
         rep,
-        rows: [],
+        rows: [] as any[],
       };
       g.rows.push(c);
       map.set(key, g);
@@ -831,7 +831,7 @@ function GruposComissoes({
         nome: profile?.nome ?? "Gestor",
         kind: "gestor" as const,
         gestorProfile: profile,
-        rows: [],
+        rows: [] as any[],
       };
       g.rows.push(c);
       map.set(key, g);
