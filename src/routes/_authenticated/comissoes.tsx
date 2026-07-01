@@ -23,7 +23,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { reprocessarComissoes } from "@/lib/comissoes.functions";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Mail } from "lucide-react";
+import { Mail, ChevronDown, CheckCircle2, FileDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fmtBRL as fmtBRLUtil } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
@@ -496,7 +497,35 @@ function ComissoesPage() {
 
   const { data: reps } = useQuery({
     queryKey: ["reps"],
-    queryFn: async () => (await supabase.from("representantes").select("id, nome, email, banco, tipo_conta, agencia, conta_digito, chave_pix, titular_conta, cpf_cnpj_titular").order("nome")).data ?? [],
+    queryFn: async () => (await supabase.from("representantes").select("id, nome, email, tipo, banco, tipo_conta, agencia, conta_digito, chave_pix, titular_conta, cpf_cnpj_titular").order("nome")).data ?? [],
+  });
+
+  const { data: gestoresProfiles } = useQuery({
+    queryKey: ["gestores-profiles-full"],
+    enabled: podeVerGestor,
+    queryFn: async () => {
+      const { data: gr } = await supabase.from("user_roles").select("user_id").eq("role", "gestor");
+      const ids = (gr ?? []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [] as any[];
+      const { data: profs } = await supabase.from("profiles").select("id, nome, banco, agencia, conta, pix").in("id", ids);
+      return (profs ?? []) as any[];
+    },
+  });
+
+  const { data: gestorComissoes } = useQuery({
+    queryKey: ["comissoes-gestor", mes, ano, isAdmin, user?.id],
+    enabled: podeVerGestor,
+    queryFn: async () => {
+      let q = supabase
+        .from("comissoes")
+        .select("*, pedidos(numero_pedido, clientes(nome)), nfe(numero_nfe, valor_nfe, data_nfe)")
+        .eq("tipo", "gestor" as any)
+        .eq("mes_ref", mes)
+        .eq("ano_ref", ano)
+        .order("criado_em", { ascending: false });
+      if (!isAdmin && user?.id) q = q.eq("gestor_user_id", user.id);
+      return (await q).data ?? [];
+    },
   });
 
   const { data, isLoading } = useQuery({
@@ -649,84 +678,31 @@ function ComissoesPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Extrato — {String(mes).padStart(2, "0")}/{ano}</CardTitle></CardHeader>
-        <CardContent>
-          {isLoading ? <p>Carregando…</p> : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortableTableHead sortKey="rep" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Rep</SortableTableHead>
-                    <SortableTableHead sortKey="pedido" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Pedido</SortableTableHead>
-                    <SortableTableHead sortKey="cliente" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Cliente</SortableTableHead>
-                    <SortableTableHead sortKey="nfe" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>NF-e</SortableTableHead>
-                    <SortableTableHead sortKey="base_calculo" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Valor NF-e</SortableTableHead>
-                    <SortableTableHead sortKey="tipo" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Tipo</SortableTableHead>
-                    <SortableTableHead sortKey="percentual" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>%</SortableTableHead>
-                    <SortableTableHead sortKey="valor_comissao" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Comissão</SortableTableHead>
-                    <SortableTableHead sortKey="status" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Status pagamento</SortableTableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {comissoesSort.sortedData.map((c: any, index: number) => (
-                    <MotionTableRow key={c.id} {...rowMotionProps(index)}>
-                      <TableCell>{c.representantes?.nome}</TableCell>
-                      <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
-                      <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
-                      <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe}</TableCell>
-                      <TableCell>{fmtBRL(c.base_calculo)}</TableCell>
-                      <TableCell><TipoComissaoBadge tipo={c.tipo} /></TableCell>
-                      <TableCell>{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
-                      <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <StatusBadge pago={!!c.pago_em} />
-                          {c.pago_em && <span className="text-xs text-muted-foreground">em {formatarData(c.pago_em)}</span>}
-                          {c.comprovante_url && <ComprovanteLink path={c.comprovante_url} />}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {!c.pago_em && canMarcarPago && (
-                          <MarcarPagoDialog comissao={c} onDone={() => qc.invalidateQueries({ queryKey: ["comissoes"] })} />
-                        )}
-                      </TableCell>
-                    </MotionTableRow>
-                  ))}
-                  {filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Sem comissões no período.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="border rounded-md p-3">
-                  <div className="text-xs text-muted-foreground">Total pendente no período</div>
-                  <div className="text-xl font-bold text-yellow-600">{fmtBRL(totalPendente)}</div>
-                </div>
-                <div className="border rounded-md p-3">
-                  <div className="text-xs text-muted-foreground">Total pago no período</div>
-                  <div className="text-xl font-bold text-green-600">{fmtBRL(totalPago)}</div>
-                </div>
-                <div className="border rounded-md p-3">
-                  <div className="text-xs text-muted-foreground">Total exibido</div>
-                  <div className="text-xl font-bold">{fmtBRL(totalVisivel)}</div>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <GruposComissoes
+        isLoading={isLoading}
+        rowsRep={filtered}
+        rowsGestor={(gestorComissoes ?? []).filter((c: any) => {
+          if (statusFilter === "pendentes") return !c.pago_em;
+          if (statusFilter === "pagas") return !!c.pago_em;
+          return true;
+        })}
+        reps={reps ?? []}
+        gestoresProfiles={gestoresProfiles ?? []}
+        mes={mes}
+        ano={ano}
+        repFilter={repFilter}
+        totalPendente={totalPendente}
+        totalPago={totalPago}
+        totalVisivel={totalVisivel}
+        canMarcarPago={canMarcarPago}
+        canExportar={canExportar}
+        canEnviarExtrato={canEnviarExtrato}
+        onChanged={() => {
+          qc.invalidateQueries({ queryKey: ["comissoes"] });
+          qc.invalidateQueries({ queryKey: ["comissoes-gestor"] });
+        }}
+      />
 
-
-      {podeVerGestor && (
-        <ComissaoGestorSection
-          mes={mes}
-          ano={ano}
-          isAdmin={isAdmin}
-          currentUserId={user?.id ?? null}
-        />
-      )}
 
       <Dialog open={emailDialogOpen} onOpenChange={(o) => !enviandoEmail && setEmailDialogOpen(o)}>
         <DialogContent>
@@ -781,6 +757,407 @@ function ComissoesPage() {
     </motion.div>
   );
 }
+
+type GrupoKind = "externo" | "interno" | "gestor";
+
+interface Grupo {
+  key: string;
+  nome: string;
+  kind: GrupoKind;
+  rep?: any;
+  gestorProfile?: any;
+  rows: any[];
+}
+
+function GruposComissoes({
+  isLoading,
+  rowsRep,
+  rowsGestor,
+  reps,
+  gestoresProfiles,
+  mes,
+  ano,
+  repFilter,
+  totalPendente,
+  totalPago,
+  totalVisivel,
+  canMarcarPago,
+  canExportar,
+  canEnviarExtrato,
+  onChanged,
+}: {
+  isLoading: boolean;
+  rowsRep: any[];
+  rowsGestor: any[];
+  reps: any[];
+  gestoresProfiles: any[];
+  mes: number;
+  ano: number;
+  repFilter: string;
+  totalPendente: number;
+  totalPago: number;
+  totalVisivel: number;
+  canMarcarPago: boolean;
+  canExportar: boolean;
+  canEnviarExtrato: boolean;
+  onChanged: () => void;
+}) {
+  const grupos = useMemo<Grupo[]>(() => {
+    const map = new Map<string, Grupo>();
+
+    for (const c of rowsRep) {
+      const repId: string | null = c.representante_id ?? null;
+      if (!repId) continue;
+      const rep = reps.find((r) => r.id === repId);
+      const kind: GrupoKind = rep?.tipo === "interno" ? "interno" : "externo";
+      const key = `rep:${repId}`;
+      const g = map.get(key) ?? {
+        key,
+        nome: rep?.nome ?? c.representantes?.nome ?? "Representante",
+        kind,
+        rep,
+        rows: [] as any[],
+      };
+      g.rows.push(c);
+      map.set(key, g);
+    }
+
+    for (const c of rowsGestor) {
+      const gid: string = c.gestor_user_id ?? "sem-gestor";
+      const key = `gestor:${gid}`;
+      const profile = gestoresProfiles.find((p) => p.id === gid);
+      const g = map.get(key) ?? {
+        key,
+        nome: profile?.nome ?? "Gestor",
+        kind: "gestor" as const,
+        gestorProfile: profile,
+        rows: [] as any[],
+      };
+      g.rows.push(c);
+      map.set(key, g);
+    }
+
+    let arr = [...map.values()];
+    if (repFilter !== "todos") arr = arr.filter((g) => g.key === `rep:${repFilter}`);
+
+    const order: Record<GrupoKind, number> = { externo: 0, interno: 1, gestor: 2 };
+    arr.sort((a, b) => {
+      if (order[a.kind] !== order[b.kind]) return order[a.kind] - order[b.kind];
+      return a.nome.localeCompare(b.nome, "pt-BR");
+    });
+    return arr;
+  }, [rowsRep, rowsGestor, reps, gestoresProfiles, repFilter]);
+
+  return (
+    <div className="space-y-4">
+      {isLoading ? (
+        <Card><CardContent className="pt-6"><p>Carregando…</p></CardContent></Card>
+      ) : grupos.length === 0 ? (
+        <Card><CardContent className="pt-6 text-center text-muted-foreground">Sem comissões no período.</CardContent></Card>
+      ) : (
+        grupos.map((g) => (
+          <GrupoComissaoCard
+            key={g.key}
+            grupo={g}
+            mes={mes}
+            ano={ano}
+            canMarcarPago={canMarcarPago}
+            canExportar={canExportar}
+            canEnviarExtrato={canEnviarExtrato}
+            onChanged={onChanged}
+          />
+        ))
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="border rounded-md p-3">
+          <div className="text-xs text-muted-foreground">Total pendente no período</div>
+          <div className="text-xl font-bold text-yellow-600">{fmtBRL(totalPendente)}</div>
+        </div>
+        <div className="border rounded-md p-3">
+          <div className="text-xs text-muted-foreground">Total pago no período</div>
+          <div className="text-xl font-bold text-green-600">{fmtBRL(totalPago)}</div>
+        </div>
+        <div className="border rounded-md p-3">
+          <div className="text-xs text-muted-foreground">Total exibido</div>
+          <div className="text-xl font-bold">{fmtBRL(totalVisivel)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const KIND_LABEL: Record<GrupoKind, { label: string; className: string }> = {
+  externo: { label: "Externo", className: "bg-blue-100 text-blue-800 border-blue-200" },
+  interno: { label: "Interno", className: "bg-teal-100 text-teal-800 border-teal-200" },
+  gestor:  { label: "Gestor",  className: "bg-amber-100 text-amber-800 border-amber-200" },
+};
+
+function GrupoComissaoCard({
+  grupo,
+  mes,
+  ano,
+  canMarcarPago,
+  canExportar,
+  canEnviarExtrato,
+  onChanged,
+}: {
+  grupo: Grupo;
+  mes: number;
+  ano: number;
+  canMarcarPago: boolean;
+  canExportar: boolean;
+  canEnviarExtrato: boolean;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [markOpen, setMarkOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+
+  const total = grupo.rows.reduce((s, c: any) => s + Number(c.valor_comissao || 0), 0);
+  const totalPend = grupo.rows.filter((c: any) => !c.pago_em).reduce((s, c: any) => s + Number(c.valor_comissao || 0), 0);
+  const totalPago = total - totalPend;
+  const temPendente = grupo.rows.some((c: any) => !c.pago_em);
+  const pendentes = grupo.rows.filter((c: any) => !c.pago_em);
+
+  const kindMeta = KIND_LABEL[grupo.kind];
+
+  const gerarPDF = async () => {
+    if (grupo.kind === "gestor") {
+      await gerarExtratoGestorPDF(grupo.nome, mes, ano, grupo.rows, grupo.gestorProfile ?? null);
+    } else {
+      await gerarExtratoPDF(grupo.nome, mes, ano, grupo.rows, totalPend, totalPago, grupo.rep);
+    }
+  };
+
+  const enviarEmail = async () => {
+    if (grupo.kind === "gestor") { toast.error("Envio por e-mail disponível apenas para representantes."); return; }
+    const rep = grupo.rep;
+    if (!rep?.email) { toast.error("Representante sem e-mail cadastrado."); return; }
+    setEnviando(true);
+    try {
+      const pdf_base64 = (await gerarExtratoPDF(rep.nome, mes, ano, grupo.rows, totalPend, totalPago, rep, { returnBase64: true })) as string;
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      const resp = await supabase.functions.invoke("enviar-extrato-email", {
+        body: { representante_id: rep.id, pdf_base64, mes, ano },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (resp.error) throw new Error(resp.error.message || "Falha ao enviar");
+      if ((resp.data as any)?.error) throw new Error((resp.data as any).error);
+      toast.success(`Extrato enviado para ${rep.email}`);
+      setEmailOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao enviar e-mail");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <Card>
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CardContent className="pt-4 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold truncate">{grupo.nome}</h3>
+                  <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold ${kindMeta.className}`}>
+                    {kindMeta.label}
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {grupo.rows.length} comissão(ões) — Pendente: <span className="font-medium text-yellow-700">{fmtBRL(totalPend)}</span> · Pago: <span className="font-medium text-green-700">{fmtBRL(totalPago)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Total do mês</div>
+                <div className="text-lg font-bold">{fmtBRL(total)}</div>
+              </div>
+              {temPendente ? (
+                <span className="inline-flex items-center rounded-md border border-yellow-300 bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-800">Pendente</span>
+              ) : (
+                <span className="inline-flex items-center rounded-md border border-green-300 bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> Pago
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {canMarcarPago && temPendente && grupo.kind !== "gestor" && (
+              <Button size="sm" onClick={() => setMarkOpen(true)}>
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Marcar tudo como pago
+              </Button>
+            )}
+            {canExportar && (
+              <Button size="sm" variant="outline" onClick={gerarPDF}>
+                <FileDown className="h-4 w-4 mr-1" /> Extrato PDF
+              </Button>
+            )}
+            {canEnviarExtrato && grupo.kind !== "gestor" && grupo.rep?.email && (
+              <Button size="sm" variant="outline" onClick={() => setEmailOpen(true)}>
+                <Mail className="h-4 w-4 mr-1" /> Enviar por e-mail
+              </Button>
+            )}
+            <CollapsibleTrigger asChild>
+              <Button size="sm" variant="ghost">
+                Ver detalhes
+                <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${open ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+
+          <CollapsibleContent className="mt-3">
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>NF-e</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Base</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>%</TableHead>
+                    <TableHead>Comissão</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {grupo.rows.map((c: any, i: number) => (
+                    <MotionTableRow key={c.id} {...rowMotionProps(i)}>
+                      <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido ?? "—"}</TableCell>
+                      <TableCell>{c.pedidos?.clientes?.nome ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe ?? "—"}</TableCell>
+                      <TableCell>{formatarData(c.nfe?.data_nfe ?? c.criado_em)}</TableCell>
+                      <TableCell>{fmtBRL(c.base_calculo)}</TableCell>
+                      <TableCell><TipoComissaoBadge tipo={c.tipo} /></TableCell>
+                      <TableCell>{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
+                      <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <StatusBadge pago={!!c.pago_em} />
+                          {c.pago_em && <span className="text-xs text-muted-foreground">em {formatarData(c.pago_em)}</span>}
+                          {c.comprovante_url && <ComprovanteLink path={c.comprovante_url} />}
+                        </div>
+                      </TableCell>
+                    </MotionTableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CollapsibleContent>
+        </CardContent>
+      </Collapsible>
+
+      <MarcarTudoPagoDialog
+        open={markOpen}
+        onOpenChange={setMarkOpen}
+        nomeGrupo={grupo.nome}
+        pendentes={pendentes}
+        totalPendente={totalPend}
+        onDone={() => { setMarkOpen(false); onChanged(); }}
+      />
+
+      <Dialog open={emailOpen} onOpenChange={(o) => !enviando && setEmailOpen(o)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Enviar extrato por e-mail</DialogTitle></DialogHeader>
+          <div className="space-y-2 text-sm">
+            <p><span className="text-muted-foreground">Representante:</span> <span className="font-medium">{grupo.nome}</span></p>
+            <p><span className="text-muted-foreground">E-mail de destino:</span> <span className="font-medium">{grupo.rep?.email ?? "—"}</span></p>
+            <p><span className="text-muted-foreground">Mês/Ano:</span> <span className="font-medium">{String(mes).padStart(2, "0")}/{ano}</span></p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEmailOpen(false)} disabled={enviando}>Cancelar</Button>
+            <Button onClick={enviarEmail} disabled={enviando}>{enviando ? "Enviando…" : "Confirmar envio"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+function MarcarTudoPagoDialog({
+  open,
+  onOpenChange,
+  nomeGrupo,
+  pendentes,
+  totalPendente,
+  onDone,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  nomeGrupo: string;
+  pendentes: any[];
+  totalPendente: number;
+  onDone: () => void;
+}) {
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [obs, setObs] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    if (pendentes.length === 0) return;
+    setSaving(true);
+    try {
+      let comprovante_url: string | null = null;
+      if (file) {
+        const path = `lote/${Date.now()}-${file.name}`;
+        const up = await supabase.storage.from("comprovantes-comissoes").upload(path, file, { upsert: false });
+        if (up.error) throw up.error;
+        comprovante_url = up.data.path;
+      }
+      const ids = pendentes.map((c) => c.id);
+      const payload: any = { pago_em: data, observacao_pagamento: obs || null };
+      if (comprovante_url) payload.comprovante_url = comprovante_url;
+      const { error } = await supabase.from("comissoes").update(payload).in("id", ids);
+      if (error) throw error;
+      toast.success(`Comissões de ${nomeGrupo} marcadas como pagas`);
+      onDone();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Marcar comissões como pagas — {nomeGrupo}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="rounded-md border bg-muted/40 p-3">
+            <div className="text-xs text-muted-foreground">Total a marcar como pago ({pendentes.length} comissões)</div>
+            <div className="text-2xl font-bold text-yellow-700">{fmtBRL(totalPendente)}</div>
+          </div>
+          <div>
+            <Label>Data de pagamento</Label>
+            <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+          </div>
+          <div>
+            <Label>Observação (opcional)</Label>
+            <Textarea value={obs} onChange={(e) => setObs(e.target.value)} />
+          </div>
+          <div>
+            <Label>Comprovante (PDF ou imagem, opcional)</Label>
+            <Input type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={submit} disabled={saving}>{saving ? "Salvando…" : "Confirmar pagamento"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function ComissaoGestorSection({
   mes,
