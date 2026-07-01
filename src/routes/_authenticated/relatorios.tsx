@@ -1014,6 +1014,7 @@ function GestorTable({
   }, [gestorRows, gestores]);
 
   const totalGeral = gestorRows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+  const totalProdutos = gestorRows.reduce((s, r) => s + Number(r.base_calculo), 0);
 
   const handleCSV = () => {
     const linhas: (string | number)[][] = [];
@@ -1030,9 +1031,10 @@ function GestorTable({
         ]);
       }
       const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
-      linhas.push([`Subtotal ${g.nome}`, "", "", "", "", sub.toFixed(2)]);
+      const subProd = g.rows.reduce((s, r) => s + Number(r.base_calculo), 0);
+      linhas.push([`Subtotal ${g.nome}`, "", "", subProd.toFixed(2), "", sub.toFixed(2)]);
     }
-    linhas.push(["TOTAL GERAL", "", "", "", "", totalGeral.toFixed(2)]);
+    linhas.push(["TOTAL GERAL", "", "", totalProdutos.toFixed(2), "", totalGeral.toFixed(2)]);
     exportCSV(
       `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
       ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"],
@@ -1055,9 +1057,20 @@ function GestorTable({
         ]);
       }
       const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
-      linhas.push([{ content: `Subtotal ${g.nome}`, colSpan: 5, styles: { fontStyle: "bold", halign: "right" } } as any, fmtBRL(sub)]);
+      const subProd = g.rows.reduce((s, r) => s + Number(r.base_calculo), 0);
+      linhas.push([
+        { content: `Subtotal ${g.nome}`, colSpan: 3, styles: { fontStyle: "bold", halign: "right" } } as any,
+        { content: fmtBRL(subProd), styles: { fontStyle: "bold" } } as any,
+        "",
+        { content: fmtBRL(sub), styles: { fontStyle: "bold" } } as any,
+      ]);
     }
-    linhas.push([{ content: "TOTAL GERAL", colSpan: 5, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any, { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any]);
+    linhas.push([
+      { content: "TOTAL GERAL", colSpan: 3, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any,
+      { content: fmtBRL(totalProdutos), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any,
+      { content: "", styles: { fillColor: [232, 245, 233] } } as any,
+      { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any,
+    ]);
     const tituloPrimario = grupos.length === 1 ? grupos[0].nome : "TODOS OS GESTORES";
     exportPDF(
       `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
@@ -1099,9 +1112,20 @@ function GestorTable({
                         ]);
                       }
                       const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
-                      linhas.push([{ content: `Subtotal ${g.nome}`, colSpan: 5, styles: { fontStyle: "bold", halign: "right" } } as any, fmtBRL(sub)]);
+                      const subProd = g.rows.reduce((s, r) => s + Number(r.base_calculo), 0);
+                      linhas.push([
+                        { content: `Subtotal ${g.nome}`, colSpan: 3, styles: { fontStyle: "bold", halign: "right" } } as any,
+                        { content: fmtBRL(subProd), styles: { fontStyle: "bold" } } as any,
+                        "",
+                        { content: fmtBRL(sub), styles: { fontStyle: "bold" } } as any,
+                      ]);
                     }
-                    linhas.push([{ content: "TOTAL GERAL", colSpan: 5, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any, { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any]);
+                    linhas.push([
+                      { content: "TOTAL GERAL", colSpan: 3, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any,
+                      { content: fmtBRL(totalProdutos), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any,
+                      { content: "", styles: { fillColor: [232, 245, 233] } } as any,
+                      { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any,
+                    ]);
                     return (await exportPDF(
                       `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
                       `BRAZIL AMORTECEDORES — COMISSÃO DO GESTOR — ${grupos[0].nome} — ${periodo}`,
@@ -1125,9 +1149,18 @@ function GestorTable({
             {grupos.map((g, gi) => (
               <GestorRelGroup key={gi} nome={g.nome} rows={g.rows} />
             ))}
-            <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
+            <div className="rounded-md border p-3 bg-[#fff8e1] flex flex-wrap gap-4 justify-between items-center">
               <span className="font-semibold">Total Geral</span>
-              <span className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</span>
+              <div className="flex gap-6 items-center">
+                <div className="text-right">
+                  <div className="text-xs uppercase tracking-wide text-[#92400e]/70">Valor Produtos</div>
+                  <div className="text-lg font-bold text-[#92400e]">{fmtBRL(totalProdutos)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs uppercase tracking-wide text-[#92400e]/70">Comissão</div>
+                  <div className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</div>
+                </div>
+              </div>
             </div>
           </>
         )}
@@ -1148,6 +1181,7 @@ function GestorRelGroup({ nome, rows }: { nome: string; rows: any[] }) {
     },
   });
   const sub = rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+  const subProd = rows.reduce((s, r) => s + Number(r.base_calculo), 0);
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-semibold">{nome}</h3>
@@ -1174,7 +1208,9 @@ function GestorRelGroup({ nome, rows }: { nome: string; rows: any[] }) {
             </MotionTableRow>
           ))}
           <TableRow className="bg-muted/50 font-bold">
-            <TableCell colSpan={5} className="text-right">Subtotal {nome}</TableCell>
+            <TableCell colSpan={3} className="text-right">Subtotal {nome}</TableCell>
+            <TableCell className="text-right">{fmtBRL(subProd)}</TableCell>
+            <TableCell />
             <TableCell className="text-right">{fmtBRL(sub)}</TableCell>
           </TableRow>
         </TableBody>
