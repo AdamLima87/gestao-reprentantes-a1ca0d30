@@ -1181,6 +1181,7 @@ function GestorRelGroup({ nome, rows }: { nome: string; rows: any[] }) {
     },
   });
   const sub = rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+  const subProd = rows.reduce((s, r) => s + Number(r.base_calculo), 0);
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-semibold">{nome}</h3>
