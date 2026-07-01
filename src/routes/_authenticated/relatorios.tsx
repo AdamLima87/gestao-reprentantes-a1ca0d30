@@ -1057,9 +1057,20 @@ function GestorTable({
         ]);
       }
       const sub = g.rows.reduce((s, r) => s + Number(r.valor_comissao), 0);
-      linhas.push([{ content: `Subtotal ${g.nome}`, colSpan: 5, styles: { fontStyle: "bold", halign: "right" } } as any, fmtBRL(sub)]);
+      const subProd = g.rows.reduce((s, r) => s + Number(r.base_calculo), 0);
+      linhas.push([
+        { content: `Subtotal ${g.nome}`, colSpan: 3, styles: { fontStyle: "bold", halign: "right" } } as any,
+        { content: fmtBRL(subProd), styles: { fontStyle: "bold" } } as any,
+        "",
+        { content: fmtBRL(sub), styles: { fontStyle: "bold" } } as any,
+      ]);
     }
-    linhas.push([{ content: "TOTAL GERAL", colSpan: 5, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any, { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any]);
+    linhas.push([
+      { content: "TOTAL GERAL", colSpan: 3, styles: { fontStyle: "bold", halign: "right", fillColor: [232, 245, 233] } } as any,
+      { content: fmtBRL(totalProdutos), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any,
+      { content: "", styles: { fillColor: [232, 245, 233] } } as any,
+      { content: fmtBRL(totalGeral), styles: { fontStyle: "bold", fillColor: [232, 245, 233] } } as any,
+    ]);
     const tituloPrimario = grupos.length === 1 ? grupos[0].nome : "TODOS OS GESTORES";
     exportPDF(
       `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
