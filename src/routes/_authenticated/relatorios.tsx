@@ -1208,7 +1208,9 @@ function GestorRelGroup({ nome, rows }: { nome: string; rows: any[] }) {
             </MotionTableRow>
           ))}
           <TableRow className="bg-muted/50 font-bold">
-            <TableCell colSpan={5} className="text-right">Subtotal {nome}</TableCell>
+            <TableCell colSpan={3} className="text-right">Subtotal {nome}</TableCell>
+            <TableCell className="text-right">{fmtBRL(subProd)}</TableCell>
+            <TableCell />
             <TableCell className="text-right">{fmtBRL(sub)}</TableCell>
           </TableRow>
         </TableBody>
