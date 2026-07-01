@@ -126,9 +126,10 @@ function Dashboard() {
   const allowed = can("ver_dashboard");
   const isRepOnly = roles.includes("representante") && !allowed;
   const now = new Date();
-  const mes = now.getMonth() + 1;
-  const ano = now.getFullYear();
-  const last6 = useMemo(() => getLast6Months(now), [mes, ano]);
+  const [mes, setMes] = useState<number>(now.getMonth() + 1);
+  const [ano, setAno] = useState<number>(now.getFullYear());
+  const refDate = useMemo(() => new Date(ano, mes - 1, 1), [mes, ano]);
+  const last6 = useMemo(() => getLast6Months(refDate), [mes, ano]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", mes, ano],
