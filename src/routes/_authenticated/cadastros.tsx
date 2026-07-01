@@ -2153,14 +2153,14 @@ function StepCard({ n, icon, title, children }: { n: number; icon: React.ReactNo
   );
 }
 
-function FileDropInput({ onFile, filename }: { onFile: (f: File) => void; filename?: string }) {
+function FileDropInput({ onFile, filename, accept = ".csv,text/csv", hint = "Apenas arquivos .CSV" }: { onFile: (f: File) => void; filename?: string; accept?: string; hint?: string }) {
   return (
     <div className="space-y-2">
       <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-6 cursor-pointer hover:border-primary transition-colors bg-muted/30">
         <Upload className="h-6 w-6 text-muted-foreground" />
         <span className="text-sm text-muted-foreground">{filename ? `Selecionado: ${filename}` : "Arraste o arquivo aqui ou clique para selecionar"}</span>
-        <span className="text-xs text-muted-foreground">Apenas arquivos .CSV</span>
-        <Input type="file" accept=".csv,text/csv" className="hidden"
+        <span className="text-xs text-muted-foreground">{hint}</span>
+        <Input type="file" accept={accept} className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
         <Button type="button" variant="default" className="mt-2" asChild>
           <span>Buscar planilha no meu computador</span>
@@ -2168,6 +2168,50 @@ function FileDropInput({ onFile, filename }: { onFile: (f: File) => void; filena
       </label>
     </div>
   );
+}
+
+// Converte "3.276,42" (padrão BR) para number. Aceita number puro também.
+function parseBRNumber(v: unknown): number {
+  if (v == null || v === "") return 0;
+  if (typeof v === "number") return v;
+  const s = String(v).trim().replace(/\s/g, "").replace(/R\$/gi, "");
+  if (s.includes(",")) {
+    const n = Number(s.replace(/\./g, "").replace(",", "."));
+    return isNaN(n) ? 0 : n;
+  }
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
+
+// Converte serial de data do Excel, Date ou string (dd/mm/aaaa, aaaa-mm-dd) para YYYY-MM-DD
+function normalizeDate(v: unknown): string {
+  if (v == null || v === "") return "";
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "number") {
+    const d = XLSX.SSF.parse_date_code(v);
+    if (d) return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+  }
+  const s = String(v).trim();
+  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  return s;
+}
+
+// Lê arquivo .xlsx/.xls/.csv (CSV com separador ; e decimal ,) e retorna matriz de strings
+async function readSpreadsheetAsMatrix(file: File): Promise<string[][]> {
+  const isCSV = /\.csv$/i.test(file.name);
+  let wb: XLSX.WorkBook;
+  if (isCSV) {
+    const text = await file.text();
+    wb = XLSX.read(text, { type: "string", FS: ";", raw: false, cellDates: true });
+  } else {
+    const buf = await file.arrayBuffer();
+    wb = XLSX.read(buf, { type: "array", cellDates: true });
+  }
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  if (!sheet) return [];
+  const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: "", blankrows: false });
+  return aoa.map((row) => row.map((c) => (c == null ? "" : String(c))));
 }
 
 function ImportarTab() {
@@ -2346,17 +2390,17 @@ function ImportPedidosSection() {
 
   const handleFile = async (file: File) => {
     setResult(null); setFilename(file.name);
-    const parsed = parseCSV(await file.text());
-    if (parsed.length < 2) { toast.error("CSV vazio."); setRows([]); return; }
+    const parsed = await readSpreadsheetAsMatrix(file);
+    if (parsed.length < 2) { toast.error("Planilha vazia."); setRows([]); return; }
     const header = parsed[0].map((h) => h.trim().toLowerCase());
     const idx: Record<string, number> = {};
     PEDIDO_HEADERS.forEach((h) => { idx[h] = header.indexOf(h); });
     const required: (keyof PedidoRow)[] = ["numero_pedido", "nome_cliente", "nome_representante", "data_pedido", "valor_produtos"];
     const missing = required.filter((h) => idx[h] === -1);
     if (missing.length) { toast.error(`Cabeçalhos obrigatórios ausentes: ${missing.join(", ")}`); setRows([]); return; }
-    setRows(parsed.slice(1).map((r) => {
+    setRows(parsed.slice(1).filter((r) => r.some((c) => String(c ?? "").trim() !== "")).map((r) => {
       const row = {} as PedidoRow;
-      PEDIDO_HEADERS.forEach((h) => { row[h] = idx[h] >= 0 ? (r[idx[h]] ?? "").trim() : ""; });
+      PEDIDO_HEADERS.forEach((h) => { row[h] = idx[h] >= 0 ? String(r[idx[h]] ?? "").trim() : ""; });
       return row;
     }));
   };
@@ -2383,7 +2427,8 @@ function ImportPedidosSection() {
         if (!rid) { errors.push({ line, reason: `Representante não encontrado: "${r.nome_representante}"` }); continue; }
         representante_id = rid;
       }
-      const data_pedido = r.data_pedido || new Date().toISOString().slice(0, 10);
+      const data_pedido = normalizeDate(r.data_pedido) || new Date().toISOString().slice(0, 10);
+      const prazo_entrega = normalizeDate(r.prazo_entrega) || null;
       const d = new Date(data_pedido);
       const mes_ref = r.mes_ref ? Number(r.mes_ref) : d.getMonth() + 1;
       const ano_ref = r.ano_ref ? Number(r.ano_ref) : d.getFullYear();
@@ -2393,8 +2438,8 @@ function ImportPedidosSection() {
         numero_pedido: r.numero_pedido,
         numero_pedido_cliente: r.numero_pedido_cliente || null,
         cliente_id, representante_id,
-        data_pedido, prazo_entrega: r.prazo_entrega || null,
-        valor_produtos: Number(r.valor_produtos || 0),
+        data_pedido, prazo_entrega,
+        valor_produtos: parseBRNumber(r.valor_produtos),
         mes_ref, ano_ref, status,
         jefferson_participou: isSim(r.vendedor_interno_participou),
       }).select("id").single();
@@ -2402,14 +2447,14 @@ function ImportPedidosSection() {
       pedidosOk++;
 
       if (isSim(r.nfe_emitida)) {
-        const data_nfe = r.data_nfe || data_pedido;
+        const data_nfe = normalizeDate(r.data_nfe) || data_pedido;
         const dn = new Date(data_nfe);
         const { error: nfeErr } = await supabase.from("nfe").insert({
           pedido_id: pedidoIns.id,
           numero_nfe: r.numero_nfe || r.numero_pedido,
-          valor_nfe: Number(r.valor_nfe || r.valor_produtos || 0),
+          valor_nfe: parseBRNumber(r.valor_nfe || r.valor_produtos),
           data_nfe,
-          data_entrega: r.data_entrega_nfe || null,
+          data_entrega: normalizeDate(r.data_entrega_nfe) || null,
           mes_ref: dn.getMonth() + 1,
           ano_ref: dn.getFullYear(),
         });
@@ -2434,11 +2479,19 @@ function ImportPedidosSection() {
   return (
     <div className="space-y-4">
       <StepCard n={1} icon={<Download className="h-5 w-5" />} title="Baixar planilha modelo">
-        <p className="text-muted-foreground">Datas no formato AAAA-MM-DD. Quando <code>nfe_emitida = sim</code>, a NF-e é criada junto.</p>
+        <p className="text-muted-foreground">Datas no formato AAAA-MM-DD ou DD/MM/AAAA. Valores aceitam padrão brasileiro (ex.: <code>3.276,42</code>). Quando <code>nfe_emitida = sim</code>, a NF-e é criada junto.</p>
         <Button className="bg-primary hover:bg-primary/90"
-          onClick={() => downloadCSV("modelo-pedidos.csv", PEDIDO_HEADERS as string[],
-            ["PED-001", "CLI-100", "ACME LTDA", "João Silva", "2026-06-01", "2026-06-15", "1500.00", "6", "2026", "faturado", "nao", "sim", "NFE-123", "1500.00", "2026-06-02", "2026-06-10"])}>
-          <Download className="h-4 w-4 mr-2" /> Baixar Planilha Modelo
+          onClick={() => {
+            const wb = XLSX.utils.book_new();
+            const example = [
+              PEDIDO_HEADERS as string[],
+              ["PED-001", "CLI-100", "ACME LTDA", "João Silva", "2026-06-01", "2026-06-15", "3276,42", "6", "2026", "faturado", "nao", "sim", "NFE-123", "3276,42", "2026-06-02", "2026-06-10"],
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(example);
+            XLSX.utils.book_append_sheet(wb, ws, "Pedidos");
+            XLSX.writeFile(wb, "modelo-pedidos.xlsx");
+          }}>
+          <Download className="h-4 w-4 mr-2" /> Baixar Planilha Modelo (.xlsx)
         </Button>
       </StepCard>
 
@@ -2452,7 +2505,7 @@ function ImportPedidosSection() {
       </StepCard>
 
       <StepCard n={4} icon={<Upload className="h-5 w-5" />} title="Enviar planilha preenchida">
-        <FileDropInput onFile={handleFile} filename={filename} />
+        <FileDropInput onFile={handleFile} filename={filename} accept=".xlsx,.xls,.csv" hint="Aceita .xlsx (recomendado), .xls ou .csv (separador ; e decimal ,)" />
       </StepCard>
 
       <StepCard n={5} icon={<ListChecks className="h-5 w-5" />} title="Conferir e confirmar importação">
