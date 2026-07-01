@@ -678,84 +678,31 @@ function ComissoesPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Extrato — {String(mes).padStart(2, "0")}/{ano}</CardTitle></CardHeader>
-        <CardContent>
-          {isLoading ? <p>Carregando…</p> : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortableTableHead sortKey="rep" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Rep</SortableTableHead>
-                    <SortableTableHead sortKey="pedido" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Pedido</SortableTableHead>
-                    <SortableTableHead sortKey="cliente" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Cliente</SortableTableHead>
-                    <SortableTableHead sortKey="nfe" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>NF-e</SortableTableHead>
-                    <SortableTableHead sortKey="base_calculo" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Valor NF-e</SortableTableHead>
-                    <SortableTableHead sortKey="tipo" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Tipo</SortableTableHead>
-                    <SortableTableHead sortKey="percentual" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>%</SortableTableHead>
-                    <SortableTableHead sortKey="valor_comissao" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Comissão</SortableTableHead>
-                    <SortableTableHead sortKey="status" sortConfig={comissoesSort.sortConfig} onSort={comissoesSort.requestSort}>Status pagamento</SortableTableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {comissoesSort.sortedData.map((c: any, index: number) => (
-                    <MotionTableRow key={c.id} {...rowMotionProps(index)}>
-                      <TableCell>{c.representantes?.nome}</TableCell>
-                      <TableCell className="font-mono text-xs">{c.pedidos?.numero_pedido}</TableCell>
-                      <TableCell>{c.pedidos?.clientes?.nome}</TableCell>
-                      <TableCell className="font-mono text-xs">{c.nfe?.numero_nfe}</TableCell>
-                      <TableCell>{fmtBRL(c.base_calculo)}</TableCell>
-                      <TableCell><TipoComissaoBadge tipo={c.tipo} /></TableCell>
-                      <TableCell>{Number(c.percentual_aplicado).toFixed(2)}%</TableCell>
-                      <TableCell className="font-semibold">{fmtBRL(c.valor_comissao)}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <StatusBadge pago={!!c.pago_em} />
-                          {c.pago_em && <span className="text-xs text-muted-foreground">em {formatarData(c.pago_em)}</span>}
-                          {c.comprovante_url && <ComprovanteLink path={c.comprovante_url} />}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {!c.pago_em && canMarcarPago && (
-                          <MarcarPagoDialog comissao={c} onDone={() => qc.invalidateQueries({ queryKey: ["comissoes"] })} />
-                        )}
-                      </TableCell>
-                    </MotionTableRow>
-                  ))}
-                  {filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Sem comissões no período.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="border rounded-md p-3">
-                  <div className="text-xs text-muted-foreground">Total pendente no período</div>
-                  <div className="text-xl font-bold text-yellow-600">{fmtBRL(totalPendente)}</div>
-                </div>
-                <div className="border rounded-md p-3">
-                  <div className="text-xs text-muted-foreground">Total pago no período</div>
-                  <div className="text-xl font-bold text-green-600">{fmtBRL(totalPago)}</div>
-                </div>
-                <div className="border rounded-md p-3">
-                  <div className="text-xs text-muted-foreground">Total exibido</div>
-                  <div className="text-xl font-bold">{fmtBRL(totalVisivel)}</div>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <GruposComissoes
+        isLoading={isLoading}
+        rowsRep={filtered}
+        rowsGestor={(gestorComissoes ?? []).filter((c: any) => {
+          if (statusFilter === "pendentes") return !c.pago_em;
+          if (statusFilter === "pagas") return !!c.pago_em;
+          return true;
+        })}
+        reps={reps ?? []}
+        gestoresProfiles={gestoresProfiles ?? []}
+        mes={mes}
+        ano={ano}
+        repFilter={repFilter}
+        totalPendente={totalPendente}
+        totalPago={totalPago}
+        totalVisivel={totalVisivel}
+        canMarcarPago={canMarcarPago}
+        canExportar={canExportar}
+        canEnviarExtrato={canEnviarExtrato}
+        onChanged={() => {
+          qc.invalidateQueries({ queryKey: ["comissoes"] });
+          qc.invalidateQueries({ queryKey: ["comissoes-gestor"] });
+        }}
+      />
 
-
-      {podeVerGestor && (
-        <ComissaoGestorSection
-          mes={mes}
-          ano={ano}
-          isAdmin={isAdmin}
-          currentUserId={user?.id ?? null}
-        />
-      )}
 
       <Dialog open={emailDialogOpen} onOpenChange={(o) => !enviandoEmail && setEmailDialogOpen(o)}>
         <DialogContent>
