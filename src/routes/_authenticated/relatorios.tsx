@@ -1149,9 +1149,18 @@ function GestorTable({
             {grupos.map((g, gi) => (
               <GestorRelGroup key={gi} nome={g.nome} rows={g.rows} />
             ))}
-            <div className="rounded-md border p-3 bg-[#fff8e1] flex justify-between items-center">
+            <div className="rounded-md border p-3 bg-[#fff8e1] flex flex-wrap gap-4 justify-between items-center">
               <span className="font-semibold">Total Geral</span>
-              <span className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</span>
+              <div className="flex gap-6 items-center">
+                <div className="text-right">
+                  <div className="text-xs uppercase tracking-wide text-[#92400e]/70">Valor Produtos</div>
+                  <div className="text-lg font-bold text-[#92400e]">{fmtBRL(totalProdutos)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs uppercase tracking-wide text-[#92400e]/70">Comissão</div>
+                  <div className="text-xl font-bold text-[#92400e]">{fmtBRL(totalGeral)}</div>
+                </div>
+              </div>
             </div>
           </>
         )}
