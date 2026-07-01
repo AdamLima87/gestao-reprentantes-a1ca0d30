@@ -2390,17 +2390,17 @@ function ImportPedidosSection() {
 
   const handleFile = async (file: File) => {
     setResult(null); setFilename(file.name);
-    const parsed = parseCSV(await file.text());
-    if (parsed.length < 2) { toast.error("CSV vazio."); setRows([]); return; }
+    const parsed = await readSpreadsheetAsMatrix(file);
+    if (parsed.length < 2) { toast.error("Planilha vazia."); setRows([]); return; }
     const header = parsed[0].map((h) => h.trim().toLowerCase());
     const idx: Record<string, number> = {};
     PEDIDO_HEADERS.forEach((h) => { idx[h] = header.indexOf(h); });
     const required: (keyof PedidoRow)[] = ["numero_pedido", "nome_cliente", "nome_representante", "data_pedido", "valor_produtos"];
     const missing = required.filter((h) => idx[h] === -1);
     if (missing.length) { toast.error(`Cabeçalhos obrigatórios ausentes: ${missing.join(", ")}`); setRows([]); return; }
-    setRows(parsed.slice(1).map((r) => {
+    setRows(parsed.slice(1).filter((r) => r.some((c) => String(c ?? "").trim() !== "")).map((r) => {
       const row = {} as PedidoRow;
-      PEDIDO_HEADERS.forEach((h) => { row[h] = idx[h] >= 0 ? (r[idx[h]] ?? "").trim() : ""; });
+      PEDIDO_HEADERS.forEach((h) => { row[h] = idx[h] >= 0 ? String(r[idx[h]] ?? "").trim() : ""; });
       return row;
     }));
   };
