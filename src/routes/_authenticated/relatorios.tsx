@@ -1014,6 +1014,7 @@ function GestorTable({
   }, [gestorRows, gestores]);
 
   const totalGeral = gestorRows.reduce((s, r) => s + Number(r.valor_comissao), 0);
+  const totalProdutos = gestorRows.reduce((s, r) => s + Number(r.base_calculo), 0);
 
   const handleCSV = () => {
     const linhas: (string | number)[][] = [];
