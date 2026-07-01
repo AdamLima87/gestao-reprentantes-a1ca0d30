@@ -2153,14 +2153,14 @@ function StepCard({ n, icon, title, children }: { n: number; icon: React.ReactNo
   );
 }
 
-function FileDropInput({ onFile, filename }: { onFile: (f: File) => void; filename?: string }) {
+function FileDropInput({ onFile, filename, accept = ".csv,text/csv", hint = "Apenas arquivos .CSV" }: { onFile: (f: File) => void; filename?: string; accept?: string; hint?: string }) {
   return (
     <div className="space-y-2">
       <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-6 cursor-pointer hover:border-primary transition-colors bg-muted/30">
         <Upload className="h-6 w-6 text-muted-foreground" />
         <span className="text-sm text-muted-foreground">{filename ? `Selecionado: ${filename}` : "Arraste o arquivo aqui ou clique para selecionar"}</span>
-        <span className="text-xs text-muted-foreground">Apenas arquivos .CSV</span>
-        <Input type="file" accept=".csv,text/csv" className="hidden"
+        <span className="text-xs text-muted-foreground">{hint}</span>
+        <Input type="file" accept={accept} className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
         <Button type="button" variant="default" className="mt-2" asChild>
           <span>Buscar planilha no meu computador</span>
@@ -2168,6 +2168,50 @@ function FileDropInput({ onFile, filename }: { onFile: (f: File) => void; filena
       </label>
     </div>
   );
+}
+
+// Converte "3.276,42" (padrão BR) para number. Aceita number puro também.
+function parseBRNumber(v: unknown): number {
+  if (v == null || v === "") return 0;
+  if (typeof v === "number") return v;
+  const s = String(v).trim().replace(/\s/g, "").replace(/R\$/gi, "");
+  if (s.includes(",")) {
+    const n = Number(s.replace(/\./g, "").replace(",", "."));
+    return isNaN(n) ? 0 : n;
+  }
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
+
+// Converte serial de data do Excel, Date ou string (dd/mm/aaaa, aaaa-mm-dd) para YYYY-MM-DD
+function normalizeDate(v: unknown): string {
+  if (v == null || v === "") return "";
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "number") {
+    const d = XLSX.SSF.parse_date_code(v);
+    if (d) return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+  }
+  const s = String(v).trim();
+  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  return s;
+}
+
+// Lê arquivo .xlsx/.xls/.csv (CSV com separador ; e decimal ,) e retorna matriz de strings
+async function readSpreadsheetAsMatrix(file: File): Promise<string[][]> {
+  const isCSV = /\.csv$/i.test(file.name);
+  let wb: XLSX.WorkBook;
+  if (isCSV) {
+    const text = await file.text();
+    wb = XLSX.read(text, { type: "string", FS: ";", raw: false, cellDates: true });
+  } else {
+    const buf = await file.arrayBuffer();
+    wb = XLSX.read(buf, { type: "array", cellDates: true });
+  }
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  if (!sheet) return [];
+  const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: "", blankrows: false });
+  return aoa.map((row) => row.map((c) => (c == null ? "" : String(c))));
 }
 
 function ImportarTab() {
