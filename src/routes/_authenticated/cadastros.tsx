@@ -2479,11 +2479,19 @@ function ImportPedidosSection() {
   return (
     <div className="space-y-4">
       <StepCard n={1} icon={<Download className="h-5 w-5" />} title="Baixar planilha modelo">
-        <p className="text-muted-foreground">Datas no formato AAAA-MM-DD. Quando <code>nfe_emitida = sim</code>, a NF-e é criada junto.</p>
+        <p className="text-muted-foreground">Datas no formato AAAA-MM-DD ou DD/MM/AAAA. Valores aceitam padrão brasileiro (ex.: <code>3.276,42</code>). Quando <code>nfe_emitida = sim</code>, a NF-e é criada junto.</p>
         <Button className="bg-primary hover:bg-primary/90"
-          onClick={() => downloadCSV("modelo-pedidos.csv", PEDIDO_HEADERS as string[],
-            ["PED-001", "CLI-100", "ACME LTDA", "João Silva", "2026-06-01", "2026-06-15", "1500.00", "6", "2026", "faturado", "nao", "sim", "NFE-123", "1500.00", "2026-06-02", "2026-06-10"])}>
-          <Download className="h-4 w-4 mr-2" /> Baixar Planilha Modelo
+          onClick={() => {
+            const wb = XLSX.utils.book_new();
+            const example = [
+              PEDIDO_HEADERS as string[],
+              ["PED-001", "CLI-100", "ACME LTDA", "João Silva", "2026-06-01", "2026-06-15", "3276,42", "6", "2026", "faturado", "nao", "sim", "NFE-123", "3276,42", "2026-06-02", "2026-06-10"],
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(example);
+            XLSX.utils.book_append_sheet(wb, ws, "Pedidos");
+            XLSX.writeFile(wb, "modelo-pedidos.xlsx");
+          }}>
+          <Download className="h-4 w-4 mr-2" /> Baixar Planilha Modelo (.xlsx)
         </Button>
       </StepCard>
 
@@ -2497,7 +2505,7 @@ function ImportPedidosSection() {
       </StepCard>
 
       <StepCard n={4} icon={<Upload className="h-5 w-5" />} title="Enviar planilha preenchida">
-        <FileDropInput onFile={handleFile} filename={filename} />
+        <FileDropInput onFile={handleFile} filename={filename} accept=".xlsx,.xls,.csv" hint="Aceita .xlsx (recomendado), .xls ou .csv (separador ; e decimal ,)" />
       </StepCard>
 
       <StepCard n={5} icon={<ListChecks className="h-5 w-5" />} title="Conferir e confirmar importação">
