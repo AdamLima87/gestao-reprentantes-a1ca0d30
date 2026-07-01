@@ -108,8 +108,9 @@ function RelatoriosPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="comissoes">
+      <Tabs defaultValue="geral">
         <TabsList>
+          <TabsTrigger value="geral">Comissões Geral</TabsTrigger>
           <TabsTrigger value="comissoes">Comissões</TabsTrigger>
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
@@ -117,6 +118,9 @@ function RelatoriosPage() {
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="geral" className="space-y-4 mt-4">
+          <ComissoesGeralTab mes={mes} ano={ano} />
+        </TabsContent>
         <TabsContent value="comissoes" className="space-y-4 mt-4">
           <ComissoesTab mes={mes} ano={ano} />
         </TabsContent>
