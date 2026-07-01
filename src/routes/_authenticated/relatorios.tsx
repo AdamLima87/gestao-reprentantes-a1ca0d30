@@ -43,6 +43,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { fmtBRL, exportCSV, exportPDF } from "@/lib/export-utils";
+import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
   component: RelatoriosPage,
@@ -107,8 +108,9 @@ function RelatoriosPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="comissoes">
+      <Tabs defaultValue="geral">
         <TabsList>
+          <TabsTrigger value="geral">Comissões Geral</TabsTrigger>
           <TabsTrigger value="comissoes">Comissões</TabsTrigger>
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
@@ -116,6 +118,9 @@ function RelatoriosPage() {
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="geral" className="space-y-4 mt-4">
+          <ComissoesGeralTab mes={mes} ano={ano} />
+        </TabsContent>
         <TabsContent value="comissoes" className="space-y-4 mt-4">
           <ComissoesTab mes={mes} ano={ano} />
         </TabsContent>
@@ -258,6 +263,254 @@ function ExportButtons({
 type Visao = "todos" | "externos" | "interno" | "gestor";
 
 
+
+function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
+  const [gerado, setGerado] = useState<{ mes: number; ano: number } | null>({ mes, ano });
+
+  const mesRef = gerado?.mes ?? mes;
+  const anoRef = gerado?.ano ?? ano;
+  const periodo = `${String(mesRef).padStart(2, "0")}/${anoRef}`;
+
+  const { data: logoBase64 } = useQuery({
+    queryKey: ["empresa-logo"],
+    queryFn: async () => {
+      const res = await supabase.from("configuracoes_empresa").select("logo_base64").maybeSingle();
+      return res.data?.logo_base64 ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["rel-comissoes-geral", mesRef, anoRef, !!gerado],
+    enabled: !!gerado,
+    queryFn: async () => {
+      const res = await supabase
+        .from("comissoes")
+        .select(
+          "tipo, valor_comissao, percentual_aplicado, pago_em, representante_id, gestor_user_id, representantes(nome, tipo)",
+        )
+        .eq("mes_ref", mesRef)
+        .eq("ano_ref", anoRef);
+      return (res.data ?? []) as Array<{
+        tipo: string;
+        valor_comissao: number | string;
+        percentual_aplicado: number | string;
+        pago_em: string | null;
+        representante_id: string | null;
+        gestor_user_id: string | null;
+        representantes: { nome?: string; tipo?: string } | null;
+      }>;
+    },
+  });
+
+  const gestorIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of data ?? []) if (c.gestor_user_id) s.add(c.gestor_user_id);
+    return [...s];
+  }, [data]);
+
+  const { data: gestores } = useQuery({
+    queryKey: ["rel-comissoes-geral-gestores", gestorIds.sort().join(",")],
+    enabled: gestorIds.length > 0,
+    queryFn: async () => {
+      const res = await supabase
+        .from("profiles")
+        .select("id, nome, percentual_comissao")
+        .in("id", gestorIds);
+      return (res.data ?? []) as { id: string; nome: string | null; percentual_comissao: number | null }[];
+    },
+  });
+
+  type Linha = { nome: string; percentual: string; valor: number; pagos: number; pendentes: number };
+
+  const linhas = useMemo<Linha[]>(() => {
+    if (!data) return [];
+    const externos = new Map<string, Linha>();
+    const internoAcc: Linha = { nome: "Vendedor Interno — Jefferson", percentual: "—", valor: 0, pagos: 0, pendentes: 0 };
+    const gestorMap = new Map<string, Linha>();
+
+    for (const c of data) {
+      const v = Number(c.valor_comissao ?? 0);
+      const pago = !!c.pago_em;
+      if (c.tipo === "externo" && c.representante_id) {
+        const l = externos.get(c.representante_id) ?? {
+          nome: c.representantes?.nome ?? "—",
+          percentual: `${Number(c.percentual_aplicado ?? 0).toFixed(2)}%`,
+          valor: 0,
+          pagos: 0,
+          pendentes: 0,
+        };
+        l.valor += v;
+        if (pago) l.pagos += v; else l.pendentes += v;
+        externos.set(c.representante_id, l);
+      } else if (c.tipo?.startsWith("interno")) {
+        internoAcc.valor += v;
+        if (pago) internoAcc.pagos += v; else internoAcc.pendentes += v;
+      } else if (c.tipo === "gestor" && c.gestor_user_id) {
+        const g = gestores?.find((x) => x.id === c.gestor_user_id);
+        const l = gestorMap.get(c.gestor_user_id) ?? {
+          nome: `Gestor — ${g?.nome ?? "—"}`,
+          percentual: `${Number(g?.percentual_comissao ?? c.percentual_aplicado ?? 0).toFixed(2)}%`,
+          valor: 0,
+          pagos: 0,
+          pendentes: 0,
+        };
+        l.valor += v;
+        if (pago) l.pagos += v; else l.pendentes += v;
+        gestorMap.set(c.gestor_user_id, l);
+      }
+    }
+
+    const arr: Linha[] = [];
+    arr.push(...[...externos.values()].sort((a, b) => a.nome.localeCompare(b.nome)));
+    if (internoAcc.valor > 0) arr.push(internoAcc);
+    arr.push(...[...gestorMap.values()].sort((a, b) => a.nome.localeCompare(b.nome)));
+    return arr;
+  }, [data, gestores]);
+
+  const totais = useMemo(() => {
+    const t = linhas.reduce(
+      (acc, l) => ({ valor: acc.valor + l.valor, pago: acc.pago + l.pagos, pendente: acc.pendente + l.pendentes }),
+      { valor: 0, pago: 0, pendente: 0 },
+    );
+    return t;
+  }, [linhas]);
+
+  const statusOf = (l: Linha): { label: "Pago" | "Pendente" | "Parcial"; className: string } => {
+    if (l.pagos > 0 && l.pendentes === 0) return { label: "Pago", className: "bg-green-100 text-green-800 border-green-300" };
+    if (l.pendentes > 0 && l.pagos === 0) return { label: "Pendente", className: "bg-yellow-100 text-yellow-800 border-yellow-300" };
+    return { label: "Parcial", className: "bg-orange-100 text-orange-800 border-orange-300" };
+  };
+
+  const handleExportPDF = async () => {
+    const headers = ["Representante", "%", "Valor Comissão", "Status"];
+    const rows: (string | number)[][] = linhas.map((l) => [l.nome, l.percentual, fmtBRL(l.valor), statusOf(l).label]);
+    rows.push(["TOTAL GERAL", "", fmtBRL(totais.valor), `Pago ${fmtBRL(totais.pago)} • Pendente ${fmtBRL(totais.pendente)}`]);
+    await exportPDF(
+      `comissoes-geral-${mesRef}-${anoRef}`,
+      "Relatório Geral de Comissões",
+      headers,
+      rows,
+      `Período: ${periodo}`,
+      { brand: true, logoBase64: logoBase64 ?? null },
+    );
+  };
+
+  const handleExportXLSX = () => {
+    const aoa: (string | number)[][] = [
+      ["Relatório Geral de Comissões"],
+      [`Período: ${periodo}`],
+      [],
+      ["Representante", "%", "Valor Comissão", "Status"],
+    ];
+    linhas.forEach((l) => aoa.push([l.nome, l.percentual, l.valor, statusOf(l).label]));
+    aoa.push([]);
+    aoa.push(["TOTAL GERAL", "", totais.valor, ""]);
+    aoa.push(["Total Pago", "", totais.pago, ""]);
+    aoa.push(["Total Pendente", "", totais.pendente, ""]);
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{ wch: 40 }, { wch: 10 }, { wch: 20 }, { wch: 14 }];
+    const money = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+    const dataStart = 5;
+    const dataEnd = dataStart + linhas.length - 1;
+    for (let r = dataStart; r <= dataEnd; r++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: r - 1, c: 2 })];
+      if (cell) cell.z = money;
+    }
+    const totalRow = dataEnd + 2;
+    for (const rr of [totalRow, totalRow + 1, totalRow + 2]) {
+      const cell = ws[XLSX.utils.encode_cell({ r: rr, c: 2 })];
+      if (cell) cell.z = money;
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Comissões");
+    XLSX.writeFile(wb, `comissoes-geral-${mesRef}-${anoRef}.xlsx`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-6 flex flex-wrap items-end gap-3">
+          <p className="text-sm text-muted-foreground">
+            Use os filtros de <strong>Mês</strong> e <strong>Ano</strong> no topo da página e clique em Gerar relatório.
+          </p>
+          <div className="ml-auto flex gap-2">
+            <Button onClick={() => setGerado({ mes, ano })}>Gerar relatório</Button>
+            <Button variant="outline" onClick={handleExportPDF} disabled={!linhas.length}>
+              <FileText className="w-4 h-4 mr-1" /> Exportar PDF
+            </Button>
+            <Button variant="outline" onClick={handleExportXLSX} disabled={!linhas.length}>
+              <Download className="w-4 h-4 mr-1" /> Exportar Excel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Comissões — {periodo}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-muted-foreground">Carregando…</p>
+          ) : linhas.length === 0 ? (
+            <p className="text-muted-foreground">Nenhuma comissão encontrada para o período.</p>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Representante</TableHead>
+                    <TableHead className="w-24">%</TableHead>
+                    <TableHead className="w-40">Valor Comissão</TableHead>
+                    <TableHead className="w-32">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {linhas.map((l, i) => {
+                    const s = statusOf(l);
+                    return (
+                      <MotionTableRow key={i} {...rowMotionProps(i)}>
+                        <TableCell className="font-medium">{l.nome}</TableCell>
+                        <TableCell>{l.percentual}</TableCell>
+                        <TableCell>{fmtBRL(l.valor)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={s.className}>{s.label}</Badge>
+                        </TableCell>
+                      </MotionTableRow>
+                    );
+                  })}
+                  <TableRow className="bg-muted/60 font-bold">
+                    <TableCell>TOTAL GERAL</TableCell>
+                    <TableCell />
+                    <TableCell>{fmtBRL(totais.valor)}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableBody>
+              </Table>
+
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">Total do mês</div>
+                  <div className="text-lg font-bold">{fmtBRL(totais.valor)}</div>
+                </div>
+                <div className="rounded-lg border p-3 bg-green-50 dark:bg-green-950/20">
+                  <div className="text-xs text-muted-foreground">Total Pago</div>
+                  <div className="text-lg font-bold text-green-700 dark:text-green-400">{fmtBRL(totais.pago)}</div>
+                </div>
+                <div className="rounded-lg border p-3 bg-yellow-50 dark:bg-yellow-950/20">
+                  <div className="text-xs text-muted-foreground">Total Pendente</div>
+                  <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{fmtBRL(totais.pendente)}</div>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
   const [visao, setVisao] = useState<Visao>("todos");
