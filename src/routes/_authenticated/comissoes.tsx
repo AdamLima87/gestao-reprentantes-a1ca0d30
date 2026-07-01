@@ -23,7 +23,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { reprocessarComissoes } from "@/lib/comissoes.functions";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Mail } from "lucide-react";
+import { Mail, ChevronDown, CheckCircle2, FileDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fmtBRL as fmtBRLUtil } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
