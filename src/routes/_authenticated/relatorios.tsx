@@ -43,6 +43,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { fmtBRL, exportCSV, exportPDF } from "@/lib/export-utils";
+import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
   component: RelatoriosPage,
