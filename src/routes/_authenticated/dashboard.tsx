@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle2,
@@ -29,7 +30,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -126,9 +127,10 @@ function Dashboard() {
   const allowed = can("ver_dashboard");
   const isRepOnly = roles.includes("representante") && !allowed;
   const now = new Date();
-  const mes = now.getMonth() + 1;
-  const ano = now.getFullYear();
-  const last6 = useMemo(() => getLast6Months(now), [mes, ano]);
+  const [mes, setMes] = useState<number>(now.getMonth() + 1);
+  const [ano, setAno] = useState<number>(now.getFullYear());
+  const refDate = useMemo(() => new Date(ano, mes - 1, 1), [mes, ano]);
+  const last6 = useMemo(() => getLast6Months(refDate), [mes, ano]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", mes, ano],
@@ -258,7 +260,23 @@ function Dashboard() {
         <h1 className="text-2xl font-bold border-l-4 border-[#34a85a] pl-3">
           Dashboard <span className="text-muted-foreground font-normal text-lg">— {String(mes).padStart(2, "0")}/{ano}</span>
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+            <SelectTrigger className="h-9 w-[130px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MESES_ABREV.map((label, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+            <SelectTrigger className="h-9 w-[100px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Badge
             className="gap-1 px-3 py-1.5 text-sm font-semibold"
             style={{
