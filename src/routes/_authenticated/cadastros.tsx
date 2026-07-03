@@ -875,7 +875,10 @@ function RepsTab() {
       : (regiaoLegacy ? [regiaoLegacy] : []);
     setForm({
       nome: r.nome ?? "", email: r.email ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
-      percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
+      percentual_padrao: String(r.percentual_padrao ?? "5.0"),
+      percentual_recorrente: String(r.percentual_recorrente ?? "1.0"),
+      percentual_sobre_rep: String(r.percentual_sobre_rep ?? "0.5"),
+      ativo: r.ativo ?? true,
       tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
       endereco: r.endereco ?? "", numero: r.numero ?? "", bairro: r.bairro ?? "",
