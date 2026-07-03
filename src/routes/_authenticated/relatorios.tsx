@@ -982,16 +982,18 @@ function InternoTable({
       };
       const valor = Number(c.valor_comissao);
       const pct = Number(c.percentual_aplicado);
-      if (c.tipo === "interno_novo" || c.tipo === "interno_reativacao") {
+      // Bucket pelo percentual aplicado (1,5% / 1% / 0,5%), independente do tipo
+      if (pct >= 1.25) {
         r.c15 = (r.c15 ?? 0) + valor;
         r.p15 = pct;
-      } else if (c.tipo === "interno_recorrente") {
+      } else if (pct >= 0.75) {
         r.c1 = (r.c1 ?? 0) + valor;
         r.p1 = pct;
-      } else if (c.tipo === "interno_sobre_rep") {
+      } else {
         r.c05 = (r.c05 ?? 0) + valor;
         r.p05 = pct;
       }
+
       map.set(c.nfe_id, r);
     }
     return [...map.values()].sort((a, b) => (a.emissao || "").localeCompare(b.emissao || ""));
@@ -1013,20 +1015,10 @@ function InternoTable({
     const s = n.toFixed(2).replace(/\.?0+$/, "");
     return `${s.replace(".", ",")}%`;
   };
-  const pctLabel = (key: "p15" | "p1" | "p05") => {
-    const set = new Set<number>();
-    for (const r of rows) {
-      const v = r[key];
-      if (v != null) set.add(Number(v));
-    }
-    if (set.size === 0) return "—";
-    if (set.size === 1) return fmtPct([...set][0]);
-    const arr = [...set].sort((a, b) => a - b);
-    return `${fmtPct(arr[0])}–${fmtPct(arr[arr.length - 1])}`;
-  };
-  const hdrNovo = `Novo/Reativação (${pctLabel("p15")})`;
-  const hdrRec = `Recorrente (${pctLabel("p1")})`;
-  const hdrSobre = `Sobre Rep. (${pctLabel("p05")})`;
+  const hdrNovo = "1,5%";
+  const hdrRec = "1%";
+  const hdrSobre = "0,5%";
+
 
   const internoSort = useSortableData(rows, {
     accessors: {
