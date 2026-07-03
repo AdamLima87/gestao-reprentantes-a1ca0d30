@@ -105,6 +105,17 @@ export const ROLE_DEFAULTS: Record<AppRole, ReadonlySet<PermissionKey>> = {
     "ver_relatorios", "exportar_relatorios",
     "ver_clientes", "cadastrar_clientes",
     "ver_representantes",
+    "ver_faturamento_total",
+  ]),
+  financeiro: new Set([
+    "ver_dashboard",
+    "ver_pedidos", "ver_todos_pedidos",
+    "ver_nfe", "ver_todas_nfe",
+    "ver_comissoes", "ver_todas_comissoes", "marcar_comissao_paga",
+    "ver_relatorios", "exportar_relatorios",
+    "ver_clientes",
+    "ver_representantes",
+    "ver_comissao_gestor", "ver_faturamento_total",
   ]),
   financeiro: new Set([
     "ver_dashboard",
