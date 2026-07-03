@@ -795,7 +795,10 @@ function RepsTab() {
     const regiaoPrincipal = f.estados[0] ? (regiaoDoEstado(f.estados[0]) ?? f.estados[0]) : null;
     return {
       nome: f.nome, email: f.email || null, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
-      percentual_padrao: Number(f.percentual_padrao), ativo: f.ativo,
+      percentual_padrao: Number(f.percentual_padrao),
+      percentual_recorrente: f.tipo === "interno" ? Number(f.percentual_recorrente) : 1.0,
+      percentual_sobre_rep: f.tipo === "interno" ? Number(f.percentual_sobre_rep) : 0.5,
+      ativo: f.ativo,
       tipo_pessoa: isExt ? f.tipo_pessoa : "juridica",
       cnpj: isPJ ? (f.cnpj || null) : null,
       razao_social: isPJ ? (f.razao_social || null) : null,
