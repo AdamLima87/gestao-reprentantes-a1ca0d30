@@ -345,6 +345,8 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
     valor_produtos: "",
     jefferson_participou: false,
     percentual_interno_override: "",
+    percentual_representante_override: "",
+
   };
   const [form, setForm] = useState(initialForm);
 
@@ -376,6 +378,11 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
     if (overrideNum !== null && (!Number.isFinite(overrideNum) || overrideNum < 0 || overrideNum > 100)) {
       return toast.error("% comissão interno inválido (0 a 100).");
     }
+    const overrideRep = form.percentual_representante_override.trim();
+    const overrideRepNum = overrideRep === "" ? null : Number(overrideRep);
+    if (overrideRepNum !== null && (!Number.isFinite(overrideRepNum) || overrideRepNum < 0 || overrideRepNum > 100)) {
+      return toast.error("% comissão representante inválido (0 a 100).");
+    }
     const { error } = await supabase.from("pedidos").insert({
       numero_pedido: form.numero_pedido,
       numero_pedido_cliente: form.numero_pedido_cliente || null,
@@ -388,7 +395,9 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
       ano_ref: d.getFullYear(),
       jefferson_participou: form.jefferson_participou,
       percentual_interno_override: overrideNum,
+      percentual_representante_override: overrideRepNum,
     } as any);
+
     if (error) return toast.error(error.message);
     toast.success("Pedido criado!");
     setOpen(false);
@@ -429,6 +438,21 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
             <Switch checked={form.jefferson_participou} onCheckedChange={(v) => setForm({ ...form, jefferson_participou: v })} />
             <Label className="!mt-0">Vendedor interno participou?</Label>
           </div>
+          {form.representante_id && (
+            <div className="rounded border border-dashed p-3 bg-muted/30">
+              <Label>% comissão representante (opcional)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="Deixe vazio para usar o padrão do cadastro/cliente"
+                value={form.percentual_representante_override}
+                onChange={(e) => setForm({ ...form, percentual_representante_override: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Sobrescreve o percentual do representante apenas para este pedido.</p>
+            </div>
+          )}
           {(!form.representante_id || form.jefferson_participou) && (
             <div className="rounded border border-dashed p-3 bg-muted/30">
               <Label>% comissão vendedor interno (opcional)</Label>
@@ -444,6 +468,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
               <p className="mt-1 text-xs text-muted-foreground">Sobrescreve o percentual padrão do vendedor interno apenas para este pedido.</p>
             </div>
           )}
+
           <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
         </form>
       </DialogContent>
@@ -465,7 +490,10 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
     jefferson_participou: !!pedido.jefferson_participou,
     percentual_interno_override:
       pedido.percentual_interno_override != null ? String(pedido.percentual_interno_override) : "",
+    percentual_representante_override:
+      pedido.percentual_representante_override != null ? String(pedido.percentual_representante_override) : "",
   });
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -479,6 +507,11 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
     if (overrideNum !== null && (!Number.isFinite(overrideNum) || overrideNum < 0 || overrideNum > 100)) {
       return toast.error("% comissão interno inválido (0 a 100).");
     }
+    const overrideRep = form.percentual_representante_override.trim();
+    const overrideRepNum = overrideRep === "" ? null : Number(overrideRep);
+    if (overrideRepNum !== null && (!Number.isFinite(overrideRepNum) || overrideRepNum < 0 || overrideRepNum > 100)) {
+      return toast.error("% comissão representante inválido (0 a 100).");
+    }
     const { error } = await supabase.from("pedidos").update({
       numero_pedido: form.numero_pedido,
       numero_pedido_cliente: form.numero_pedido_cliente || null,
@@ -491,7 +524,9 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
       ano_ref: d.getFullYear(),
       jefferson_participou: form.jefferson_participou,
       percentual_interno_override: overrideNum,
+      percentual_representante_override: overrideRepNum,
     } as any).eq("id", pedido.id);
+
     if (error) return toast.error(error.message);
     toast.success("Pedido atualizado!");
     onDone();
@@ -530,6 +565,21 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
             <Switch checked={form.jefferson_participou} onCheckedChange={(v) => setForm({ ...form, jefferson_participou: v })} />
             <Label className="!mt-0">Vendedor interno participou?</Label>
           </div>
+          {form.representante_id && (
+            <div className="rounded border border-dashed p-3 bg-muted/30">
+              <Label>% comissão representante (opcional)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="Deixe vazio para usar o padrão do cadastro/cliente"
+                value={form.percentual_representante_override}
+                onChange={(e) => setForm({ ...form, percentual_representante_override: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Sobrescreve o percentual do representante apenas para este pedido. Após salvar, use "Recalcular comissões" para reaplicar.</p>
+            </div>
+          )}
           {(!form.representante_id || form.jefferson_participou) && (
             <div className="rounded border border-dashed p-3 bg-muted/30">
               <Label>% comissão vendedor interno (opcional)</Label>
@@ -545,6 +595,7 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
               <p className="mt-1 text-xs text-muted-foreground">Sobrescreve o percentual padrão do vendedor interno apenas para este pedido. Após salvar, use "Recalcular comissões" para reaplicar.</p>
             </div>
           )}
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit">Salvar</Button>
