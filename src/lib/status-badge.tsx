@@ -33,7 +33,7 @@ const tipoComissaoMap: Record<string, Style> = {
   interno_novo:       { label: "Vend. Interno — Novo",     bg: "#e6f4f1", text: "#0f7b6c", border: "#5eead4" },
   interno_reativacao: { label: "Vend. Interno — Reativ.",  bg: "#fff8e1", text: "#b45309", border: "#fcd34d" },
   interno_recorrente: { label: "Vend. Interno — Recorr.",  bg: "#e8f5ee", text: "#1a6b3a", border: "#34a85a" },
-  interno_sobre_rep:  { label: "Vend. Interno 0,5%",       bg: "#f3eeff", text: "#6b46c1", border: "#c4b5fd" },
+  interno_sobre_rep:  { label: "Vend. Interno — Sobre Rep.", bg: "#f3eeff", text: "#6b46c1", border: "#c4b5fd" },
   gestor:             { label: "Gestor",                   bg: "#fff8e1", text: "#92400e", border: "#fcd34d" },
 };
 
