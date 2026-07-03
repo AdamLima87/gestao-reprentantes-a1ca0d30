@@ -444,6 +444,7 @@ export type Database = {
           mes_ref: number
           numero_pedido: string
           numero_pedido_cliente: string | null
+          percentual_interno_override: number | null
           prazo_entrega: string | null
           representante_id: string | null
           status: Database["public"]["Enums"]["pedido_status"]
@@ -459,6 +460,7 @@ export type Database = {
           mes_ref?: number
           numero_pedido: string
           numero_pedido_cliente?: string | null
+          percentual_interno_override?: number | null
           prazo_entrega?: string | null
           representante_id?: string | null
           status?: Database["public"]["Enums"]["pedido_status"]
@@ -474,6 +476,7 @@ export type Database = {
           mes_ref?: number
           numero_pedido?: string
           numero_pedido_cliente?: string | null
+          percentual_interno_override?: number | null
           prazo_entrega?: string | null
           representante_id?: string | null
           status?: Database["public"]["Enums"]["pedido_status"]
