@@ -1213,13 +1213,8 @@ function InternoTable({
               <TableBody>
                 {internoSort.sortedData.map((r, i) => {
                   const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
-                  const cellPct = (v: number | null, p: number | null) =>
-                    v == null ? "—" : (
-                      <>
-                        {fmtBRL(v)}
-                        {p != null && <span className="text-xs text-muted-foreground ml-1">({fmtPct(p)})</span>}
-                      </>
-                    );
+                  const cellPct = (v: number | null) => (v == null ? "—" : fmtBRL(v));
+
                   return (
                     <MotionTableRow key={r.nfeId} {...rowMotionProps(i)}>
                       <TableCell className="font-medium">{r.numero}</TableCell>
@@ -1228,9 +1223,10 @@ function InternoTable({
                       <TableCell>{r.empresa}</TableCell>
                       <TableCell>{formatarData(r.entrega)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
-                      <TableCell className="text-right">{cellPct(r.c15, r.p15)}</TableCell>
-                      <TableCell className="text-right">{cellPct(r.c1, r.p1)}</TableCell>
-                      <TableCell className="text-right">{cellPct(r.c05, r.p05)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c15)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c1)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c05)}</TableCell>
+
                       <TableCell className="text-right font-medium">{fmtBRL(tot)}</TableCell>
                     </MotionTableRow>
                   );
