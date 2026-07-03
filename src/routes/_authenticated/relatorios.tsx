@@ -1015,17 +1015,6 @@ function InternoTable({
     const s = n.toFixed(2).replace(/\.?0+$/, "");
     return `${s.replace(".", ",")}%`;
   };
-  const pctLabel = (key: "p15" | "p1" | "p05") => {
-    const set = new Set<number>();
-    for (const r of rows) {
-      const v = r[key];
-      if (v != null) set.add(Number(v));
-    }
-    if (set.size === 0) return "—";
-    if (set.size === 1) return fmtPct([...set][0]);
-    const arr = [...set].sort((a, b) => a - b);
-    return `${fmtPct(arr[0])}–${fmtPct(arr[arr.length - 1])}`;
-  };
   const hdrNovo = "1,5%";
   const hdrRec = "1%";
   const hdrSobre = "0,5%";
