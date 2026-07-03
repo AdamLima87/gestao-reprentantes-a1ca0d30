@@ -474,6 +474,11 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
       return;
     }
     const d = new Date(form.data_pedido);
+    const override = form.percentual_interno_override.trim();
+    const overrideNum = override === "" ? null : Number(override);
+    if (overrideNum !== null && (!Number.isFinite(overrideNum) || overrideNum < 0 || overrideNum > 100)) {
+      return toast.error("% comissão interno inválido (0 a 100).");
+    }
     const { error } = await supabase.from("pedidos").update({
       numero_pedido: form.numero_pedido,
       numero_pedido_cliente: form.numero_pedido_cliente || null,
@@ -485,7 +490,8 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
       mes_ref: d.getMonth() + 1,
       ano_ref: d.getFullYear(),
       jefferson_participou: form.jefferson_participou,
-    }).eq("id", pedido.id);
+      percentual_interno_override: overrideNum,
+    } as any).eq("id", pedido.id);
     if (error) return toast.error(error.message);
     toast.success("Pedido atualizado!");
     onDone();
