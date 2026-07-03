@@ -608,6 +608,7 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
               </div>
             )}
           </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
