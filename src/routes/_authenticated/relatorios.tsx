@@ -516,9 +516,13 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
                 </TableBody>
               </Table>
 
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="rounded-lg border p-3 bg-blue-50 dark:bg-blue-950/20">
+                  <div className="text-xs text-muted-foreground">Faturamento do mês</div>
+                  <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{fmtBRL(faturamentoMes ?? 0)}</div>
+                </div>
                 <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">Total do mês</div>
+                  <div className="text-xs text-muted-foreground">Total do mês (comissões)</div>
                   <div className="text-lg font-bold">{fmtBRL(totais.valor)}</div>
                 </div>
                 <div className="rounded-lg border p-3 bg-green-50 dark:bg-green-950/20">
@@ -530,6 +534,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
                   <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{fmtBRL(totais.pendente)}</div>
                 </div>
               </div>
+
             </>
           )}
         </CardContent>
