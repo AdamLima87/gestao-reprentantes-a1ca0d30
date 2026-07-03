@@ -378,6 +378,11 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
     if (overrideNum !== null && (!Number.isFinite(overrideNum) || overrideNum < 0 || overrideNum > 100)) {
       return toast.error("% comissão interno inválido (0 a 100).");
     }
+    const overrideRep = form.percentual_representante_override.trim();
+    const overrideRepNum = overrideRep === "" ? null : Number(overrideRep);
+    if (overrideRepNum !== null && (!Number.isFinite(overrideRepNum) || overrideRepNum < 0 || overrideRepNum > 100)) {
+      return toast.error("% comissão representante inválido (0 a 100).");
+    }
     const { error } = await supabase.from("pedidos").insert({
       numero_pedido: form.numero_pedido,
       numero_pedido_cliente: form.numero_pedido_cliente || null,
@@ -390,7 +395,9 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
       ano_ref: d.getFullYear(),
       jefferson_participou: form.jefferson_participou,
       percentual_interno_override: overrideNum,
+      percentual_representante_override: overrideRepNum,
     } as any);
+
     if (error) return toast.error(error.message);
     toast.success("Pedido criado!");
     setOpen(false);
