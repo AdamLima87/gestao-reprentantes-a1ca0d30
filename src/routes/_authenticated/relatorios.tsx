@@ -982,16 +982,18 @@ function InternoTable({
       };
       const valor = Number(c.valor_comissao);
       const pct = Number(c.percentual_aplicado);
-      if (c.tipo === "interno_novo" || c.tipo === "interno_reativacao") {
+      // Bucket pelo percentual aplicado (1,5% / 1% / 0,5%), independente do tipo
+      if (pct >= 1.25) {
         r.c15 = (r.c15 ?? 0) + valor;
         r.p15 = pct;
-      } else if (c.tipo === "interno_recorrente") {
+      } else if (pct >= 0.75) {
         r.c1 = (r.c1 ?? 0) + valor;
         r.p1 = pct;
-      } else if (c.tipo === "interno_sobre_rep") {
+      } else {
         r.c05 = (r.c05 ?? 0) + valor;
         r.p05 = pct;
       }
+
       map.set(c.nfe_id, r);
     }
     return [...map.values()].sort((a, b) => (a.emissao || "").localeCompare(b.emissao || ""));
