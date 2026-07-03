@@ -267,9 +267,15 @@ type Visao = "todos" | "externos" | "interno" | "gestor";
 function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
   const [gerado, setGerado] = useState<{ mes: number; ano: number } | null>({ mes, ano });
 
+  // Sincroniza automaticamente quando o usuário troca mês/ano no topo
+  useEffect(() => {
+    setGerado({ mes, ano });
+  }, [mes, ano]);
+
   const mesRef = gerado?.mes ?? mes;
   const anoRef = gerado?.ano ?? ano;
   const periodo = `${String(mesRef).padStart(2, "0")}/${anoRef}`;
+
 
   const { data: logoBase64 } = useQuery({
     queryKey: ["empresa-logo"],
