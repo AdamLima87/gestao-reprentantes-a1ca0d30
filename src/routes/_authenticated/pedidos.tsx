@@ -344,6 +344,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
     prazo_entrega: addBusinessDays(today, 15),
     valor_produtos: "",
     jefferson_participou: false,
+    percentual_interno_override: "",
   };
   const [form, setForm] = useState(initialForm);
 
