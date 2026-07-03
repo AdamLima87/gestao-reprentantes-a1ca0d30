@@ -574,7 +574,9 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
             <Switch checked={form.jefferson_participou} onCheckedChange={(v) => setForm({ ...form, jefferson_participou: v })} />
             <Label className="!mt-0">Vendedor interno participou?</Label>
           </div>
+          {canEditPct && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
             {form.representante_id && (
               <div className="rounded border border-dashed p-3 bg-muted/30">
                 <Label className="text-xs">% comissão representante</Label>
