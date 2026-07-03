@@ -108,6 +108,8 @@ Deno.serve(async (req) => {
     const mesNome = MESES[Number(mes) - 1] ?? String(mes);
     const periodo = `${mesNome}/${ano}`;
 
+    const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "Brazil Amortecedores <onboarding@resend.dev>";
+
     const resp = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
       method: "POST",
       headers: {
@@ -116,7 +118,7 @@ Deno.serve(async (req) => {
         "X-Connection-Api-Key": RESEND_API_KEY,
       },
       body: JSON.stringify({
-        from: "Brazil Amortecedores <onboarding@resend.dev>",
+        from: EMAIL_FROM,
         to: [destEmail],
         subject: `Extrato de Comissões — ${periodo} — Brazil Amortecedores`,
         text:
@@ -136,9 +138,25 @@ Brazil Amortecedores`,
     if (!resp.ok) {
       const errTxt = await resp.text();
       console.error("Resend gateway error:", resp.status, errTxt);
-      return new Response(JSON.stringify({ error: "Falha ao enviar e-mail", detail: errTxt }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+      const isDomainNotVerified =
+        resp.status === 403 &&
+        /verify a domain|testing emails to your own/i.test(errTxt);
+
+      const friendly = isDomainNotVerified
+        ? "Para enviar e-mails para outros destinatários é preciso verificar um domínio no Resend (resend.com/domains) e definir o remetente na variável EMAIL_FROM. Sem isso, o Resend só entrega no e-mail da conta usada na conexão."
+        : "Falha ao enviar e-mail pelo Resend. Verifique a conexão do Resend nos conectores.";
+
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: friendly,
+          code: isDomainNotVerified ? "RESEND_DOMAIN_NOT_VERIFIED" : "RESEND_SEND_FAILED",
+          detail: errTxt,
+          status: resp.status,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     await admin.from("extratos_enviados").insert({
