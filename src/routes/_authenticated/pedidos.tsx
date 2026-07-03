@@ -474,6 +474,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
               </div>
             )}
           </div>
+          )}
 
           <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
         </form>
