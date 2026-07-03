@@ -345,6 +345,8 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
     valor_produtos: "",
     jefferson_participou: false,
     percentual_interno_override: "",
+    percentual_representante_override: "",
+
   };
   const [form, setForm] = useState(initialForm);
 
