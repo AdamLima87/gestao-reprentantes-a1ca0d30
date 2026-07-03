@@ -490,7 +490,10 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
     jefferson_participou: !!pedido.jefferson_participou,
     percentual_interno_override:
       pedido.percentual_interno_override != null ? String(pedido.percentual_interno_override) : "",
+    percentual_representante_override:
+      pedido.percentual_representante_override != null ? String(pedido.percentual_representante_override) : "",
   });
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
