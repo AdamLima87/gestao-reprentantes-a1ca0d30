@@ -1213,13 +1213,8 @@ function InternoTable({
               <TableBody>
                 {internoSort.sortedData.map((r, i) => {
                   const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
-                  const cellPct = (v: number | null, p: number | null) =>
-                    v == null ? "—" : (
-                      <>
-                        {fmtBRL(v)}
-                        {p != null && <span className="text-xs text-muted-foreground ml-1">({fmtPct(p)})</span>}
-                      </>
-                    );
+                  const cellPct = (v: number | null) => (v == null ? "—" : fmtBRL(v));
+
                   return (
                     <MotionTableRow key={r.nfeId} {...rowMotionProps(i)}>
                       <TableCell className="font-medium">{r.numero}</TableCell>
