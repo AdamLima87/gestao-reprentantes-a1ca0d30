@@ -426,10 +426,10 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     const aoa: (string | number)[][] = [
       ["Relatório Geral de Comissões"],
       [`Período: ${periodo}`],
-      [`Faturamento do mês:`, "", faturamentoMes ?? 0],
-      [],
-      ["Representante", "%", "Valor Comissão", "Status"],
     ];
+    if (canVerFaturamento) aoa.push([`Faturamento do mês:`, "", faturamentoMes ?? 0]);
+    aoa.push([]);
+    aoa.push(["Representante", "%", "Valor Comissão", "Status"]);
     linhas.forEach((l) => aoa.push([l.nome, l.percentual, l.valor, statusOf(l).label]));
     aoa.push([]);
     aoa.push(["TOTAL GERAL", "", totais.valor, ""]);
@@ -439,10 +439,11 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 40 }, { wch: 10 }, { wch: 20 }, { wch: 14 }];
     const money = 'R$ #,##0.00;[Red]-R$ #,##0.00';
-    // Faturamento na linha 3, coluna C (index r=2, c=2)
-    const fatCell = ws[XLSX.utils.encode_cell({ r: 2, c: 2 })];
-    if (fatCell) fatCell.z = money;
-    const dataStart = 6;
+    if (canVerFaturamento) {
+      const fatCell = ws[XLSX.utils.encode_cell({ r: 2, c: 2 })];
+      if (fatCell) fatCell.z = money;
+    }
+    const dataStart = canVerFaturamento ? 6 : 5;
     const dataEnd = dataStart + linhas.length - 1;
     for (let r = dataStart; r <= dataEnd; r++) {
       const cell = ws[XLSX.utils.encode_cell({ r: r - 1, c: 2 })];
