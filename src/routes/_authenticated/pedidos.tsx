@@ -333,6 +333,8 @@ function PedidosPage() {
 function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
   reps: any[]; clientes: any[]; myRepId: string | null; onDone: () => void;
 }) {
+  const { can } = usePermissions();
+  const canEditPct = can("editar_percentual_pedido");
   const [open, setOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const initialForm = {
@@ -438,7 +440,9 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
             <Switch checked={form.jefferson_participou} onCheckedChange={(v) => setForm({ ...form, jefferson_participou: v })} />
             <Label className="!mt-0">Vendedor interno participou?</Label>
           </div>
+          {canEditPct && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
             {form.representante_id && (
               <div className="rounded border border-dashed p-3 bg-muted/30">
                 <Label className="text-xs">% comissão representante</Label>
@@ -470,6 +474,7 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
               </div>
             )}
           </div>
+          )}
 
           <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
         </form>
@@ -481,6 +486,8 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
 function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
   pedido: any; reps: any[]; clientes: any[]; onClose: () => void; onDone: () => void;
 }) {
+  const { can } = usePermissions();
+  const canEditPct = can("editar_percentual_pedido");
   const [form, setForm] = useState({
     numero_pedido: pedido.numero_pedido ?? "",
     numero_pedido_cliente: pedido.numero_pedido_cliente ?? "",
@@ -567,7 +574,9 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
             <Switch checked={form.jefferson_participou} onCheckedChange={(v) => setForm({ ...form, jefferson_participou: v })} />
             <Label className="!mt-0">Vendedor interno participou?</Label>
           </div>
+          {canEditPct && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
             {form.representante_id && (
               <div className="rounded border border-dashed p-3 bg-muted/30">
                 <Label className="text-xs">% comissão representante</Label>
@@ -599,6 +608,7 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
               </div>
             )}
           </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

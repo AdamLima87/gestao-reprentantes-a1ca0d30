@@ -39,6 +39,10 @@ export const PERMISSION_KEYS = [
   // Relatórios
   "exportar_relatorios",
   "enviar_extrato_email",
+  "ver_comissao_gestor",
+  "ver_faturamento_total",
+  // Overrides financeiros
+  "editar_percentual_pedido",
 ] as const;
 
 
@@ -50,8 +54,8 @@ export const PERMISSION_CATEGORIES: { categoria: string; chaves: PermissionKey[]
   { categoria: "Pedidos", chaves: ["criar_pedidos", "editar_pedidos", "cancelar_pedidos", "excluir_pedidos"] },
   { categoria: "NF-e", chaves: ["registrar_nfe", "registrar_entrega", "excluir_nfe"] },
   { categoria: "Comissões", chaves: ["marcar_comissao_paga", "recalcular_comissoes"] },
-  { categoria: "Cadastros", chaves: ["cadastrar_clientes", "cadastrar_representantes", "gerar_contrato_pdf", "enviar_contrato_assinatura", "visualizar_contratos_assinatura", "editar_percentual_cliente", "importar_planilhas", "criar_usuarios"] },
-  { categoria: "Relatórios", chaves: ["exportar_relatorios", "enviar_extrato_email"] },
+  { categoria: "Cadastros", chaves: ["cadastrar_clientes", "cadastrar_representantes", "gerar_contrato_pdf", "enviar_contrato_assinatura", "visualizar_contratos_assinatura", "editar_percentual_cliente", "editar_percentual_pedido", "importar_planilhas", "criar_usuarios"] },
+  { categoria: "Relatórios", chaves: ["exportar_relatorios", "enviar_extrato_email", "ver_comissao_gestor", "ver_faturamento_total"] },
 ];
 
 export const PERMISSION_LABELS: Record<PermissionKey, { titulo: string; descricao: string }> = {
@@ -84,6 +88,9 @@ export const PERMISSION_LABELS: Record<PermissionKey, { titulo: string; descrica
   importar_planilhas: { titulo: "Importar planilhas", descricao: "Pode acessar a aba de importação de dados." },
   exportar_relatorios: { titulo: "Exportar relatórios", descricao: "Pode baixar relatórios em PDF/CSV." },
   enviar_extrato_email: { titulo: "Enviar extrato por e-mail", descricao: "Pode enviar o extrato de comissões do representante por e-mail." },
+  ver_comissao_gestor: { titulo: "Ver comissão do gestor", descricao: "Exibe a linha de comissão do gestor no relatório geral e nas exportações." },
+  ver_faturamento_total: { titulo: "Ver faturamento total", descricao: "Exibe o faturamento do mês no relatório geral e nas exportações." },
+  editar_percentual_pedido: { titulo: "Editar % de comissão no pedido", descricao: "Permite sobrescrever o percentual do representante e do vendedor interno em cada pedido." },
 };
 
 export const ROLE_DEFAULTS: Record<AppRole, ReadonlySet<PermissionKey>> = {
@@ -98,6 +105,7 @@ export const ROLE_DEFAULTS: Record<AppRole, ReadonlySet<PermissionKey>> = {
     "ver_relatorios", "exportar_relatorios",
     "ver_clientes", "cadastrar_clientes",
     "ver_representantes",
+    "ver_faturamento_total",
   ]),
   financeiro: new Set([
     "ver_dashboard",
@@ -107,6 +115,7 @@ export const ROLE_DEFAULTS: Record<AppRole, ReadonlySet<PermissionKey>> = {
     "ver_relatorios", "exportar_relatorios",
     "ver_clientes",
     "ver_representantes",
+    "ver_comissao_gestor", "ver_faturamento_total",
   ]),
   representante: new Set([
     "ver_pedidos",
