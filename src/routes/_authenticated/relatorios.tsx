@@ -388,9 +388,9 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     const arr: Linha[] = [];
     arr.push(...[...externos.values()].sort((a, b) => a.nome.localeCompare(b.nome)));
     if (internoAcc.valor > 0) arr.push(internoAcc);
-    arr.push(...[...gestorMap.values()].sort((a, b) => a.nome.localeCompare(b.nome)));
+    if (canVerGestor) arr.push(...[...gestorMap.values()].sort((a, b) => a.nome.localeCompare(b.nome)));
     return arr;
-  }, [data, gestores]);
+  }, [data, gestores, canVerGestor]);
 
   const totais = useMemo(() => {
     const t = linhas.reduce(
