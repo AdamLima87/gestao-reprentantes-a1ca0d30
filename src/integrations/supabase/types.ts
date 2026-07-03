@@ -568,6 +568,8 @@ export type Database = {
           nome_socio: string | null
           numero: string | null
           percentual_padrao: number
+          percentual_recorrente: number
+          percentual_sobre_rep: number
           razao_social: string | null
           regiao: string | null
           rg: string | null
@@ -600,6 +602,8 @@ export type Database = {
           nome_socio?: string | null
           numero?: string | null
           percentual_padrao?: number
+          percentual_recorrente?: number
+          percentual_sobre_rep?: number
           razao_social?: string | null
           regiao?: string | null
           rg?: string | null
@@ -632,6 +636,8 @@ export type Database = {
           nome_socio?: string | null
           numero?: string | null
           percentual_padrao?: number
+          percentual_recorrente?: number
+          percentual_sobre_rep?: number
           razao_social?: string | null
           regiao?: string | null
           rg?: string | null

@@ -404,14 +404,14 @@ function ClientesTab() {
 
 // ============== REPS ==============
 type RepFormState = {
-  nome: string; email: string; regiao: string; estados: string[]; tipo: "externo" | "interno"; percentual_padrao: string; ativo: boolean;
+  nome: string; email: string; regiao: string; estados: string[]; tipo: "externo" | "interno"; percentual_padrao: string; percentual_recorrente: string; percentual_sobre_rep: string; ativo: boolean;
   tipo_pessoa: "juridica" | "fisica";
   cnpj: string; razao_social: string; endereco: string; numero: string; bairro: string; cidade: string; estado: string; cep: string; nome_socio: string;
   cpf: string; nome_completo: string; rg: string; data_nascimento: string;
   banco: string; tipo_conta: string; agencia: string; conta_digito: string; chave_pix: string; titular_conta: string; cpf_cnpj_titular: string;
 };
 const emptyRepForm: RepFormState = {
-  nome: "", email: "", regiao: "", estados: [], tipo: "externo", percentual_padrao: "5.0", ativo: true,
+  nome: "", email: "", regiao: "", estados: [], tipo: "externo", percentual_padrao: "5.0", percentual_recorrente: "1.0", percentual_sobre_rep: "0.5", ativo: true,
   tipo_pessoa: "juridica",
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
   cpf: "", nome_completo: "", rg: "", data_nascimento: "",
@@ -527,10 +527,28 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
         </div>
       )}
       <div className="rounded border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3">
-        <Label>% comissão padrão *</Label>
+        <Label>{form.tipo === "interno" ? "% comissão — Novo / Reativação *" : "% comissão padrão *"}</Label>
         <Input type="number" step="0.01" className="text-lg font-semibold" value={form.percentual_padrao} onChange={(e) => setForm({ ...form, percentual_padrao: e.target.value })} required />
-        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">⚠️ Este percentual será utilizado no contrato. Confirme antes de salvar.</p>
+        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+          {form.tipo === "interno"
+            ? "Aplicado a clientes novos ou sem compra há mais de 120 dias."
+            : "⚠️ Este percentual será utilizado no contrato. Confirme antes de salvar."}
+        </p>
       </div>
+      {form.tipo === "interno" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded border p-3">
+            <Label>% comissão — Recorrente *</Label>
+            <Input type="number" step="0.01" value={form.percentual_recorrente} onChange={(e) => setForm({ ...form, percentual_recorrente: e.target.value })} required />
+            <p className="mt-1 text-xs text-muted-foreground">Cliente com compra nos últimos 120 dias.</p>
+          </div>
+          <div className="rounded border p-3">
+            <Label>% comissão — Sobre venda de representante *</Label>
+            <Input type="number" step="0.01" value={form.percentual_sobre_rep} onChange={(e) => setForm({ ...form, percentual_sobre_rep: e.target.value })} required />
+            <p className="mt-1 text-xs text-muted-foreground">Quando o vendedor interno participa da venda de um representante externo.</p>
+          </div>
+        </div>
+      )}
       {form.tipo === "externo" && form.tipo_pessoa === "juridica" && (
         <div className="space-y-3 rounded border p-3 bg-muted/30">
           <div>
@@ -777,7 +795,10 @@ function RepsTab() {
     const regiaoPrincipal = f.estados[0] ? (regiaoDoEstado(f.estados[0]) ?? f.estados[0]) : null;
     return {
       nome: f.nome, email: f.email || null, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
-      percentual_padrao: Number(f.percentual_padrao), ativo: f.ativo,
+      percentual_padrao: Number(f.percentual_padrao),
+      percentual_recorrente: f.tipo === "interno" ? Number(f.percentual_recorrente) : 1.0,
+      percentual_sobre_rep: f.tipo === "interno" ? Number(f.percentual_sobre_rep) : 0.5,
+      ativo: f.ativo,
       tipo_pessoa: isExt ? f.tipo_pessoa : "juridica",
       cnpj: isPJ ? (f.cnpj || null) : null,
       razao_social: isPJ ? (f.razao_social || null) : null,
@@ -819,6 +840,12 @@ function RepsTab() {
     if (!Number.isFinite(percentual) || percentual < 0 || percentual > 100) {
       return toast.error("Percentual de comissão inválido (0 a 100).");
     }
+    if (form.tipo === "interno") {
+      const rec = Number(form.percentual_recorrente);
+      const sob = Number(form.percentual_sobre_rep);
+      if (!Number.isFinite(rec) || rec < 0 || rec > 100) return toast.error("% recorrente inválido (0 a 100).");
+      if (!Number.isFinite(sob) || sob < 0 || sob > 100) return toast.error("% sobre venda de representante inválido (0 a 100).");
+    }
     const cleanForm: RepFormState = {
       ...form,
       nome,
@@ -857,7 +884,10 @@ function RepsTab() {
       : (regiaoLegacy ? [regiaoLegacy] : []);
     setForm({
       nome: r.nome ?? "", email: r.email ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
-      percentual_padrao: String(r.percentual_padrao ?? "5.0"), ativo: r.ativo ?? true,
+      percentual_padrao: String(r.percentual_padrao ?? "5.0"),
+      percentual_recorrente: String(r.percentual_recorrente ?? "1.0"),
+      percentual_sobre_rep: String(r.percentual_sobre_rep ?? "0.5"),
+      ativo: r.ativo ?? true,
       tipo_pessoa: (r.tipo_pessoa ?? "juridica") as "juridica" | "fisica",
       cnpj: r.cnpj ?? "", razao_social: r.razao_social ?? "",
       endereco: r.endereco ?? "", numero: r.numero ?? "", bairro: r.bairro ?? "",
