@@ -458,7 +458,7 @@ function ComissoesPage() {
       // - percentual_interno_override por pedido
       // - comissão do gestor
       // Não chamar as RPCs legadas (recalcular_comissoes_representantes/interno/gestor),
-      // pois elas sobrescreviam com percentuais fixos (1,5 / 1,0 / 0,5) ignorando os overrides.
+      // pois elas sobrescreviam com percentuais fixos antigos, ignorando os overrides.
       await callReprocessar();
       return { ok: true };
     },
