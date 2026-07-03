@@ -309,6 +309,20 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     },
   });
 
+  const { data: faturamentoMes } = useQuery({
+    queryKey: ["rel-comissoes-geral-faturamento", mesRef, anoRef, !!gerado],
+    enabled: !!gerado,
+    queryFn: async () => {
+      const res = await supabase
+        .from("nfe")
+        .select("valor_nfe")
+        .eq("mes_ref", mesRef)
+        .eq("ano_ref", anoRef);
+      return (res.data ?? []).reduce((s: number, n: any) => s + Number(n.valor_nfe ?? 0), 0);
+    },
+  });
+
+
   const gestorIds = useMemo(() => {
     const s = new Set<string>();
     for (const c of data ?? []) if (c.gestor_user_id) s.add(c.gestor_user_id);
@@ -398,7 +412,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
       "Relatório Geral de Comissões",
       headers,
       rows,
-      `Período: ${periodo}`,
+      `Período: ${periodo}  |  Faturamento do mês: ${fmtBRL(faturamentoMes ?? 0)}`,
       { brand: true, logoBase64: logoBase64 ?? null },
     );
   };
@@ -407,6 +421,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     const aoa: (string | number)[][] = [
       ["Relatório Geral de Comissões"],
       [`Período: ${periodo}`],
+      [`Faturamento do mês:`, "", faturamentoMes ?? 0],
       [],
       ["Representante", "%", "Valor Comissão", "Status"],
     ];
@@ -419,7 +434,10 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 40 }, { wch: 10 }, { wch: 20 }, { wch: 14 }];
     const money = 'R$ #,##0.00;[Red]-R$ #,##0.00';
-    const dataStart = 5;
+    // Faturamento na linha 3, coluna C (index r=2, c=2)
+    const fatCell = ws[XLSX.utils.encode_cell({ r: 2, c: 2 })];
+    if (fatCell) fatCell.z = money;
+    const dataStart = 6;
     const dataEnd = dataStart + linhas.length - 1;
     for (let r = dataStart; r <= dataEnd; r++) {
       const cell = ws[XLSX.utils.encode_cell({ r: r - 1, c: 2 })];
@@ -434,6 +452,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     XLSX.utils.book_append_sheet(wb, ws, "Comissões");
     XLSX.writeFile(wb, `comissoes-geral-${mesRef}-${anoRef}.xlsx`);
   };
+
 
   return (
     <div className="space-y-4">
@@ -497,9 +516,13 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
                 </TableBody>
               </Table>
 
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="rounded-lg border p-3 bg-blue-50 dark:bg-blue-950/20">
+                  <div className="text-xs text-muted-foreground">Faturamento do mês</div>
+                  <div className="text-lg font-bold text-blue-700 dark:text-blue-400">{fmtBRL(faturamentoMes ?? 0)}</div>
+                </div>
                 <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">Total do mês</div>
+                  <div className="text-xs text-muted-foreground">Total do mês (comissões)</div>
                   <div className="text-lg font-bold">{fmtBRL(totais.valor)}</div>
                 </div>
                 <div className="rounded-lg border p-3 bg-green-50 dark:bg-green-950/20">
@@ -511,6 +534,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
                   <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{fmtBRL(totais.pendente)}</div>
                 </div>
               </div>
+
             </>
           )}
         </CardContent>
