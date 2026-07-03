@@ -37,7 +37,9 @@ function NfePage() {
   const canEntrega = can("registrar_entrega");
   const canExcluir = can("excluir_nfe");
   const verTodas = can("ver_todas_nfe");
+  const canEdit = canCreate;
   const qc = useQueryClient();
+  const [editing, setEditing] = useState<any | null>(null);
 
   const { data: nfes, isLoading } = useQuery({
     queryKey: ["nfes", verTodas, representanteId],
