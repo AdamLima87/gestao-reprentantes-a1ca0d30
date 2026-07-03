@@ -21,7 +21,7 @@ import { MessageSquareText } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/nfe")({
   component: NfePage,
@@ -37,7 +37,9 @@ function NfePage() {
   const canEntrega = can("registrar_entrega");
   const canExcluir = can("excluir_nfe");
   const verTodas = can("ver_todas_nfe");
+  const canEdit = canCreate;
   const qc = useQueryClient();
+  const [editing, setEditing] = useState<any | null>(null);
 
   const { data: nfes, isLoading } = useQuery({
     queryKey: ["nfes", verTodas, representanteId],
@@ -139,6 +141,16 @@ function NfePage() {
                               }}
                             />
                           )}
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Editar NF-e"
+                              onClick={() => setEditing(n)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {canExcluir && (
                             <ExcluirNfeDialog
                               nfeId={n.id}
@@ -162,6 +174,19 @@ function NfePage() {
             )}
           </CardContent>
         </Card>
+        {editing && (
+          <EditarNfeDialog
+            nfe={editing}
+            onClose={() => setEditing(null)}
+            onDone={() => {
+              setEditing(null);
+              qc.invalidateQueries({ queryKey: ["nfes"] });
+              qc.invalidateQueries({ queryKey: ["pedidos"] });
+              qc.invalidateQueries({ queryKey: ["comissoes"] });
+              qc.invalidateQueries({ queryKey: ["dashboard"] });
+            }}
+          />
+        )}
       </motion.div>
     </TooltipProvider>
   );
@@ -383,6 +408,64 @@ function ExcluirNfeDialog({ nfeId, numeroNfe, onDone }: { nfeId: string; numeroN
             {deleting ? "Excluindo…" : "Confirmar exclusão"}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditarNfeDialog({ nfe, onClose, onDone }: { nfe: any; onClose: () => void; onDone: () => void }) {
+  const [form, setForm] = useState({
+    numero_nfe: nfe.numero_nfe ?? "",
+    data_nfe: nfe.data_nfe ?? new Date().toISOString().slice(0, 10),
+    valor_nfe: String(nfe.valor_nfe ?? ""),
+    data_entrega: nfe.data_entrega ?? "",
+    observacao: nfe.observacao ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.numero_nfe || !form.valor_nfe) {
+      toast.error("Preencha os campos obrigatórios.");
+      return;
+    }
+    setSaving(true);
+    const d = new Date(form.data_nfe);
+    const { error } = await supabase.from("nfe").update({
+      numero_nfe: form.numero_nfe,
+      data_nfe: form.data_nfe,
+      valor_nfe: Number(form.valor_nfe),
+      mes_ref: d.getMonth() + 1,
+      ano_ref: d.getFullYear(),
+      data_entrega: form.data_entrega || null,
+      observacao: form.observacao.trim() ? form.observacao.trim() : null,
+    }).eq("id", nfe.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("NF-e atualizada. Use 'Recalcular comissões' se alterou valor ou data.");
+    onDone();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Editar NF-e {nfe.numero_nfe}</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Nº NF-e *</Label><Input value={form.numero_nfe} onChange={(e) => setForm({ ...form, numero_nfe: e.target.value })} required /></div>
+            <div><Label>Data emissão *</Label><Input type="date" value={form.data_nfe} onChange={(e) => setForm({ ...form, data_nfe: e.target.value })} required /></div>
+          </div>
+          <div><Label>Valor da nota (R$) *</Label><Input type="number" step="0.01" value={form.valor_nfe} onChange={(e) => setForm({ ...form, valor_nfe: e.target.value })} required /></div>
+          <div><Label>Data entrega</Label><Input type="date" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} /></div>
+          <div>
+            <Label>Observação</Label>
+            <Textarea value={form.observacao} onChange={(e) => setForm({ ...form, observacao: e.target.value })} rows={3} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={saving}>Salvar</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
