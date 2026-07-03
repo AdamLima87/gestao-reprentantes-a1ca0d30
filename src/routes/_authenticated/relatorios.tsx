@@ -415,7 +415,9 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
       "Relatório Geral de Comissões",
       headers,
       rows,
-      `Período: ${periodo}  |  Faturamento do mês: ${fmtBRL(faturamentoMes ?? 0)}`,
+      canVerFaturamento
+        ? `Período: ${periodo}  |  Faturamento do mês: ${fmtBRL(faturamentoMes ?? 0)}`
+        : `Período: ${periodo}`,
       { brand: true, logoBase64: logoBase64 ?? null },
     );
   };
