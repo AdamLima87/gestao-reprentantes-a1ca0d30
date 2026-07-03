@@ -265,6 +265,9 @@ type Visao = "todos" | "externos" | "interno" | "gestor";
 
 
 function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
+  const { can } = usePermissions();
+  const canVerGestor = can("ver_comissao_gestor");
+  const canVerFaturamento = can("ver_faturamento_total");
   const [gerado, setGerado] = useState<{ mes: number; ano: number } | null>({ mes, ano });
 
   // Sincroniza automaticamente quando o usuário troca mês/ano no topo
