@@ -463,6 +463,8 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
     prazo_entrega: pedido.prazo_entrega ?? "",
     valor_produtos: String(pedido.valor_produtos ?? ""),
     jefferson_participou: !!pedido.jefferson_participou,
+    percentual_interno_override:
+      pedido.percentual_interno_override != null ? String(pedido.percentual_interno_override) : "",
   });
 
   const submit = async (e: React.FormEvent) => {
