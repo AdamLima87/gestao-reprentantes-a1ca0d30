@@ -412,7 +412,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
       "Relatório Geral de Comissões",
       headers,
       rows,
-      `Período: ${periodo}`,
+      `Período: ${periodo}  |  Faturamento do mês: ${fmtBRL(faturamentoMes ?? 0)}`,
       { brand: true, logoBase64: logoBase64 ?? null },
     );
   };
@@ -421,6 +421,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     const aoa: (string | number)[][] = [
       ["Relatório Geral de Comissões"],
       [`Período: ${periodo}`],
+      [`Faturamento do mês:`, "", faturamentoMes ?? 0],
       [],
       ["Representante", "%", "Valor Comissão", "Status"],
     ];
@@ -433,7 +434,10 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 40 }, { wch: 10 }, { wch: 20 }, { wch: 14 }];
     const money = 'R$ #,##0.00;[Red]-R$ #,##0.00';
-    const dataStart = 5;
+    // Faturamento na linha 3, coluna C (index r=2, c=2)
+    const fatCell = ws[XLSX.utils.encode_cell({ r: 2, c: 2 })];
+    if (fatCell) fatCell.z = money;
+    const dataStart = 6;
     const dataEnd = dataStart + linhas.length - 1;
     for (let r = dataStart; r <= dataEnd; r++) {
       const cell = ws[XLSX.utils.encode_cell({ r: r - 1, c: 2 })];
@@ -448,6 +452,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     XLSX.utils.book_append_sheet(wb, ws, "Comissões");
     XLSX.writeFile(wb, `comissoes-geral-${mesRef}-${anoRef}.xlsx`);
   };
+
 
   return (
     <div className="space-y-4">
