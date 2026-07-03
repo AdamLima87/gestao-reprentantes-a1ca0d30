@@ -486,6 +486,8 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
 function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
   pedido: any; reps: any[]; clientes: any[]; onClose: () => void; onDone: () => void;
 }) {
+  const { can } = usePermissions();
+  const canEditPct = can("editar_percentual_pedido");
   const [form, setForm] = useState({
     numero_pedido: pedido.numero_pedido ?? "",
     numero_pedido_cliente: pedido.numero_pedido_cliente ?? "",
