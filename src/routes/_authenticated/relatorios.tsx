@@ -1223,9 +1223,10 @@ function InternoTable({
                       <TableCell>{r.empresa}</TableCell>
                       <TableCell>{formatarData(r.entrega)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
-                      <TableCell className="text-right">{cellPct(r.c15, r.p15)}</TableCell>
-                      <TableCell className="text-right">{cellPct(r.c1, r.p1)}</TableCell>
-                      <TableCell className="text-right">{cellPct(r.c05, r.p05)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c15)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c1)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c05)}</TableCell>
+
                       <TableCell className="text-right font-medium">{fmtBRL(tot)}</TableCell>
                     </MotionTableRow>
                   );
