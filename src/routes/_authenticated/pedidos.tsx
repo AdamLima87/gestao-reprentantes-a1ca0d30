@@ -222,7 +222,7 @@ function PedidosPage() {
               </TableHeader>
               <TableBody>
                 {pedidosSort.sortedData.map((p: any, index: number) => {
-                  const editable = canEdit && p.status !== "entregue" && p.status !== "cancelado";
+                  const editable = canEdit && p.status !== "cancelado";
                   return (
                     <MotionTableRow key={p.id} {...rowMotionProps(index)}>
                       <TableCell className="font-mono text-xs">{p.numero_pedido}</TableCell>
