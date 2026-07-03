@@ -959,6 +959,9 @@ function InternoTable({
       c15: number | null;
       c1: number | null;
       c05: number | null;
+      p15: number | null;
+      p1: number | null;
+      p05: number | null;
     };
     const map = new Map<string, R>();
     for (const c of internas) {
@@ -973,14 +976,21 @@ function InternoTable({
         c15: null,
         c1: null,
         c05: null,
+        p15: null,
+        p1: null,
+        p05: null,
       };
       const valor = Number(c.valor_comissao);
+      const pct = Number(c.percentual_aplicado);
       if (c.tipo === "interno_novo" || c.tipo === "interno_reativacao") {
         r.c15 = (r.c15 ?? 0) + valor;
+        r.p15 = pct;
       } else if (c.tipo === "interno_recorrente") {
         r.c1 = (r.c1 ?? 0) + valor;
+        r.p1 = pct;
       } else if (c.tipo === "interno_sobre_rep") {
         r.c05 = (r.c05 ?? 0) + valor;
+        r.p05 = pct;
       }
       map.set(c.nfe_id, r);
     }
@@ -999,6 +1009,25 @@ function InternoTable({
     );
   }, [rows]);
 
+  const fmtPct = (n: number) => {
+    const s = n.toFixed(2).replace(/\.?0+$/, "");
+    return `${s.replace(".", ",")}%`;
+  };
+  const pctLabel = (key: "p15" | "p1" | "p05") => {
+    const set = new Set<number>();
+    for (const r of rows) {
+      const v = r[key];
+      if (v != null) set.add(Number(v));
+    }
+    if (set.size === 0) return "—";
+    if (set.size === 1) return fmtPct([...set][0]);
+    const arr = [...set].sort((a, b) => a - b);
+    return `${fmtPct(arr[0])}–${fmtPct(arr[arr.length - 1])}`;
+  };
+  const hdrNovo = `Novo/Reativação (${pctLabel("p15")})`;
+  const hdrRec = `Recorrente (${pctLabel("p1")})`;
+  const hdrSobre = `Sobre Rep. (${pctLabel("p05")})`;
+
   const internoSort = useSortableData(rows, {
     accessors: {
       numero: (r: any) => r.numero,
@@ -1014,7 +1043,8 @@ function InternoTable({
     },
   });
 
-  const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO NOVO/REATIVAÇÃO", "COMISSÃO RECORRENTE", "COMISSÃO SOBRE REP.", "TOTAL COMISSÃO"];
+  const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", `COMISSÃO ${hdrNovo.toUpperCase()}`, `COMISSÃO ${hdrRec.toUpperCase()}`, `COMISSÃO ${hdrSobre.toUpperCase()}`, "TOTAL COMISSÃO"];
+
 
   const totalGeral = totals.c15 + totals.c1 + totals.c05;
   const summaryLine = `Total novo/reativação: ${fmtBRL(totals.c15)}  |  Total recorrente: ${fmtBRL(totals.c1)}  |  Total sobre representante: ${fmtBRL(totals.c05)}  |  Total geral: ${fmtBRL(totalGeral)}`;
@@ -1182,15 +1212,22 @@ function InternoTable({
                   <SortableTableHead sortKey="empresa" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Empresa</SortableTableHead>
                   <SortableTableHead sortKey="entrega" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Entrega</SortableTableHead>
                   <SortableTableHead sortKey="valor" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Valor Produto</SortableTableHead>
-                  <SortableTableHead sortKey="c15" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Novo/Reativação</SortableTableHead>
-                  <SortableTableHead sortKey="c1" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Recorrente</SortableTableHead>
-                  <SortableTableHead sortKey="c05" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Sobre Rep.</SortableTableHead>
+                  <SortableTableHead sortKey="c15" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">{hdrNovo}</SortableTableHead>
+                  <SortableTableHead sortKey="c1" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">{hdrRec}</SortableTableHead>
+                  <SortableTableHead sortKey="c05" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">{hdrSobre}</SortableTableHead>
                   <SortableTableHead sortKey="total" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Total Comissão</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {internoSort.sortedData.map((r, i) => {
                   const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
+                  const cellPct = (v: number | null, p: number | null) =>
+                    v == null ? "—" : (
+                      <>
+                        {fmtBRL(v)}
+                        {p != null && <span className="text-xs text-muted-foreground ml-1">({fmtPct(p)})</span>}
+                      </>
+                    );
                   return (
                     <MotionTableRow key={r.nfeId} {...rowMotionProps(i)}>
                       <TableCell className="font-medium">{r.numero}</TableCell>
@@ -1199,13 +1236,14 @@ function InternoTable({
                       <TableCell>{r.empresa}</TableCell>
                       <TableCell>{formatarData(r.entrega)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(r.valor)}</TableCell>
-                      <TableCell className="text-right">{r.c15 == null ? "—" : fmtBRL(r.c15)}</TableCell>
-                      <TableCell className="text-right">{r.c1 == null ? "—" : fmtBRL(r.c1)}</TableCell>
-                      <TableCell className="text-right">{r.c05 == null ? "—" : fmtBRL(r.c05)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c15, r.p15)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c1, r.p1)}</TableCell>
+                      <TableCell className="text-right">{cellPct(r.c05, r.p05)}</TableCell>
                       <TableCell className="text-right font-medium">{fmtBRL(tot)}</TableCell>
                     </MotionTableRow>
                   );
                 })}
+
                 <TableRow className="bg-muted/50 font-bold">
                   <TableCell colSpan={5}>TOTAL</TableCell>
                   <TableCell className="text-right">{fmtBRL(totals.valor)}</TableCell>
