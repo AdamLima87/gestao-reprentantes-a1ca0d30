@@ -39,6 +39,10 @@ export const PERMISSION_KEYS = [
   // Relatórios
   "exportar_relatorios",
   "enviar_extrato_email",
+  "ver_comissao_gestor",
+  "ver_faturamento_total",
+  // Overrides financeiros
+  "editar_percentual_pedido",
 ] as const;
 
 
