@@ -88,6 +88,9 @@ export const PERMISSION_LABELS: Record<PermissionKey, { titulo: string; descrica
   importar_planilhas: { titulo: "Importar planilhas", descricao: "Pode acessar a aba de importação de dados." },
   exportar_relatorios: { titulo: "Exportar relatórios", descricao: "Pode baixar relatórios em PDF/CSV." },
   enviar_extrato_email: { titulo: "Enviar extrato por e-mail", descricao: "Pode enviar o extrato de comissões do representante por e-mail." },
+  ver_comissao_gestor: { titulo: "Ver comissão do gestor", descricao: "Exibe a linha de comissão do gestor no relatório geral e nas exportações." },
+  ver_faturamento_total: { titulo: "Ver faturamento total", descricao: "Exibe o faturamento do mês no relatório geral e nas exportações." },
+  editar_percentual_pedido: { titulo: "Editar % de comissão no pedido", descricao: "Permite sobrescrever o percentual do representante e do vendedor interno em cada pedido." },
 };
 
 export const ROLE_DEFAULTS: Record<AppRole, ReadonlySet<PermissionKey>> = {
