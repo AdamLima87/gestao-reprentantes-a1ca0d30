@@ -174,6 +174,19 @@ function NfePage() {
             )}
           </CardContent>
         </Card>
+        {editing && (
+          <EditarNfeDialog
+            nfe={editing}
+            onClose={() => setEditing(null)}
+            onDone={() => {
+              setEditing(null);
+              qc.invalidateQueries({ queryKey: ["nfes"] });
+              qc.invalidateQueries({ queryKey: ["pedidos"] });
+              qc.invalidateQueries({ queryKey: ["comissoes"] });
+              qc.invalidateQueries({ queryKey: ["dashboard"] });
+            }}
+          />
+        )}
       </motion.div>
     </TooltipProvider>
   );
