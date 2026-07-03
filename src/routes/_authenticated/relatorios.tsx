@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
 
 const TIPO_LABEL: Record<string, string> = {
   externo: "Representante",
-  interno_sobre_rep: "Vend. Interno 0,5%",
+  interno_sobre_rep: "Vend. Interno — Sobre Rep.",
   interno_novo: "Vend. Interno - Cliente Novo",
   interno_reativacao: "Vend. Interno - Reativação",
   interno_recorrente: "Vend. Interno - Recorrente",
@@ -326,7 +326,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
   const linhas = useMemo<Linha[]>(() => {
     if (!data) return [];
     const externos = new Map<string, Linha>();
-    const internoAcc: Linha = { nome: "Vendedor Interno — Jefferson", percentual: "—", valor: 0, pagos: 0, pendentes: 0 };
+    const internoAcc: Linha = { nome: "Vendedor Interno", percentual: "—", valor: 0, pagos: 0, pendentes: 0 };
     const gestorMap = new Map<string, Linha>();
 
     for (const c of data) {
@@ -344,6 +344,7 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
         if (pago) l.pagos += v; else l.pendentes += v;
         externos.set(c.representante_id, l);
       } else if (c.tipo?.startsWith("interno")) {
+        if (c.representantes?.nome) internoAcc.nome = `Vendedor Interno — ${c.representantes.nome}`;
         internoAcc.valor += v;
         if (pago) internoAcc.pagos += v; else internoAcc.pendentes += v;
       } else if (c.tipo === "gestor" && c.gestor_user_id) {
@@ -1013,10 +1014,10 @@ function InternoTable({
     },
   });
 
-  const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO 1,5%", "COMISSÃO 1%", "COMISSÃO 0,5%", "TOTAL COMISSÃO"];
+  const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO NOVO/REATIVAÇÃO", "COMISSÃO RECORRENTE", "COMISSÃO SOBRE REP.", "TOTAL COMISSÃO"];
 
   const totalGeral = totals.c15 + totals.c1 + totals.c05;
-  const summaryLine = `Total 1,5% (novo/reativação): ${fmtBRL(totals.c15)}  |  Total 1% (recorrente): ${fmtBRL(totals.c1)}  |  Total 0,5% (sobre rep): ${fmtBRL(totals.c05)}  |  Total geral: ${fmtBRL(totalGeral)}`;
+  const summaryLine = `Total novo/reativação: ${fmtBRL(totals.c15)}  |  Total recorrente: ${fmtBRL(totals.c1)}  |  Total sobre representante: ${fmtBRL(totals.c05)}  |  Total geral: ${fmtBRL(totalGeral)}`;
 
   const handleCSV = () =>
     exportCSV(
@@ -1155,15 +1156,15 @@ function InternoTable({
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="rounded-md border p-3">
-                <div className="text-xs text-muted-foreground">Total 1,5% (novo/reativação)</div>
+                <div className="text-xs text-muted-foreground">Total novo/reativação</div>
                 <div className="text-lg font-bold">{fmtBRL(totals.c15)}</div>
               </div>
               <div className="rounded-md border p-3">
-                <div className="text-xs text-muted-foreground">Total 1% (recorrente)</div>
+                <div className="text-xs text-muted-foreground">Total recorrente</div>
                 <div className="text-lg font-bold">{fmtBRL(totals.c1)}</div>
               </div>
               <div className="rounded-md border p-3">
-                <div className="text-xs text-muted-foreground">Total 0,5% (sobre rep)</div>
+                <div className="text-xs text-muted-foreground">Total sobre representante</div>
                 <div className="text-lg font-bold">{fmtBRL(totals.c05)}</div>
               </div>
               <div className="rounded-md border p-3 bg-green-50 dark:bg-green-950/30 border-green-600/40">
@@ -1181,9 +1182,9 @@ function InternoTable({
                   <SortableTableHead sortKey="empresa" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Empresa</SortableTableHead>
                   <SortableTableHead sortKey="entrega" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort}>Entrega</SortableTableHead>
                   <SortableTableHead sortKey="valor" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Valor Produto</SortableTableHead>
-                  <SortableTableHead sortKey="c15" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 1,5%</SortableTableHead>
-                  <SortableTableHead sortKey="c1" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 1%</SortableTableHead>
-                  <SortableTableHead sortKey="c05" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Comissão 0,5%</SortableTableHead>
+                  <SortableTableHead sortKey="c15" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Novo/Reativação</SortableTableHead>
+                  <SortableTableHead sortKey="c1" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Recorrente</SortableTableHead>
+                  <SortableTableHead sortKey="c05" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Sobre Rep.</SortableTableHead>
                   <SortableTableHead sortKey="total" sortConfig={internoSort.sortConfig} onSort={internoSort.requestSort} className="text-right">Total Comissão</SortableTableHead>
                 </TableRow>
               </TableHeader>

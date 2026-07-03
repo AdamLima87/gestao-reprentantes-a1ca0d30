@@ -36,7 +36,7 @@ const fmtBRL = (n: number | string) =>
 
 const TIPO_LABEL: Record<string, string> = {
   externo: "Representante",
-  interno_sobre_rep: "Vend. Interno 0,5%",
+  interno_sobre_rep: "Vend. Interno — Sobre Rep.",
   interno_novo: "Vend. Interno - Cliente Novo",
   interno_reativacao: "Vend. Interno - Reativação",
   interno_recorrente: "Vend. Interno - Recorrente",
@@ -458,7 +458,7 @@ function ComissoesPage() {
       // - percentual_interno_override por pedido
       // - comissão do gestor
       // Não chamar as RPCs legadas (recalcular_comissoes_representantes/interno/gestor),
-      // pois elas sobrescreviam com percentuais fixos (1,5 / 1,0 / 0,5) ignorando os overrides.
+      // pois elas sobrescreviam com percentuais fixos antigos, ignorando os overrides.
       await callReprocessar();
       return { ok: true };
     },
