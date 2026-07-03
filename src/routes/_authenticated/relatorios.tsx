@@ -1026,9 +1026,10 @@ function InternoTable({
     const arr = [...set].sort((a, b) => a - b);
     return `${fmtPct(arr[0])}–${fmtPct(arr[arr.length - 1])}`;
   };
-  const hdrNovo = `Novo/Reativação (${pctLabel("p15")})`;
-  const hdrRec = `Recorrente (${pctLabel("p1")})`;
-  const hdrSobre = `Sobre Rep. (${pctLabel("p05")})`;
+  const hdrNovo = "1,5%";
+  const hdrRec = "1%";
+  const hdrSobre = "0,5%";
+
 
   const internoSort = useSortableData(rows, {
     accessors: {
