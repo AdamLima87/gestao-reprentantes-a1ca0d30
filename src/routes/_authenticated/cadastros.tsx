@@ -840,6 +840,12 @@ function RepsTab() {
     if (!Number.isFinite(percentual) || percentual < 0 || percentual > 100) {
       return toast.error("Percentual de comissão inválido (0 a 100).");
     }
+    if (form.tipo === "interno") {
+      const rec = Number(form.percentual_recorrente);
+      const sob = Number(form.percentual_sobre_rep);
+      if (!Number.isFinite(rec) || rec < 0 || rec > 100) return toast.error("% recorrente inválido (0 a 100).");
+      if (!Number.isFinite(sob) || sob < 0 || sob > 100) return toast.error("% sobre venda de representante inválido (0 a 100).");
+    }
     const cleanForm: RepFormState = {
       ...form,
       nome,
