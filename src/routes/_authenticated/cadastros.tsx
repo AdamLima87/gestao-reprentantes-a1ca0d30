@@ -527,10 +527,28 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
         </div>
       )}
       <div className="rounded border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3">
-        <Label>% comissão padrão *</Label>
+        <Label>{form.tipo === "interno" ? "% comissão — Novo / Reativação *" : "% comissão padrão *"}</Label>
         <Input type="number" step="0.01" className="text-lg font-semibold" value={form.percentual_padrao} onChange={(e) => setForm({ ...form, percentual_padrao: e.target.value })} required />
-        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">⚠️ Este percentual será utilizado no contrato. Confirme antes de salvar.</p>
+        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+          {form.tipo === "interno"
+            ? "Aplicado a clientes novos ou sem compra há mais de 120 dias."
+            : "⚠️ Este percentual será utilizado no contrato. Confirme antes de salvar."}
+        </p>
       </div>
+      {form.tipo === "interno" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded border p-3">
+            <Label>% comissão — Recorrente *</Label>
+            <Input type="number" step="0.01" value={form.percentual_recorrente} onChange={(e) => setForm({ ...form, percentual_recorrente: e.target.value })} required />
+            <p className="mt-1 text-xs text-muted-foreground">Cliente com compra nos últimos 120 dias.</p>
+          </div>
+          <div className="rounded border p-3">
+            <Label>% comissão — Sobre venda de representante *</Label>
+            <Input type="number" step="0.01" value={form.percentual_sobre_rep} onChange={(e) => setForm({ ...form, percentual_sobre_rep: e.target.value })} required />
+            <p className="mt-1 text-xs text-muted-foreground">Quando o vendedor interno participa da venda de um representante externo.</p>
+          </div>
+        </div>
+      )}
       {form.tipo === "externo" && form.tipo_pessoa === "juridica" && (
         <div className="space-y-3 rounded border p-3 bg-muted/30">
           <div>
