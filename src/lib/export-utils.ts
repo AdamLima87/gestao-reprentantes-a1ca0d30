@@ -125,7 +125,13 @@ export async function exportPDF(
 
   autoTable(doc, {
     head: [headers],
-    body: rows.map((r) => r.map((c) => String(c ?? ""))),
+    body: rows.map((r) =>
+      r.map((c) => {
+        if (c === null || c === undefined) return "";
+        if (typeof c === "object") return c as any;
+        return String(c);
+      }),
+    ) as any,
     startY: cursorY + 2,
     margin: { bottom: 18, top: 12 },
     styles: brand
