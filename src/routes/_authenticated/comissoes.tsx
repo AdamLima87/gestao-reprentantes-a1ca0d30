@@ -453,39 +453,28 @@ function ComissoesPage() {
   const [recalcOpen, setRecalcOpen] = useState(false);
   const recalcular = useMutation({
     mutationFn: async () => {
+      // reprocessarComissoes já apaga tudo e recria as comissões honrando:
+      // - percentual_padrao / percentual_recorrente / percentual_sobre_rep do vendedor interno
+      // - percentual_interno_override por pedido
+      // - comissão do gestor
+      // Não chamar as RPCs legadas (recalcular_comissoes_representantes/interno/gestor),
+      // pois elas sobrescreviam com percentuais fixos (1,5 / 1,0 / 0,5) ignorando os overrides.
       await callReprocessar();
-
-      const { data: dataReps, error: errReps } = await supabase
-        .rpc("recalcular_comissoes_representantes" as any);
-      if (errReps) throw new Error("Erro reps: " + errReps.message);
-
-      const { data: dataInterno, error: errInterno } = await supabase
-        .rpc("recalcular_comissoes_interno" as any);
-      if (errInterno) throw new Error("Erro interno: " + errInterno.message);
-
-      const { data: dataGestor, error: errGestor } = await supabase
-        .rpc("recalcular_comissoes_gestor" as any);
-      if (errGestor) throw new Error("Erro gestor: " + errGestor.message);
-
-      return {
-        reps: (dataReps as any[])?.length ?? 0,
-        interno: (dataInterno as any[])?.length ?? 0,
-        gestor: (dataGestor as any[])?.length ?? 0,
-      };
+      return { ok: true };
     },
-    onSuccess: (result) => {
-      const msg =
-        result.reps === 0 && result.interno === 0 && result.gestor === 0
-          ? "Todas as comissões já estão corretas."
-          : `Recálculo concluído — Representantes: ${result.reps} | Vendedor interno: ${result.interno} | Gestor: ${result.gestor} registro(s) atualizado(s).`;
-      toast.success(msg);
+    onSuccess: () => {
+      toast.success("Comissões recalculadas com sucesso.");
       qc.invalidateQueries({ queryKey: ["comissoes"] });
+      qc.invalidateQueries({ queryKey: ["rel-comissoes"] });
+      qc.invalidateQueries({ queryKey: ["rel-comissoes-geral"] });
+      qc.invalidateQueries({ queryKey: ["rel-comissoes-reps"] });
       qc.invalidateQueries({ queryKey: ["relatorios"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       setRecalcOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
