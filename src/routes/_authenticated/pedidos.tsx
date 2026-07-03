@@ -333,6 +333,8 @@ function PedidosPage() {
 function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
   reps: any[]; clientes: any[]; myRepId: string | null; onDone: () => void;
 }) {
+  const { can } = usePermissions();
+  const canEditPct = can("editar_percentual_pedido");
   const [open, setOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const initialForm = {
