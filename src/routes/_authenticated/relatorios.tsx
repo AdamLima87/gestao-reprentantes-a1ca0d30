@@ -309,6 +309,20 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
     },
   });
 
+  const { data: faturamentoMes } = useQuery({
+    queryKey: ["rel-comissoes-geral-faturamento", mesRef, anoRef, !!gerado],
+    enabled: !!gerado,
+    queryFn: async () => {
+      const res = await supabase
+        .from("nfe")
+        .select("valor_nfe")
+        .eq("mes_ref", mesRef)
+        .eq("ano_ref", anoRef);
+      return (res.data ?? []).reduce((s: number, n: any) => s + Number(n.valor_nfe ?? 0), 0);
+    },
+  });
+
+
   const gestorIds = useMemo(() => {
     const s = new Set<string>();
     for (const c of data ?? []) if (c.gestor_user_id) s.add(c.gestor_user_id);
