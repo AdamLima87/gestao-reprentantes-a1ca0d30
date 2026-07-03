@@ -141,6 +141,16 @@ function NfePage() {
                               }}
                             />
                           )}
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Editar NF-e"
+                              onClick={() => setEditing(n)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           {canExcluir && (
                             <ExcluirNfeDialog
                               nfeId={n.id}
