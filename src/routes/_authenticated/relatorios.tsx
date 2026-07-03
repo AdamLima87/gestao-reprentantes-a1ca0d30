@@ -959,6 +959,9 @@ function InternoTable({
       c15: number | null;
       c1: number | null;
       c05: number | null;
+      p15: number | null;
+      p1: number | null;
+      p05: number | null;
     };
     const map = new Map<string, R>();
     for (const c of internas) {
@@ -973,14 +976,21 @@ function InternoTable({
         c15: null,
         c1: null,
         c05: null,
+        p15: null,
+        p1: null,
+        p05: null,
       };
       const valor = Number(c.valor_comissao);
+      const pct = Number(c.percentual_aplicado);
       if (c.tipo === "interno_novo" || c.tipo === "interno_reativacao") {
         r.c15 = (r.c15 ?? 0) + valor;
+        r.p15 = pct;
       } else if (c.tipo === "interno_recorrente") {
         r.c1 = (r.c1 ?? 0) + valor;
+        r.p1 = pct;
       } else if (c.tipo === "interno_sobre_rep") {
         r.c05 = (r.c05 ?? 0) + valor;
+        r.p05 = pct;
       }
       map.set(c.nfe_id, r);
     }
@@ -999,6 +1009,25 @@ function InternoTable({
     );
   }, [rows]);
 
+  const fmtPct = (n: number) => {
+    const s = n.toFixed(2).replace(/\.?0+$/, "");
+    return `${s.replace(".", ",")}%`;
+  };
+  const pctLabel = (key: "p15" | "p1" | "p05") => {
+    const set = new Set<number>();
+    for (const r of rows) {
+      const v = r[key];
+      if (v != null) set.add(Number(v));
+    }
+    if (set.size === 0) return "—";
+    if (set.size === 1) return fmtPct([...set][0]);
+    const arr = [...set].sort((a, b) => a - b);
+    return `${fmtPct(arr[0])}–${fmtPct(arr[arr.length - 1])}`;
+  };
+  const hdrNovo = `Novo/Reativação (${pctLabel("p15")})`;
+  const hdrRec = `Recorrente (${pctLabel("p1")})`;
+  const hdrSobre = `Sobre Rep. (${pctLabel("p05")})`;
+
   const internoSort = useSortableData(rows, {
     accessors: {
       numero: (r: any) => r.numero,
@@ -1014,7 +1043,8 @@ function InternoTable({
     },
   });
 
-  const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", "COMISSÃO NOVO/REATIVAÇÃO", "COMISSÃO RECORRENTE", "COMISSÃO SOBRE REP.", "TOTAL COMISSÃO"];
+  const headers = ["NF", "Nº PEDIDO CLIENTE", "EMISSÃO", "EMPRESA", "ENTREGA", "$ PRODUTO", `COMISSÃO ${hdrNovo.toUpperCase()}`, `COMISSÃO ${hdrRec.toUpperCase()}`, `COMISSÃO ${hdrSobre.toUpperCase()}`, "TOTAL COMISSÃO"];
+
 
   const totalGeral = totals.c15 + totals.c1 + totals.c05;
   const summaryLine = `Total novo/reativação: ${fmtBRL(totals.c15)}  |  Total recorrente: ${fmtBRL(totals.c1)}  |  Total sobre representante: ${fmtBRL(totals.c05)}  |  Total geral: ${fmtBRL(totalGeral)}`;
