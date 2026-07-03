@@ -530,6 +530,21 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
             <Switch checked={form.jefferson_participou} onCheckedChange={(v) => setForm({ ...form, jefferson_participou: v })} />
             <Label className="!mt-0">Vendedor interno participou?</Label>
           </div>
+          {(!form.representante_id || form.jefferson_participou) && (
+            <div className="rounded border border-dashed p-3 bg-muted/30">
+              <Label>% comissão vendedor interno (opcional)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="Deixe vazio para usar o padrão do cadastro"
+                value={form.percentual_interno_override}
+                onChange={(e) => setForm({ ...form, percentual_interno_override: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Sobrescreve o percentual padrão do vendedor interno apenas para este pedido. Após salvar, use "Recalcular comissões" para reaplicar.</p>
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit">Salvar</Button>
