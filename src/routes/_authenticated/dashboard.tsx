@@ -108,7 +108,6 @@ function IndicatorCard({
   delta,
   subtitle,
   sparkData,
-  sparkVariant = "line",
   children,
 }: {
   index: number;
@@ -120,7 +119,6 @@ function IndicatorCard({
   delta?: { pct: number; up: boolean };
   subtitle?: React.ReactNode;
   sparkData?: number[];
-  sparkVariant?: "line" | "area" | "bars";
   children?: React.ReactNode;
 }) {
   return (
@@ -134,7 +132,7 @@ function IndicatorCard({
         className="overflow-hidden relative border-0 text-white shadow-lg min-h-[160px]"
         style={{ background: bg }}
       >
-        {sparkData && <WaveSpark data={sparkData} variant={sparkVariant} />}
+        {sparkData && <WaveSpark data={sparkData} seed={index} />}
         <CardContent className="relative p-5 flex flex-col h-full">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-white/85">
