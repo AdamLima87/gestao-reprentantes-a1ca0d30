@@ -51,37 +51,49 @@ function getLast6Months(now: Date) {
 }
 
 
-function WaveSpark({ data, variant = "line" }: { data: number[]; variant?: "line" | "area" | "bars" }) {
+function WaveSpark({ data, seed = 0 }: { data: number[]; seed?: number }) {
   const w = 300, h = 80, pad = 4;
   const max = Math.max(...data, 1);
   const min = Math.min(...data, 0);
   const range = max - min || 1;
-  const stepX = (w - pad * 2) / Math.max(1, data.length - 1);
-  const points = data.map((v, i) => [pad + i * stepX, h - pad - ((v - min) / range) * (h - pad * 2)] as const);
-
-  if (variant === "bars") {
-    const bw = (w - pad * 2) / data.length - 2;
-    return (
-      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full h-16 opacity-70">
-        {data.map((v, i) => {
-          const bh = Math.max(3, ((v - min) / range) * (h - pad * 2));
-          return <rect key={i} x={pad + i * ((w - pad * 2) / data.length)} y={h - pad - bh} width={bw} height={bh} rx={1.5} fill="rgba(255,255,255,0.55)" />;
-        })}
-      </svg>
-    );
-  }
-
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0]} ${p[1]}`).join(" ");
-  const areaPath = `${linePath} L ${w - pad} ${h} L ${pad} ${h} Z`;
+  const count = Math.max(data.length, 14);
+  // Normalize/extend the series so bars fill the card width evenly
+  const series = Array.from({ length: count }, (_, i) => {
+    const v = data[i % data.length] ?? 0;
+    return (v - min) / range; // 0..1
+  });
+  const gap = 2;
+  const bw = (w - pad * 2 - gap * (count - 1)) / count;
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full h-16">
-      {variant === "area" && <path d={areaPath} fill="rgba(255,255,255,0.28)" />}
-      <path d={linePath} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {variant === "line" &&
-        points.map((p, i) => (
-          <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill="rgba(255,255,255,0.95)" />
-        ))}
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full h-20 opacity-80">
+      {series.map((s, i) => {
+        const base = Math.max(0.12, s); // baseline height factor
+        // Continuous pulsing between base*0.55 and base
+        const low = Math.max(4, base * 0.55 * (h - pad * 2));
+        const high = Math.max(low + 4, base * (h - pad * 2));
+        const delay = ((i * 0.09) + seed * 0.13) % 1.6;
+        return (
+          <motion.rect
+            key={i}
+            x={pad + i * (bw + gap)}
+            width={bw}
+            rx={1.5}
+            fill="rgba(255,255,255,0.6)"
+            initial={{ y: h - pad - low, height: low }}
+            animate={{
+              y: [h - pad - low, h - pad - high, h - pad - low],
+              height: [low, high, low],
+            }}
+            transition={{
+              duration: 1.6 + (i % 3) * 0.25,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay,
+            }}
+          />
+        );
+      })}
     </svg>
   );
 }
