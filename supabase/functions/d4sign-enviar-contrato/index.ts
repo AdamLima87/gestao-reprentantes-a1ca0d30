@@ -86,7 +86,11 @@ Deno.serve(async (req) => {
     }, "Falha ao adicionar signatário D4Sign");
 
     // 3. Registrar webhook (para receber notificações de assinatura)
-    const webhookUrl = `${supabaseUrl}/functions/v1/d4sign-webhook`;
+    // O token compartilhado autentica callbacks do D4Sign no webhook.
+    const webhookToken = Deno.env.get("D4SIGN_WEBHOOK_TOKEN") ?? "";
+    const webhookUrl = webhookToken
+      ? `${supabaseUrl}/functions/v1/d4sign-webhook?token=${encodeURIComponent(webhookToken)}`
+      : `${supabaseUrl}/functions/v1/d4sign-webhook`;
     try {
       await d4signFetch(`${D4SIGN_BASE_URL}/documents/${docUuid}/webhooks${qs}`, {
         method: "POST",
