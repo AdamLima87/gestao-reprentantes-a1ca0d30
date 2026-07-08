@@ -56,13 +56,9 @@ function WaveSpark({ data, seed = 0 }: { data: number[]; seed?: number }) {
   const max = Math.max(...data, 1);
   const min = Math.min(...data, 0);
   const range = max - min || 1;
-  const count = Math.max(data.length, 14);
-  // Normalize/extend the series so bars fill the card width evenly
-  const series = Array.from({ length: count }, (_, i) => {
-    const v = data[i % data.length] ?? 0;
-    return (v - min) / range; // 0..1
-  });
-  const gap = 2;
+  const series = data.map((v) => (v - min) / range); // 0..1, one bar per real data point
+  const count = series.length;
+  const gap = 6;
   const bw = (w - pad * 2 - gap * (count - 1)) / count;
 
   return (
@@ -374,9 +370,6 @@ function Dashboard() {
             atrasadosPorStatus.pedido,
             atrasadosPorStatus.producao,
             atrasadosPorStatus.faturado,
-            atrasados.length,
-            atrasadosPorStatus.pedido + atrasadosPorStatus.producao,
-            atrasados.length,
           ]}
         >
           <div className="flex gap-1.5 mt-3 flex-wrap relative">
