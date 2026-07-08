@@ -86,10 +86,28 @@ export const interpretarPlanilhas = createServerFn({ method: "POST" })
   .inputValidator(
     (input: { sheets: { name: string; rows: Record<string, unknown>[] }[]; model?: string }) => {
       if (!input || !Array.isArray(input.sheets)) throw new Error("sheets inválido");
+      if (input.sheets.length > 20) throw new Error("Máximo de 20 abas por importação.");
       return input;
     },
   )
-  .handler(async ({ data }): Promise<AIImportResult> => {
+  .handler(async ({ data, context }): Promise<AIImportResult> => {
+    // Autorização: apenas quem tem permissão de importar planilhas pode consumir créditos de IA
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    let autorizado = Boolean(isAdmin);
+    if (!autorizado) {
+      const { data: temPerm } = await context.supabase.rpc("has_permission", {
+        uid: context.userId,
+        perm: "importar_planilhas",
+      });
+      autorizado = Boolean(temPerm);
+    }
+    if (!autorizado) {
+      throw new Error("Sem permissão para importar planilhas.");
+    }
+
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("LOVABLE_API_KEY não configurada.");
 
