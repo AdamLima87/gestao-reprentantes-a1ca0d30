@@ -349,7 +349,6 @@ function Dashboard() {
           delta={{ pct: variacao, up: variacaoPositiva }}
           subtitle={metaEmpresa > 0 ? `Meta: ${fmtBRL(Number(metaEmpresa))} (${((totalMes / Number(metaEmpresa)) * 100).toFixed(1)}%)` : "no mês atual"}
           sparkData={sparkFat}
-          sparkVariant="line"
         />
         <IndicatorCard
           index={1}
@@ -360,7 +359,6 @@ function Dashboard() {
           money
           subtitle={`${data.nfe.length} NF-es no mês`}
           sparkData={sparkTicket}
-          sparkVariant="line"
         />
         <IndicatorCard
           index={2}
@@ -371,7 +369,6 @@ function Dashboard() {
           money
           subtitle={`a pagar em ${proxMesLabel}`}
           sparkData={sparkComissoes}
-          sparkVariant="area"
         />
         <IndicatorCard
           index={3}
@@ -387,7 +384,6 @@ function Dashboard() {
             atrasadosPorStatus.pedido + atrasadosPorStatus.producao,
             atrasados.length,
           ]}
-          sparkVariant="bars"
         >
           <div className="flex gap-1.5 mt-3 flex-wrap relative">
             <Badge className="text-xs bg-white/20 text-white border-white/30 hover:bg-white/25">Pedido: {atrasadosPorStatus.pedido}</Badge>
