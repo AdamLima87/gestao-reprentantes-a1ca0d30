@@ -69,27 +69,64 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
+function WaveSpark({ data, variant = "line" }: { data: number[]; variant?: "line" | "area" | "bars" }) {
+  const w = 300, h = 80, pad = 4;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const stepX = (w - pad * 2) / Math.max(1, data.length - 1);
+  const points = data.map((v, i) => [pad + i * stepX, h - pad - ((v - min) / range) * (h - pad * 2)] as const);
+
+  if (variant === "bars") {
+    const bw = (w - pad * 2) / data.length - 2;
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full h-16 opacity-70">
+        {data.map((v, i) => {
+          const bh = Math.max(3, ((v - min) / range) * (h - pad * 2));
+          return <rect key={i} x={pad + i * ((w - pad * 2) / data.length)} y={h - pad - bh} width={bw} height={bh} rx={1.5} fill="rgba(255,255,255,0.55)" />;
+        })}
+      </svg>
+    );
+  }
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0]} ${p[1]}`).join(" ");
+  const areaPath = `${linePath} L ${w - pad} ${h} L ${pad} ${h} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full h-16">
+      {variant === "area" && <path d={areaPath} fill="rgba(255,255,255,0.28)" />}
+      <path d={linePath} fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {variant === "line" &&
+        points.map((p, i) => (
+          <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill="rgba(255,255,255,0.95)" />
+        ))}
+    </svg>
+  );
+}
+
 function IndicatorCard({
   index,
-  barColor,
+  bg,
   icon: Icon,
   label,
   value,
-  valueColor,
   money,
+  delta,
   subtitle,
   sparkData,
+  sparkVariant = "line",
   children,
 }: {
   index: number;
-  barColor: string;
+  bg: string;
   icon: any;
   label: string;
   value: number;
-  valueColor: string;
   money?: boolean;
+  delta?: { pct: number; up: boolean };
   subtitle?: React.ReactNode;
   sparkData?: number[];
+  sparkVariant?: "line" | "area" | "bars";
   children?: React.ReactNode;
 }) {
   return (
@@ -97,23 +134,34 @@ function IndicatorCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08, duration: 0.35, ease: "easeOut" }}
+      whileHover={{ y: -3 }}
     >
-      <Card className="overflow-hidden relative">
-        <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ backgroundColor: barColor }} />
-        <CardContent className="pl-5 pr-4 py-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            <Icon className="h-3.5 w-3.5" style={{ color: barColor }} />
-            <span>{label}</span>
+      <Card
+        className="overflow-hidden relative border-0 text-white shadow-lg min-h-[160px]"
+        style={{ background: bg }}
+      >
+        {sparkData && <WaveSpark data={sparkData} variant={sparkVariant} />}
+        <CardContent className="relative p-5 flex flex-col h-full">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-white/85">
+              <Icon className="h-3.5 w-3.5" />
+              <span>{label}</span>
+            </div>
+            {delta && (
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-white/90 bg-white/15 rounded-full px-2 py-0.5">
+                {delta.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {delta.pct.toFixed(1)}%
+              </span>
+            )}
           </div>
-          <div className="text-2xl font-bold mt-2" style={{ color: valueColor }}>
+          <div className="text-3xl font-bold mt-2 tracking-tight drop-shadow-sm">
             {money ? (
               <CountUp end={value} duration={1.1} separator="." decimal="," decimals={2} prefix="R$ " />
             ) : (
               <CountUp end={value} duration={1} separator="." />
             )}
           </div>
-          {subtitle && <div className="text-xs text-muted-foreground mt-1">{subtitle}</div>}
-          {sparkData && <Sparkline data={sparkData} color={barColor} />}
+          {subtitle && <div className="text-xs text-white/80 mt-1">{subtitle}</div>}
           {children}
         </CardContent>
       </Card>
