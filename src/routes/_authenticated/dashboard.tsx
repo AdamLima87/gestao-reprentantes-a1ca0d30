@@ -50,24 +50,6 @@ function getLast6Months(now: Date) {
   return arr;
 }
 
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const max = Math.max(...data, 1);
-  return (
-    <div className="flex items-end gap-0.5 h-8 mt-2">
-      {data.map((v, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-sm transition-all"
-          style={{
-            height: `${Math.max(8, (v / max) * 100)}%`,
-            backgroundColor: color,
-            opacity: i === data.length - 1 ? 1 : 0.45,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function WaveSpark({ data, variant = "line" }: { data: number[]; variant?: "line" | "area" | "bars" }) {
   const w = 300, h = 80, pad = 4;
