@@ -102,7 +102,7 @@ export function gerarContratoPDF(empresa: EmpresaContrato, rep: RepContrato, opt
         logoH = MAX_H;
         logoW = logoH / ratio;
       }
-      doc.addImage(dataUrl, fmt, (pageW - logoW) / 2, y, logoW, logoH);
+      doc.addImage(dataUrl, fmt, (pageW - logoW) / 2, y, logoW, logoH, undefined, "FAST");
       y += logoH + 6;
     } catch {
       // ignore erros de logo
