@@ -56,15 +56,14 @@ Deno.serve(async (req) => {
       .replace(/^_+|_+$/g, "") || "representante";
     const normalizedPdfBase64 = normalizePdfBase64(pdf_base64);
 
-    // 1. Upload
-    const uploadData = await d4signFetch(`${D4SIGN_BASE_URL}/documents/${SAFE_UUID}/uploadbinary${qs}`, {
+    // 1. Upload (multipart /upload — suporta arquivos maiores que /uploadbinary)
+    const pdfBytes = base64ToUint8Array(normalizedPdfBase64);
+    const pdfFileName = `Contrato_${safeName}.pdf`;
+    const form = new FormData();
+    form.append("file", new Blob([pdfBytes], { type: "application/pdf" }), pdfFileName);
+    const uploadData = await d4signFetch(`${D4SIGN_BASE_URL}/documents/${SAFE_UUID}/upload${qs}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        base64_binary_file: normalizedPdfBase64,
-        mime_type: "application/pdf",
-        name: `Contrato_${safeName}.pdf`,
-      }),
+      body: form,
     }, "Falha no upload D4Sign");
     const docUuid = typeof uploadData?.uuid === "string" ? uploadData.uuid : undefined;
     if (!docUuid) return json({ error: "Falha no upload D4Sign", detail: uploadData }, 500);
@@ -216,6 +215,13 @@ async function d4signFetch(url: string, init: RequestInit, fallbackMessage: stri
   } catch {
     return { raw: detail };
   }
+}
+
+function base64ToUint8Array(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 function maskSecrets(input: string): string {
