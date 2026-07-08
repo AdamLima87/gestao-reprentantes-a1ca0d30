@@ -68,11 +68,9 @@ function WaveSpark({ data, seed = 0 }: { data: number[]; seed?: number }) {
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full h-20 opacity-80">
       {series.map((s, i) => {
-        const base = Math.max(0.12, s); // baseline height factor
-        // Continuous pulsing between base*0.55 and base
-        const low = Math.max(4, base * 0.55 * (h - pad * 2));
-        const high = Math.max(low + 4, base * (h - pad * 2));
-        const delay = ((i * 0.09) + seed * 0.13) % 1.6;
+        const base = Math.max(0.12, s);
+        const finalH = Math.max(4, base * (h - pad * 2));
+        const delay = 0.15 + i * 0.04 + seed * 0.08;
         return (
           <motion.rect
             key={i}
@@ -80,15 +78,11 @@ function WaveSpark({ data, seed = 0 }: { data: number[]; seed?: number }) {
             width={bw}
             rx={1.5}
             fill="rgba(255,255,255,0.6)"
-            initial={{ y: h - pad - low, height: low }}
-            animate={{
-              y: [h - pad - low, h - pad - high, h - pad - low],
-              height: [low, high, low],
-            }}
+            initial={{ y: h - pad, height: 0 }}
+            animate={{ y: h - pad - finalH, height: finalH }}
             transition={{
-              duration: 1.6 + (i % 3) * 0.25,
-              repeat: Infinity,
-              ease: "easeInOut",
+              duration: 0.7,
+              ease: [0.22, 1, 0.36, 1],
               delay,
             }}
           />
