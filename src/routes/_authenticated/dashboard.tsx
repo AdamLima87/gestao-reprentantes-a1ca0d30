@@ -349,52 +349,62 @@ function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <IndicatorCard
           index={0}
-          barColor="#1a6b3a"
+          bg="linear-gradient(135deg, #1a6b3a 0%, #34a85a 100%)"
           icon={DollarSign}
           label="Total faturado"
           value={totalMes}
-          valueColor="#1a6b3a"
           money
+          delta={{ pct: variacao, up: variacaoPositiva }}
           subtitle={metaEmpresa > 0 ? `Meta: ${fmtBRL(Number(metaEmpresa))} (${((totalMes / Number(metaEmpresa)) * 100).toFixed(1)}%)` : "no mês atual"}
           sparkData={sparkFat}
+          sparkVariant="line"
         />
         <IndicatorCard
           index={1}
-          barColor="#1d6fa4"
+          bg="linear-gradient(135deg, #1d6fa4 0%, #3d99f5 100%)"
           icon={TrendingUp}
           label="Ticket médio"
           value={ticketMedio}
-          valueColor="#1d6fa4"
           money
           subtitle={`${data.nfe.length} NF-es no mês`}
           sparkData={sparkTicket}
+          sparkVariant="line"
         />
         <IndicatorCard
           index={2}
-          barColor="#6b46c1"
+          bg="linear-gradient(135deg, #5e4bbf 0%, #8b6ff0 100%)"
           icon={Percent}
           label="Comissões geradas"
           value={comissoesMes}
-          valueColor="#6b46c1"
           money
           subtitle={`a pagar em ${proxMesLabel}`}
           sparkData={sparkComissoes}
+          sparkVariant="area"
         />
         <IndicatorCard
           index={3}
-          barColor="#c0392b"
+          bg="linear-gradient(135deg, #a5304a 0%, #de5a5a 100%)"
           icon={AlertTriangle}
           label="Pedidos em atraso"
           value={atrasados.length}
-          valueColor="#c0392b"
+          sparkData={[
+            atrasadosPorStatus.pedido,
+            atrasadosPorStatus.producao,
+            atrasadosPorStatus.faturado,
+            atrasados.length,
+            atrasadosPorStatus.pedido + atrasadosPorStatus.producao,
+            atrasados.length,
+          ]}
+          sparkVariant="bars"
         >
-          <div className="flex gap-1.5 mt-3 flex-wrap">
-            <Badge variant="outline" className="text-xs">Pedido: {atrasadosPorStatus.pedido}</Badge>
-            <Badge variant="outline" className="text-xs">Produção: {atrasadosPorStatus.producao}</Badge>
-            <Badge variant="outline" className="text-xs">Faturado: {atrasadosPorStatus.faturado}</Badge>
+          <div className="flex gap-1.5 mt-3 flex-wrap relative">
+            <Badge className="text-xs bg-white/20 text-white border-white/30 hover:bg-white/25">Pedido: {atrasadosPorStatus.pedido}</Badge>
+            <Badge className="text-xs bg-white/20 text-white border-white/30 hover:bg-white/25">Produção: {atrasadosPorStatus.producao}</Badge>
+            <Badge className="text-xs bg-white/20 text-white border-white/30 hover:bg-white/25">Faturado: {atrasadosPorStatus.faturado}</Badge>
           </div>
         </IndicatorCard>
       </div>
+
 
       {/* Bar chart + Ranking */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
