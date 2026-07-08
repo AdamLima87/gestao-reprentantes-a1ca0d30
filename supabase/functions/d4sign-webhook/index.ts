@@ -2,8 +2,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const D4SIGN_BASE_URL = "https://secure.d4sign.com.br/api/v1";
 
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a);
+  const eb = new TextEncoder().encode(b);
+  if (ea.length !== eb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ea.length; i++) diff |= ea[i] ^ eb[i];
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("OK", { status: 200 });
+
+  // Autenticação do webhook: exige token compartilhado (registrado na URL do webhook em d4sign-enviar-contrato)
+  const expectedToken = Deno.env.get("D4SIGN_WEBHOOK_TOKEN") ?? "";
+  if (!expectedToken) {
+    console.error("[d4sign-webhook] D4SIGN_WEBHOOK_TOKEN não configurado");
+    return new Response("Server misconfigured", { status: 500 });
+  }
+  const url = new URL(req.url);
+  const providedToken =
+    url.searchParams.get("token") ??
+    req.headers.get("x-webhook-token") ??
+    "";
+  if (!providedToken || !timingSafeEqualStr(providedToken, expectedToken)) {
+    console.warn("[d4sign-webhook] Token inválido ou ausente");
+    return new Response("Unauthorized", { status: 401 });
+  }
 
   let body: any = {};
   try {
@@ -12,7 +37,9 @@ Deno.serve(async (req) => {
     try { body = Object.fromEntries(await req.formData()); } catch { /* ignore */ }
   }
 
-  const docUuid: string | undefined = body?.uuid ?? body?.document_uuid;
+  const rawUuid = body?.uuid ?? body?.document_uuid;
+  const docUuid: string | undefined =
+    typeof rawUuid === "string" && /^[a-fA-F0-9-]{16,64}$/.test(rawUuid) ? rawUuid : undefined;
   const evento: string = (body?.type_post ?? body?.type ?? body?.status ?? "").toString().toLowerCase();
 
   if (!docUuid) return new Response("OK", { status: 200 });
