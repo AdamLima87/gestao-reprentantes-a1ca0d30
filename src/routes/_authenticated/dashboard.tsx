@@ -370,9 +370,6 @@ function Dashboard() {
             atrasadosPorStatus.pedido,
             atrasadosPorStatus.producao,
             atrasadosPorStatus.faturado,
-            atrasados.length,
-            atrasadosPorStatus.pedido + atrasadosPorStatus.producao,
-            atrasados.length,
           ]}
         >
           <div className="flex gap-1.5 mt-3 flex-wrap relative">
