@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
+import { CidadesMultiselect } from "@/components/CidadesMultiselect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -404,19 +405,20 @@ function ClientesTab() {
 
 // ============== REPS ==============
 type RepFormState = {
-  nome: string; email: string; regiao: string; estados: string[]; tipo: "externo" | "interno"; percentual_padrao: string; percentual_recorrente: string; percentual_sobre_rep: string; ativo: boolean;
+  nome: string; email: string; regiao: string; estados: string[]; cidades: Record<string, string[]>; tipo: "externo" | "interno"; percentual_padrao: string; percentual_recorrente: string; percentual_sobre_rep: string; ativo: boolean;
   tipo_pessoa: "juridica" | "fisica";
   cnpj: string; razao_social: string; endereco: string; numero: string; bairro: string; cidade: string; estado: string; cep: string; nome_socio: string;
   cpf: string; nome_completo: string; rg: string; data_nascimento: string;
   banco: string; tipo_conta: string; agencia: string; conta_digito: string; chave_pix: string; titular_conta: string; cpf_cnpj_titular: string;
 };
 const emptyRepForm: RepFormState = {
-  nome: "", email: "", regiao: "", estados: [], tipo: "externo", percentual_padrao: "5.0", percentual_recorrente: "1.0", percentual_sobre_rep: "0.5", ativo: true,
+  nome: "", email: "", regiao: "", estados: [], cidades: {}, tipo: "externo", percentual_padrao: "5.0", percentual_recorrente: "1.0", percentual_sobre_rep: "0.5", ativo: true,
   tipo_pessoa: "juridica",
   cnpj: "", razao_social: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", cep: "", nome_socio: "",
   cpf: "", nome_completo: "", rg: "", data_nascimento: "",
   banco: "", tipo_conta: "", agencia: "", conta_digito: "", chave_pix: "", titular_conta: "", cpf_cnpj_titular: "",
 };
+
 
 
 const emptyEnderecoFields = {
@@ -486,22 +488,35 @@ function RepFormFields({ form, setForm }: { form: RepFormState; setForm: (f: Rep
             </SelectContent>
           </Select>
           {form.estados.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-2 space-y-2">
               {form.estados.map((uf) => (
-                <Badge key={uf} variant="secondary" className="gap-1 pr-1">
-                  {uf}
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, estados: form.estados.filter((x) => x !== uf) })}
-                    className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-muted-foreground/20"
-                    aria-label={`Remover ${uf}`}
-                  >
-                    ×
-                  </button>
-                </Badge>
+                <div key={uf} className="rounded-md border p-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="gap-1 pr-1">
+                      {uf}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const { [uf]: _, ...rest } = form.cidades;
+                          setForm({ ...form, estados: form.estados.filter((x) => x !== uf), cidades: rest });
+                        }}
+                        className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-muted-foreground/20"
+                        aria-label={`Remover ${uf}`}
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  </div>
+                  <CidadesMultiselect
+                    uf={uf}
+                    selecionadas={form.cidades[uf] ?? []}
+                    onChange={(cidades) => setForm({ ...form, cidades: { ...form.cidades, [uf]: cidades } })}
+                  />
+                </div>
               ))}
             </div>
           )}
+
         </div>
         <div><Label>Tipo</Label>
           <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as "externo" | "interno" })}>
@@ -794,7 +809,7 @@ function RepsTab() {
     const isPF = isExt && f.tipo_pessoa === "fisica";
     const regiaoPrincipal = f.estados[0] ? (regiaoDoEstado(f.estados[0]) ?? f.estados[0]) : null;
     return {
-      nome: f.nome, email: f.email || null, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
+      nome: f.nome, email: f.email || null, regiao: regiaoPrincipal, estados: f.estados, cidades: Object.fromEntries(f.estados.map((uf) => [uf, f.cidades[uf] ?? []])), tipo: f.tipo,
       percentual_padrao: Number(f.percentual_padrao),
       percentual_recorrente: f.tipo === "interno" ? Number(f.percentual_recorrente) : 1.0,
       percentual_sobre_rep: f.tipo === "interno" ? Number(f.percentual_sobre_rep) : 0.5,
@@ -882,8 +897,18 @@ function RepsTab() {
     const estadosArr: string[] = Array.isArray(r.estados) && r.estados.length > 0
       ? (r.estados as string[]).map((s) => String(s).toUpperCase())
       : (regiaoLegacy ? [regiaoLegacy] : []);
+    const cidadesObj: Record<string, string[]> = (() => {
+      const raw = r.cidades;
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+      const out: Record<string, string[]> = {};
+      for (const uf of estadosArr) {
+        const v = (raw as Record<string, unknown>)[uf];
+        out[uf] = Array.isArray(v) ? (v as string[]).map((c) => String(c)) : [];
+      }
+      return out;
+    })();
     setForm({
-      nome: r.nome ?? "", email: r.email ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      nome: r.nome ?? "", email: r.email ?? "", regiao: regiaoLegacy, estados: estadosArr, cidades: cidadesObj, tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"),
       percentual_recorrente: String(r.percentual_recorrente ?? "1.0"),
       percentual_sobre_rep: String(r.percentual_sobre_rep ?? "0.5"),
