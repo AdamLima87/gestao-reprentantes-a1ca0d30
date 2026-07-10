@@ -2,3 +2,6 @@ project_id = "zetxbgnhfrnavidhtprw"
 
 [functions.d4sign-webhook]
 verify_jwt = false
+
+[functions.d4sign-sincronizar-status]
+verify_jwt = false
