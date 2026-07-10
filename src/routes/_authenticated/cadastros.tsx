@@ -745,6 +745,25 @@ function RepsTab() {
   const [anexarData, setAnexarData] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [anexarObs, setAnexarObs] = useState("");
   const [anexarSaving, setAnexarSaving] = useState(false);
+  const [sincronizando, setSincronizando] = useState(false);
+
+  async function sincronizarStatusContratos(uuid?: string) {
+    setSincronizando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("d4sign-sincronizar-status", {
+        body: uuid ? { d4sign_document_uuid: uuid } : {},
+      });
+      if (error) throw new Error(await extractFunctionError(error));
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const n = (data as any)?.sincronizados ?? 0;
+      toast.success(`Sincronizados ${n} contrato(s).`);
+      qc.invalidateQueries({ queryKey: ["contratos-assinatura"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao sincronizar status.");
+    } finally {
+      setSincronizando(false);
+    }
+  }
 
   async function salvarAnexarContrato() {
     if (!anexarRep) return;
