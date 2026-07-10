@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { createUser, listUsers, updateUser, deleteUser, listAllPermissions, resetUserPassword } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send, Paperclip, Calendar as CalendarIcon, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send, Paperclip, Calendar as CalendarIcon, Sparkles, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
 import { interpretarPlanilhas, type AIImportRow } from "@/lib/ai-import.functions";
 import { Textarea } from "@/components/ui/textarea";
@@ -745,6 +745,25 @@ function RepsTab() {
   const [anexarData, setAnexarData] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [anexarObs, setAnexarObs] = useState("");
   const [anexarSaving, setAnexarSaving] = useState(false);
+  const [sincronizando, setSincronizando] = useState(false);
+
+  async function sincronizarStatusContratos(uuid?: string) {
+    setSincronizando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("d4sign-sincronizar-status", {
+        body: uuid ? { d4sign_document_uuid: uuid } : {},
+      });
+      if (error) throw new Error(await extractFunctionError(error));
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const n = (data as any)?.sincronizados ?? 0;
+      toast.success(`Sincronizados ${n} contrato(s).`);
+      qc.invalidateQueries({ queryKey: ["contratos-assinatura"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao sincronizar status.");
+    } finally {
+      setSincronizando(false);
+    }
+  }
 
   async function salvarAnexarContrato() {
     if (!anexarRep) return;
@@ -1142,7 +1161,15 @@ function RepsTab() {
       <Dialog open={!!historicoRep && podeVisualizarAssinatura} onOpenChange={(o) => { if (!o) setHistoricoRep(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Histórico de contratos — {historicoRep?.nome}</DialogTitle>
+            <DialogTitle className="flex items-center justify-between gap-2">
+              <span>Histórico de contratos — {historicoRep?.nome}</span>
+              {podeEnviarAssinatura && (
+                <Button size="sm" variant="outline" onClick={() => sincronizarStatusContratos()} disabled={sincronizando}>
+                  {sincronizando ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                  Sincronizar status
+                </Button>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             {(historicoRep?._contratos ?? []).length === 0 ? (
