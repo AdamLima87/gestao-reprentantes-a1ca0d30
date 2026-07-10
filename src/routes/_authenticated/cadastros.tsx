@@ -897,8 +897,18 @@ function RepsTab() {
     const estadosArr: string[] = Array.isArray(r.estados) && r.estados.length > 0
       ? (r.estados as string[]).map((s) => String(s).toUpperCase())
       : (regiaoLegacy ? [regiaoLegacy] : []);
+    const cidadesObj: Record<string, string[]> = (() => {
+      const raw = r.cidades;
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+      const out: Record<string, string[]> = {};
+      for (const uf of estadosArr) {
+        const v = (raw as Record<string, unknown>)[uf];
+        out[uf] = Array.isArray(v) ? (v as string[]).map((c) => String(c)) : [];
+      }
+      return out;
+    })();
     setForm({
-      nome: r.nome ?? "", email: r.email ?? "", regiao: regiaoLegacy, estados: estadosArr, tipo: (r.tipo ?? "externo") as "externo" | "interno",
+      nome: r.nome ?? "", email: r.email ?? "", regiao: regiaoLegacy, estados: estadosArr, cidades: cidadesObj, tipo: (r.tipo ?? "externo") as "externo" | "interno",
       percentual_padrao: String(r.percentual_padrao ?? "5.0"),
       percentual_recorrente: String(r.percentual_recorrente ?? "1.0"),
       percentual_sobre_rep: String(r.percentual_sobre_rep ?? "0.5"),
