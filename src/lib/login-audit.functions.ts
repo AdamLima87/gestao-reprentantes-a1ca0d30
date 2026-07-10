@@ -1,6 +1,27 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 
+export const verificarRateLimitLogin = createServerFn({ method: "POST" })
+  .inputValidator((input: { email: string }) => {
+    if (typeof input?.email !== "string") throw new Error("E-mail inválido.");
+    return { email: input.email.trim().toLowerCase().slice(0, 255) };
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: res, error } = await supabaseAdmin.rpc(
+      "verificar_rate_limit_login" as any,
+      { p_email: data.email },
+    );
+    if (error) return { bloqueado: false as boolean };
+    return (res ?? { bloqueado: false }) as {
+      bloqueado: boolean;
+      falhas?: number;
+      liberar_em?: string;
+      restantes?: number;
+    };
+  });
+
+
 export const registrarTentativaLogin = createServerFn({ method: "POST" })
   .inputValidator((input: { email: string; sucesso: boolean }) => {
     if (typeof input?.email !== "string" || typeof input?.sucesso !== "boolean") {

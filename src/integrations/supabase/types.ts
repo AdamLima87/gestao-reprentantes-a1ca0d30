@@ -762,6 +762,7 @@ export type Database = {
       }
       recalcular_comissoes_sem_auth: { Args: never; Returns: Json }
       reprocessar_comissoes: { Args: never; Returns: Json }
+      verificar_rate_limit_login: { Args: { p_email: string }; Returns: Json }
     }
     Enums: {
       app_role:
