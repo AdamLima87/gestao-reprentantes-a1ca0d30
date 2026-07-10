@@ -1097,23 +1097,30 @@ function MarcarTudoPagoDialog({
   const submit = async () => {
     if (pendentes.length === 0) return;
     setSaving(true);
+    let uploadedPath: string | null = null;
     try {
-      let comprovante_url: string | null = null;
       if (file) {
         const path = `lote/${Date.now()}-${file.name}`;
         const up = await supabase.storage.from("comprovantes-comissoes").upload(path, file, { upsert: false });
         if (up.error) throw up.error;
-        comprovante_url = up.data.path;
+        uploadedPath = up.data.path;
       }
       const ids = pendentes.map((c) => c.id);
-      const payload: any = { pago_em: data, observacao_pagamento: obs || null };
-      if (comprovante_url) payload.comprovante_url = comprovante_url;
-      const { error } = await supabase.from("comissoes").update(payload).in("id", ids);
+      const { error } = await supabase.rpc("marcar_comissoes_pagas_lote" as any, {
+        p_ids: ids,
+        p_data: data,
+        p_observacao: obs || null,
+        p_comprovante_url: uploadedPath,
+      });
       if (error) throw error;
       toast.success(`Comissões de ${nomeGrupo} marcadas como pagas`);
       onDone();
     } catch (e: any) {
-      toast.error(e.message);
+      // Rollback the uploaded receipt if the transaction failed
+      if (uploadedPath) {
+        await supabase.storage.from("comprovantes-comissoes").remove([uploadedPath]).catch(() => {});
+      }
+      toast.error(e.message ?? "Falha ao marcar comissões como pagas");
     } finally {
       setSaving(false);
     }
