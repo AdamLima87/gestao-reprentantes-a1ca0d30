@@ -37,19 +37,24 @@ Deno.serve(async (req) => {
     const CRYPT = Deno.env.get("D4SIGN_CRYPT_KEY") ?? "";
     if (!TOKEN) return json({ error: "D4SIGN_TOKEN não configurado" }, 500);
 
-    // Auth: exige admin/gestor
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
-    const userResp = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: ANON, Authorization: authHeader },
-    });
-    if (!userResp.ok) return json({ error: "Unauthorized" }, 401);
-    const user = await userResp.json();
-
+    // Auth: aceita (a) chamada agendada com header X-Cron-Secret OU (b) usuário admin/gestor
     const admin = createClient(SUPABASE_URL, SERVICE);
-    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
-    const allowed = (roles ?? []).some((r) => r.role === "admin" || r.role === "gestor");
-    if (!allowed) return json({ error: "Forbidden" }, 403);
+    const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+    const providedCron = req.headers.get("x-cron-secret") ?? "";
+    const isCron = !!cronSecret && providedCron === cronSecret;
+
+    if (!isCron) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) return json({ error: "Unauthorized" }, 401);
+      const userResp = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { apikey: ANON, Authorization: authHeader },
+      });
+      if (!userResp.ok) return json({ error: "Unauthorized" }, 401);
+      const user = await userResp.json();
+      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
+      const allowed = (roles ?? []).some((r) => r.role === "admin" || r.role === "gestor");
+      if (!allowed) return json({ error: "Forbidden" }, 403);
+    }
 
     const body = await req.json().catch(() => ({}));
     const alvoUuid: string | undefined = body?.d4sign_document_uuid;
