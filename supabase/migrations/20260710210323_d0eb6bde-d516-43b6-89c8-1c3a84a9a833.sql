@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.marcar_comissoes_pagas_lote(uuid[], date, text, text) FROM anon;
