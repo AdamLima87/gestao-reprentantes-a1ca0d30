@@ -718,6 +718,15 @@ export type Database = {
         Returns: boolean
       }
       is_representante_interno: { Args: { _user: string }; Returns: boolean }
+      marcar_comissoes_pagas_lote: {
+        Args: {
+          p_comprovante_url?: string
+          p_data: string
+          p_ids: string[]
+          p_observacao?: string
+        }
+        Returns: Json
+      }
       recalcular_comissoes_gestor: {
         Args: { p_ano?: number; p_mes?: number }
         Returns: {
