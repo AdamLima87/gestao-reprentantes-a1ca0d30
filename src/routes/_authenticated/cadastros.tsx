@@ -1161,7 +1161,15 @@ function RepsTab() {
       <Dialog open={!!historicoRep && podeVisualizarAssinatura} onOpenChange={(o) => { if (!o) setHistoricoRep(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Histórico de contratos — {historicoRep?.nome}</DialogTitle>
+            <DialogTitle className="flex items-center justify-between gap-2">
+              <span>Histórico de contratos — {historicoRep?.nome}</span>
+              {podeEnviarAssinatura && (
+                <Button size="sm" variant="outline" onClick={() => sincronizarStatusContratos()} disabled={sincronizando}>
+                  {sincronizando ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                  Sincronizar status
+                </Button>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             {(historicoRep?._contratos ?? []).length === 0 ? (
