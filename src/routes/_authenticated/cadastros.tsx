@@ -809,7 +809,7 @@ function RepsTab() {
     const isPF = isExt && f.tipo_pessoa === "fisica";
     const regiaoPrincipal = f.estados[0] ? (regiaoDoEstado(f.estados[0]) ?? f.estados[0]) : null;
     return {
-      nome: f.nome, email: f.email || null, regiao: regiaoPrincipal, estados: f.estados, tipo: f.tipo,
+      nome: f.nome, email: f.email || null, regiao: regiaoPrincipal, estados: f.estados, cidades: Object.fromEntries(f.estados.map((uf) => [uf, f.cidades[uf] ?? []])), tipo: f.tipo,
       percentual_padrao: Number(f.percentual_padrao),
       percentual_recorrente: f.tipo === "interno" ? Number(f.percentual_recorrente) : 1.0,
       percentual_sobre_rep: f.tipo === "interno" ? Number(f.percentual_sobre_rep) : 0.5,
