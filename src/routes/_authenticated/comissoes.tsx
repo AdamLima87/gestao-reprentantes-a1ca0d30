@@ -981,7 +981,7 @@ function GrupoComissaoCard({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {canMarcarPago && temPendente && grupo.kind !== "gestor" && (
+            {canMarcarPago && temPendente && (
               <Button size="sm" onClick={() => setMarkOpen(true)}>
                 <CheckCircle2 className="h-4 w-4 mr-1" /> Marcar tudo como pago
               </Button>
