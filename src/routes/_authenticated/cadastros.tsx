@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { MotionTableRow, rowMotionProps } from "@/components/MotionTableRow";
+import { CidadesMultiselect } from "@/components/CidadesMultiselect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
