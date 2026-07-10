@@ -86,17 +86,25 @@ function AuthPage() {
     e.preventDefault();
     if (remaining > 0) return;
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    registrarTentativaLogin({ data: { email, sucesso: !error } }).catch(() => {});
-    if (error) {
-      registerFailure();
-      return toast.error(error.message);
+    try {
+      const rl = await verificarRateLimitLogin({ data: { email } }).catch(() => null);
+      if (rl?.bloqueado) {
+        registerFailure();
+        return toast.error("Muitas tentativas falhadas. Tente novamente mais tarde.");
+      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      registrarTentativaLogin({ data: { email, sucesso: !error } }).catch(() => {});
+      if (error) {
+        registerFailure();
+        return toast.error(error.message);
+      }
+      writeState({ count: 0, firstAt: 0, lockedUntil: 0 });
+      setRemaining(0);
+      toast.success("Bem-vindo!");
+      navigate({ to: "/" });
+    } finally {
+      setBusy(false);
     }
-    writeState({ count: 0, firstAt: 0, lockedUntil: 0 });
-    setRemaining(0);
-    toast.success("Bem-vindo!");
-    navigate({ to: "/" });
   };
 
   const locked = remaining > 0;
