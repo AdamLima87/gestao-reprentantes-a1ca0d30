@@ -1,9 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   CheckCircle2,
   DollarSign,
@@ -13,6 +29,9 @@ import {
   ShoppingCart,
   ArrowUpRight,
   ArrowDownRight,
+  MoreHorizontal,
+  RefreshCw,
+  Maximize2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -30,7 +49,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -50,44 +69,6 @@ function getLast6Months(now: Date) {
   return arr;
 }
 
-
-function WaveSpark({ data, seed = 0 }: { data: number[]; seed?: number }) {
-  const w = 300, h = 80, pad = 4;
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
-  const range = max - min || 1;
-  const series = data.map((v) => (v - min) / range); // 0..1, one bar per real data point
-  const count = series.length;
-  const gap = 6;
-  const bw = (w - pad * 2 - gap * (count - 1)) / count;
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full h-20 opacity-80">
-      {series.map((s, i) => {
-        const base = Math.max(0.12, s);
-        const finalH = Math.max(4, base * (h - pad * 2));
-        const delay = 0.15 + i * 0.04 + seed * 0.08;
-        return (
-          <motion.rect
-            key={i}
-            x={pad + i * (bw + gap)}
-            width={bw}
-            rx={1.5}
-            fill="rgba(255,255,255,0.6)"
-            initial={{ y: h - pad, height: 0 }}
-            animate={{ y: h - pad - finalH, height: finalH }}
-            transition={{
-              duration: 0.7,
-              ease: [0.22, 1, 0.36, 1],
-              delay,
-            }}
-          />
-        );
-      })}
-    </svg>
-  );
-}
-
 function IndicatorCard({
   index,
   bg,
@@ -97,7 +78,6 @@ function IndicatorCard({
   money,
   delta,
   subtitle,
-  sparkData,
   children,
 }: {
   index: number;
@@ -108,35 +88,35 @@ function IndicatorCard({
   money?: boolean;
   delta?: { pct: number; up: boolean };
   subtitle?: React.ReactNode;
-  sparkData?: number[];
   children?: React.ReactNode;
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08, duration: 0.35, ease: "easeOut" }}
-      whileHover={{ y: -3 }}
+      transition={{ delay: index * 0.08, duration: 0.4, ease: "easeOut" }}
+      whileHover={{ y: -4 }}
     >
       <Card
-        className="overflow-hidden relative border-0 text-white shadow-lg min-h-[160px]"
-        style={{ background: bg }}
+        className="relative overflow-hidden border-0 text-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow min-h-[150px]"
+        style={{ backgroundColor: bg }}
       >
-        {sparkData && <WaveSpark data={sparkData} seed={index} />}
-        <CardContent className="relative p-5 flex flex-col h-full">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-white/85">
-              <Icon className="h-3.5 w-3.5" />
-              <span>{label}</span>
-            </div>
+        {/* Large floating icon on the left */}
+        <Icon
+          className="absolute -left-4 top-1/2 -translate-y-1/2 h-32 w-32 pointer-events-none"
+          style={{ color: "white", opacity: 0.18 }}
+        />
+        <CardContent className="relative p-5 pl-6 flex flex-col h-full items-end text-right">
+          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-white/90">
+            <span>{label}</span>
             {delta && (
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-white/90 bg-white/15 rounded-full px-2 py-0.5">
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold bg-white/20 rounded-full px-1.5 py-0.5">
                 {delta.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                 {delta.pct.toFixed(1)}%
               </span>
             )}
           </div>
-          <div className="text-3xl font-bold mt-2 tracking-tight drop-shadow-sm">
+          <div className="text-3xl md:text-4xl font-bold mt-2 tracking-tight text-white drop-shadow">
             {money ? (
               <CountUp end={value} duration={1.1} separator="." decimal="," decimals={2} prefix="R$ " />
             ) : (
@@ -151,9 +131,69 @@ function IndicatorCard({
   );
 }
 
+function ChartCard({
+  title,
+  onReload,
+  children,
+  delay = 0,
+  className,
+}: {
+  title: string;
+  onReload?: () => void;
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const [fullscreen, setFullscreen] = useState(false);
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.35 }}
+        className={className}
+      >
+        <Card className="rounded-2xl overflow-hidden border-t-2 border-t-primary shadow-sm hover:shadow-md transition-shadow h-full">
+          <div className="flex items-center justify-between px-5 pt-4 pb-2">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {title}
+            </h3>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onReload?.()}>
+                  <RefreshCw className="h-4 w-4 mr-2" /> Recarregar dados
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFullscreen(true)}>
+                  <Maximize2 className="h-4 w-4 mr-2" /> Ver em tela cheia
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <CardContent className="pt-2 pb-5">{children}</CardContent>
+        </Card>
+      </motion.div>
+
+      <Dialog open={fullscreen} onOpenChange={setFullscreen}>
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          <div className="mt-2">{children}</div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function Dashboard() {
   const { roles, representanteId } = useAuth();
   const { can } = usePermissions();
+  const queryClient = useQueryClient();
   const allowed = can("ver_dashboard");
   const isRepOnly = roles.includes("representante") && !allowed;
   const now = new Date();
@@ -161,6 +201,12 @@ function Dashboard() {
   const [ano, setAno] = useState<number>(now.getFullYear());
   const refDate = useMemo(() => new Date(ano, mes - 1, 1), [mes, ano]);
   const last6 = useMemo(() => getLast6Months(refDate), [mes, ano]);
+
+  const reloadDashboard = () => queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+  const reloadClientes = () => {
+    queryClient.invalidateQueries({ queryKey: ["clientes-em-risco"] });
+    queryClient.invalidateQueries({ queryKey: ["clientes-counts"] });
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", mes, ano],
@@ -203,31 +249,12 @@ function Dashboard() {
   const ticketMedio = data.nfe.length ? totalMes / data.nfe.length : 0;
   const metaEmpresa = data.metas.find((m) => !m.representante_id)?.valor ?? 0;
 
-  // Comissões do mês atual
   const comissoesMes = data.comissoes6
     .filter((c: any) => c.mes_ref === mes && c.ano_ref === ano)
     .reduce((s: number, c: any) => s + Number(c.valor_comissao), 0);
 
-  // Sparklines - últimos 6 meses
-  const sparkFat = last6.map(({ mes: m, ano: a }) =>
-    data.nfe6
-      .filter((n: any) => n.mes_ref === m && n.ano_ref === a)
-      .reduce((s: number, n: any) => s + Number(n.valor_nfe), 0)
-  );
-  const sparkTicket = last6.map(({ mes: m, ano: a }) => {
-    const arr = data.nfe6.filter((n: any) => n.mes_ref === m && n.ano_ref === a);
-    return arr.length ? arr.reduce((s: number, n: any) => s + Number(n.valor_nfe), 0) / arr.length : 0;
-  });
-  const sparkComissoes = last6.map(({ mes: m, ano: a }) =>
-    data.comissoes6
-      .filter((c: any) => c.mes_ref === m && c.ano_ref === a)
-      .reduce((s: number, c: any) => s + Number(c.valor_comissao), 0)
-  );
-
-  // Pedidos ativos
   const pedidosAtivos = data.pedidos.filter((p) => !["entregue", "cancelado"].includes(p.status)).length;
 
-  // Atrasados
   const hoje = new Date().toISOString().slice(0, 10);
   const atrasados = data.pedidos.filter(
     (p) => p.prazo_entrega && p.prazo_entrega < hoje && !["entregue", "cancelado"].includes(p.status)
@@ -238,11 +265,9 @@ function Dashboard() {
     faturado: atrasados.filter((p) => p.status === "faturado").length,
   };
 
-  // Próximo mês para "a pagar"
   const proxData = new Date(ano, mes, 1);
   const proxMesLabel = MESES_ABREV[proxData.getMonth()];
 
-  // Ranking reps por faturamento no mês
   const pedIds = new Map(data.pedidos.map((p) => [p.id, p.representante_id]));
   const repFat = new Map<string, number>();
   for (const n of data.nfe) {
@@ -255,7 +280,6 @@ function Dashboard() {
     .sort((a, b) => b.total - a.total);
   const rankingTop = ranking[0]?.total ?? 0;
 
-  // Faturamento mensal ano atual
   const fatAnoMes = MESES_ABREV.map((label, i) => {
     const m = i + 1;
     const total = data.nfe6
@@ -264,7 +288,6 @@ function Dashboard() {
     return { mes: label, total, isCurrent: m === mes };
   });
 
-  // Cobertura por Estado
   const counts: Record<string, number> = {};
   for (const r of data.reps as any[]) {
     if (r.tipo !== "externo" || !r.ativo) continue;
@@ -283,8 +306,53 @@ function Dashboard() {
 
   const variacaoPositiva = variacao >= 0;
 
+  const barChart = (
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={fatAnoMes}>
+        <XAxis dataKey="mes" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+        <YAxis
+          tick={{ fontSize: 11 }}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(v) => (v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}k` : `R$ ${v}`)}
+        />
+        <Tooltip
+          cursor={{ fill: "rgba(52,168,90,0.08)" }}
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const p: any = payload[0].payload;
+            return (
+              <div className="bg-card border border-border rounded-md shadow-md px-3 py-2 text-sm">
+                <div className="font-semibold">{p.mes}/{ano}</div>
+                <div style={{ color: p.isCurrent ? "#34a85a" : "#1a6b3a" }}>{fmtBRL(p.total)}</div>
+              </div>
+            );
+          }}
+        />
+        <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+          {fatAnoMes.map((d, i) => (
+            <Cell key={i} fill={d.isCurrent ? "#34a85a" : "#1a6b3a"} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
   return (
     <MotionPage className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard">Início</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Dashboard</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <h1 className="text-2xl font-bold border-l-4 border-[#34a85a] pl-3">
@@ -309,10 +377,7 @@ function Dashboard() {
           </Select>
           <Badge
             className="gap-1 px-3 py-1.5 text-sm font-semibold"
-            style={{
-              backgroundColor: variacaoPositiva ? "#1a6b3a" : "#c0392b",
-              color: "white",
-            }}
+            style={{ backgroundColor: variacaoPositiva ? "#1a6b3a" : "#c0392b", color: "white" }}
           >
             {variacaoPositiva ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
             {variacao.toFixed(1)}% vs mês anterior
@@ -327,169 +392,104 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* 4 Indicator cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 4 Indicator cards — solid brand colors */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <IndicatorCard
           index={0}
-          bg="linear-gradient(135deg, #1a6b3a 0%, #34a85a 100%)"
+          bg="#1a6b3a"
           icon={DollarSign}
           label="Total faturado"
           value={totalMes}
           money
           delta={{ pct: variacao, up: variacaoPositiva }}
           subtitle={metaEmpresa > 0 ? `Meta: ${fmtBRL(Number(metaEmpresa))} (${((totalMes / Number(metaEmpresa)) * 100).toFixed(1)}%)` : "no mês atual"}
-          sparkData={sparkFat}
         />
         <IndicatorCard
           index={1}
-          bg="linear-gradient(135deg, #1d6fa4 0%, #3d99f5 100%)"
+          bg="#1d6fa4"
           icon={TrendingUp}
           label="Ticket médio"
           value={ticketMedio}
           money
           subtitle={`${data.nfe.length} NF-es no mês`}
-          sparkData={sparkTicket}
         />
         <IndicatorCard
           index={2}
-          bg="linear-gradient(135deg, #5e4bbf 0%, #8b6ff0 100%)"
+          bg="#d97706"
           icon={Percent}
           label="Comissões geradas"
           value={comissoesMes}
           money
           subtitle={`a pagar em ${proxMesLabel}`}
-          sparkData={sparkComissoes}
         />
         <IndicatorCard
           index={3}
-          bg="linear-gradient(135deg, #a5304a 0%, #de5a5a 100%)"
+          bg="#c0392b"
           icon={AlertTriangle}
           label="Pedidos em atraso"
           value={atrasados.length}
-          sparkData={[
-            atrasadosPorStatus.pedido,
-            atrasadosPorStatus.producao,
-            atrasadosPorStatus.faturado,
-          ]}
-        >
-          <div className="flex gap-1.5 mt-3 flex-wrap relative">
-            <Badge className="text-xs bg-white/20 text-white border-white/30 hover:bg-white/25">Pedido: {atrasadosPorStatus.pedido}</Badge>
-            <Badge className="text-xs bg-white/20 text-white border-white/30 hover:bg-white/25">Produção: {atrasadosPorStatus.producao}</Badge>
-            <Badge className="text-xs bg-white/20 text-white border-white/30 hover:bg-white/25">Faturado: {atrasadosPorStatus.faturado}</Badge>
-          </div>
-        </IndicatorCard>
+          subtitle={`Pedido ${atrasadosPorStatus.pedido} · Produção ${atrasadosPorStatus.producao} · Faturado ${atrasadosPorStatus.faturado}`}
+        />
       </div>
 
-
       {/* Bar chart + Ranking */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.32, duration: 0.35 }}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ChartCard
+          title={`Faturamento mensal — ${ano}`}
+          onReload={reloadDashboard}
+          delay={0.32}
           className="lg:col-span-2"
         >
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-                Faturamento mensal — {ano}
-              </h3>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={fatAnoMes}>
-                  <XAxis dataKey="mes" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    tick={{ fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v) => (v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}k` : `R$ ${v}`)}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "rgba(52,168,90,0.08)" }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null;
-                      const p: any = payload[0].payload;
-                      return (
-                        <div className="bg-card border border-border rounded-md shadow-md px-3 py-2 text-sm">
-                          <div className="font-semibold">{p.mes}/{ano}</div>
-                          <div style={{ color: p.isCurrent ? "#34a85a" : "#1a6b3a" }}>{fmtBRL(p.total)}</div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-                    {fatAnoMes.map((d, i) => (
-                      <Cell key={i} fill={d.isCurrent ? "#34a85a" : "#1a6b3a"} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </motion.div>
+          {barChart}
+        </ChartCard>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.35 }}
-        >
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-                Ranking — representantes
-              </h3>
-              {ranking.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sem faturamento no mês ainda.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {ranking.map((r, i) => {
-                    const medalColors = ["#d4af37", "#c0c0c0", "#cd7f32"];
-                    const bg = medalColors[i] ?? "hsl(var(--muted))";
-                    const pct = rankingTop > 0 ? (r.total / rankingTop) * 100 : 0;
-                    return (
-                      <li key={i} className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span
-                            className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white shrink-0"
-                            style={{ backgroundColor: bg, color: i < 3 ? "#1a1a1a" : "white" }}
-                          >
-                            {i + 1}
-                          </span>
-                          <span className="flex-1 truncate">{r.nome}</span>
-                          <span className="font-semibold text-xs">{fmtBRL(r.total)}</span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full transition-all"
-                            style={{ width: `${pct}%`, backgroundColor: i < 3 ? bg : "#1a6b3a" }}
-                          />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+        <ChartCard title="Ranking — representantes" onReload={reloadDashboard} delay={0.4}>
+          {ranking.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem faturamento no mês ainda.</p>
+          ) : (
+            <div className="h-[400px] overflow-y-auto pr-1">
+              <ul className="space-y-3">
+                {ranking.map((r, i) => {
+                  const medalColors = ["#d4af37", "#c0c0c0", "#cd7f32"];
+                  const bg = medalColors[i] ?? "hsl(var(--muted))";
+                  const pct = rankingTop > 0 ? (r.total / rankingTop) * 100 : 0;
+                  return (
+                    <li key={i} className="space-y-1 rounded-md p-2 -mx-2 transition-colors hover:bg-accent/50">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span
+                          className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0"
+                          style={{ backgroundColor: bg, color: i < 3 ? "#1a1a1a" : "white" }}
+                        >
+                          {i + 1}
+                        </span>
+                        <span className="flex-1 truncate">{r.nome}</span>
+                        <span className="font-semibold text-xs">{fmtBRL(r.total)}</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full transition-all"
+                          style={{ width: `${pct}%`, backgroundColor: i < 3 ? bg : "#1a6b3a" }}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </ChartCard>
       </div>
 
       {/* Mapa + Clientes */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.48, duration: 0.35 }}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <ChartCard
+          title="Cobertura por Estado"
+          onReload={reloadDashboard}
+          delay={0.48}
           className="lg:col-span-3"
         >
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-                Cobertura por Estado
-              </h3>
-              <BrasilMap counts={counts} />
-            </CardContent>
-          </Card>
-        </motion.div>
+          <BrasilMap counts={counts} />
+        </ChartCard>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -497,14 +497,27 @@ function Dashboard() {
           transition={{ delay: 0.56, duration: 0.35 }}
           className="lg:col-span-2"
         >
-          <ClientesPanel representanteId={isRepOnly ? representanteId : null} restringir={isRepOnly} />
+          <ClientesPanel
+            representanteId={isRepOnly ? representanteId : null}
+            restringir={isRepOnly}
+            onReload={reloadClientes}
+          />
         </motion.div>
       </div>
     </MotionPage>
   );
 }
 
-function ClientesPanel({ representanteId, restringir }: { representanteId: string | null; restringir: boolean }) {
+function ClientesPanel({
+  representanteId,
+  restringir,
+  onReload,
+}: {
+  representanteId: string | null;
+  restringir: boolean;
+  onReload: () => void;
+}) {
+  const [fullscreen, setFullscreen] = useState(false);
   const { data: emRisco, isLoading } = useQuery({
     queryKey: ["clientes-em-risco", restringir ? representanteId : "all"],
     queryFn: async () => {
@@ -541,82 +554,117 @@ function ClientesPanel({ representanteId, restringir }: { representanteId: strin
 
   const riscoCount = (emRisco ?? []).length;
 
-  return (
-    <Card className="h-full">
-      <CardContent className="pt-6 space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Clientes</h3>
-
-        {/* Seção a: status */}
-        <div className="flex items-center gap-3 pb-4 border-b border-border">
-          <div
-            className="flex items-center justify-center w-10 h-10 rounded-full"
-            style={{ backgroundColor: riscoCount === 0 ? "rgba(26,107,58,0.15)" : "rgba(217,119,6,0.15)" }}
+  const listaRisco = (
+    <ul className="divide-y divide-border">
+      {(emRisco ?? []).map((c: any) => {
+        const ultima = new Date(c.ultima_compra_at);
+        const dias = Math.floor((Date.now() - ultima.getTime()) / 86400000);
+        const restantes = Math.max(0, 120 - dias);
+        const pct = Math.min(100, (dias / 120) * 100);
+        const cor = dias < 100 ? "#1a6b3a" : dias < 110 ? "#d97706" : "#c0392b";
+        return (
+          <li
+            key={c.id}
+            className="py-2.5 px-2 -mx-2 flex flex-col gap-1 rounded-md transition-colors hover:bg-accent/50"
           >
-            {riscoCount === 0 ? (
-              <CheckCircle2 className="h-5 w-5" style={{ color: "#1a6b3a" }} />
+            <div className="flex justify-between text-sm">
+              <span className="font-medium truncate">{c.nome}</span>
+              <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                {restantes} {restantes === 1 ? "dia" : "dias"}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="truncate">Rep: {c.representantes?.nome ?? "—"}</span>
+              <span className="shrink-0 ml-2">{ultima.toLocaleDateString("pt-BR")}</span>
+            </div>
+            <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-full transition-all" style={{ width: `${pct}%`, backgroundColor: cor }} />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  return (
+    <>
+      <Card className="h-full rounded-2xl border-t-2 border-t-primary shadow-sm">
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Clientes</h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onReload}>
+                <RefreshCw className="h-4 w-4 mr-2" /> Recarregar dados
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFullscreen(true)}>
+                <Maximize2 className="h-4 w-4 mr-2" /> Ver em tela cheia
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <CardContent className="pt-2 space-y-4">
+          <div className="flex items-center gap-3 pb-4 border-b border-border">
+            <div
+              className="flex items-center justify-center w-10 h-10 rounded-full"
+              style={{ backgroundColor: riscoCount === 0 ? "rgba(26,107,58,0.15)" : "rgba(217,119,6,0.15)" }}
+            >
+              {riscoCount === 0 ? (
+                <CheckCircle2 className="h-5 w-5" style={{ color: "#1a6b3a" }} />
+              ) : (
+                <AlertTriangle className="h-5 w-5" style={{ color: "#d97706" }} />
+              )}
+            </div>
+            <div className="text-sm">
+              {riscoCount === 0
+                ? "Nenhum cliente em risco no momento."
+                : `${riscoCount} cliente${riscoCount > 1 ? "s" : ""} em risco de inatividade.`}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pb-4 border-b border-border">
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">Ativos</div>
+              <div className="text-xl font-bold text-foreground">{counts?.ativos ?? 0}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">Em risco</div>
+              <div className="text-xl font-bold" style={{ color: "#d97706" }}>{counts?.emRisco ?? 0}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">Inativos</div>
+              <div className="text-xl font-bold text-muted-foreground">{counts?.inativos ?? 0}</div>
+            </div>
+          </div>
+
+          <div className="h-[400px] overflow-y-auto pr-1">
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando…</p>
+            ) : riscoCount === 0 ? (
+              <p className="text-xs text-muted-foreground">Todos os clientes ativos estão em dia.</p>
             ) : (
-              <AlertTriangle className="h-5 w-5" style={{ color: "#d97706" }} />
+              listaRisco
             )}
           </div>
-          <div className="text-sm">
-            {riscoCount === 0
-              ? "Nenhum cliente em risco no momento."
-              : `${riscoCount} cliente${riscoCount > 1 ? "s" : ""} em risco de inatividade.`}
-          </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Seção b: métricas */}
-        <div className="grid grid-cols-3 gap-2 pb-4 border-b border-border">
-          <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wide">Ativos</div>
-            <div className="text-xl font-bold text-foreground">{counts?.ativos ?? 0}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wide">Em risco</div>
-            <div className="text-xl font-bold" style={{ color: "#d97706" }}>{counts?.emRisco ?? 0}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wide">Inativos</div>
-            <div className="text-xl font-bold text-muted-foreground">{counts?.inativos ?? 0}</div>
-          </div>
-        </div>
-
-        {/* Seção c: lista de risco */}
-        <div>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Carregando…</p>
-          ) : riscoCount === 0 ? (
-            <p className="text-xs text-muted-foreground">Todos os clientes ativos estão em dia.</p>
+      <Dialog open={fullscreen} onOpenChange={setFullscreen}>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Clientes em risco</DialogTitle>
+          </DialogHeader>
+          {riscoCount === 0 ? (
+            <p className="text-sm text-muted-foreground">Todos os clientes ativos estão em dia.</p>
           ) : (
-            <ul className="divide-y divide-border max-h-64 overflow-y-auto">
-              {(emRisco ?? []).map((c: any) => {
-                const ultima = new Date(c.ultima_compra_at);
-                const dias = Math.floor((Date.now() - ultima.getTime()) / 86400000);
-                const restantes = Math.max(0, 120 - dias);
-                const pct = Math.min(100, (dias / 120) * 100);
-                const cor = dias < 100 ? "#1a6b3a" : dias < 110 ? "#d97706" : "#c0392b";
-                return (
-                  <li key={c.id} className="py-2.5 flex flex-col gap-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium truncate">{c.nome}</span>
-                      <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                        {restantes} {restantes === 1 ? "dia" : "dias"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span className="truncate">Rep: {c.representantes?.nome ?? "—"}</span>
-                      <span className="shrink-0 ml-2">{ultima.toLocaleDateString("pt-BR")}</span>
-                    </div>
-                    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div className="h-full transition-all" style={{ width: `${pct}%`, backgroundColor: cor }} />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            listaRisco
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
