@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { registrarTentativaLogin } from "@/lib/login-audit.functions";
+import { registrarTentativaLogin, verificarRateLimitLogin } from "@/lib/login-audit.functions";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar — Gestão de Representantes" }] }),
