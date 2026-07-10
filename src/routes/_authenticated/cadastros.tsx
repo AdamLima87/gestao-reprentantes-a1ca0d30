@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { createUser, listUsers, updateUser, deleteUser, listAllPermissions, resetUserPassword } from "@/lib/admin-users.functions";
 import { fetchCnpj, fetchCpf } from "@/lib/brasilapi";
 import { gerarContratoPDF } from "@/lib/contrato-pdf";
-import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send, Paperclip, Calendar as CalendarIcon, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import { FileText, Pencil, Search, Download, Save, Edit3, Upload, ListChecks, AlertTriangle, Trash2, Loader2, X, Landmark, KeyRound, Copy, Send, Paperclip, Calendar as CalendarIcon, Sparkles, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
 import { interpretarPlanilhas, type AIImportRow } from "@/lib/ai-import.functions";
 import { Textarea } from "@/components/ui/textarea";
