@@ -1,0 +1,1 @@
+ALTER TABLE public.representantes ADD COLUMN IF NOT EXISTS cidades jsonb NOT NULL DEFAULT '{}'::jsonb;
