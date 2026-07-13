@@ -289,6 +289,7 @@ function Dashboard() {
   });
 
   const counts: Record<string, number> = {};
+  const repsByUf: Record<string, { id: string; nome: string }[]> = {};
   for (const r of data.reps as any[]) {
     if (r.tipo !== "externo" || !r.ativo) continue;
     const lista: string[] = Array.isArray(r.estados) && r.estados.length > 0
@@ -301,7 +302,13 @@ function Dashboard() {
       const uf = raw.length === 2 ? raw.toUpperCase() : (NOME_TO_UF[raw.toLowerCase()] ?? raw.toUpperCase());
       ufs.add(uf);
     }
-    for (const uf of ufs) counts[uf] = (counts[uf] ?? 0) + 1;
+    for (const uf of ufs) {
+      counts[uf] = (counts[uf] ?? 0) + 1;
+      (repsByUf[uf] ??= []).push({ id: r.id, nome: r.nome });
+    }
+  }
+  for (const uf of Object.keys(repsByUf)) {
+    repsByUf[uf].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   }
 
   const variacaoPositiva = variacao >= 0;
