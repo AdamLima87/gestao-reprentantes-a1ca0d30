@@ -228,14 +228,13 @@ function NovaNfeDialog({ pedidos, onDone }: { pedidos: any[]; onDone: () => void
       toast.error("Observação obrigatória quando o valor da nota for menor que o valor dos produtos.");
       return;
     }
-    const d = new Date(form.data_nfe);
     const { error } = await supabase.from("nfe").insert({
       pedido_id: form.pedido_id,
       numero_nfe: form.numero_nfe,
       data_nfe: form.data_nfe,
       valor_nfe: Number(form.valor_nfe),
-      mes_ref: d.getMonth() + 1,
-      ano_ref: d.getFullYear(),
+      mes_ref: Number(form.data_nfe.slice(5, 7)),
+      ano_ref: Number(form.data_nfe.slice(0, 4)),
       data_entrega: form.data_entrega || null,
       observacao: form.observacao.trim() ? form.observacao.trim() : null,
     });
@@ -430,13 +429,12 @@ function EditarNfeDialog({ nfe, onClose, onDone }: { nfe: any; onClose: () => vo
       return;
     }
     setSaving(true);
-    const d = new Date(form.data_nfe);
     const { error } = await supabase.from("nfe").update({
       numero_nfe: form.numero_nfe,
       data_nfe: form.data_nfe,
       valor_nfe: Number(form.valor_nfe),
-      mes_ref: d.getMonth() + 1,
-      ano_ref: d.getFullYear(),
+      mes_ref: Number(form.data_nfe.slice(5, 7)),
+      ano_ref: Number(form.data_nfe.slice(0, 4)),
       data_entrega: form.data_entrega || null,
       observacao: form.observacao.trim() ? form.observacao.trim() : null,
     }).eq("id", nfe.id);

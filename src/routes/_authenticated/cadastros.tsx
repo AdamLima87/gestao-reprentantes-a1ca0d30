@@ -2511,9 +2511,8 @@ function ImportPedidosSection() {
       }
       const data_pedido = normalizeDate(r.data_pedido) || new Date().toISOString().slice(0, 10);
       const prazo_entrega = normalizeDate(r.prazo_entrega) || null;
-      const d = new Date(data_pedido);
-      const mes_ref = r.mes_ref ? Number(r.mes_ref) : d.getMonth() + 1;
-      const ano_ref = r.ano_ref ? Number(r.ano_ref) : d.getFullYear();
+      const mes_ref = r.mes_ref ? Number(r.mes_ref) : Number(data_pedido.slice(5, 7));
+      const ano_ref = r.ano_ref ? Number(r.ano_ref) : Number(data_pedido.slice(0, 4));
       const status = (r.status || "pedido") as "pedido" | "producao" | "faturado" | "entregue" | "cancelado";
 
       const { data: pedidoIns, error: pedErr } = await supabase.from("pedidos").insert({
@@ -2530,15 +2529,14 @@ function ImportPedidosSection() {
 
       if (isSim(r.nfe_emitida)) {
         const data_nfe = normalizeDate(r.data_nfe) || data_pedido;
-        const dn = new Date(data_nfe);
         const { error: nfeErr } = await supabase.from("nfe").insert({
           pedido_id: pedidoIns.id,
           numero_nfe: r.numero_nfe || r.numero_pedido,
           valor_nfe: parseBRNumber(r.valor_nfe || r.valor_produtos),
           data_nfe,
           data_entrega: normalizeDate(r.data_entrega_nfe) || null,
-          mes_ref: dn.getMonth() + 1,
-          ano_ref: dn.getFullYear(),
+          mes_ref: Number(data_nfe.slice(5, 7)),
+          ano_ref: Number(data_nfe.slice(0, 4)),
         });
         if (nfeErr) { errors.push({ line, reason: `NF-e: ${nfeErr.message}` }); continue; }
         nfesOk++;
@@ -3247,7 +3245,6 @@ function AIImportSection() {
         if (!representante_id) { errors.push({ row: r.row, reason: `Representante não encontrado: "${p.nome_representante}"` }); continue; }
       }
       const data_pedido = p.data_pedido || new Date().toISOString().slice(0, 10);
-      const d = new Date(data_pedido);
       const status = (p.status || "pedido") as "pedido" | "producao" | "faturado" | "entregue" | "cancelado";
       const { data: pedIns, error: pedErr } = await supabase.from("pedidos").insert({
         numero_pedido: p.numero_pedido!,
@@ -3256,23 +3253,23 @@ function AIImportSection() {
         data_pedido,
         prazo_entrega: p.prazo_entrega || null,
         valor_produtos: Number(p.valor_produtos ?? 0),
-        mes_ref: d.getMonth() + 1,
-        ano_ref: d.getFullYear(),
+        mes_ref: Number(data_pedido.slice(5, 7)),
+        ano_ref: Number(data_pedido.slice(0, 4)),
         status,
         jefferson_participou: Boolean(p.vendedor_interno_participou),
       }).select("id").single();
       if (pedErr || !pedIns) { errors.push({ row: r.row, reason: pedErr?.message ?? "falha ao inserir pedido" }); continue; }
       ok++;
       if (r.nfe) {
-        const dn = new Date(r.nfe.data_nfe || data_pedido);
+        const dnStr = r.nfe.data_nfe || data_pedido;
         await supabase.from("nfe").insert({
           pedido_id: pedIns.id,
           numero_nfe: r.nfe.numero_nfe || p.numero_pedido!,
           valor_nfe: Number(r.nfe.valor_nfe ?? p.valor_produtos ?? 0),
-          data_nfe: r.nfe.data_nfe || data_pedido,
+          data_nfe: dnStr,
           data_entrega: r.nfe.data_entrega || null,
-          mes_ref: dn.getMonth() + 1,
-          ano_ref: dn.getFullYear(),
+          mes_ref: Number(dnStr.slice(5, 7)),
+          ano_ref: Number(dnStr.slice(0, 4)),
         });
       }
     }
