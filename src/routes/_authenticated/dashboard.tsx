@@ -495,7 +495,7 @@ function Dashboard() {
           delay={0.48}
           className="lg:col-span-3"
         >
-          <BrasilMap counts={counts} />
+          <BrasilMap counts={counts} repsByUf={repsByUf} />
         </ChartCard>
 
         <motion.div
