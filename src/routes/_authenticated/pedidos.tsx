@@ -374,7 +374,8 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
       toast.error("Preencha os campos obrigatórios.");
       return;
     }
-    const d = new Date(form.data_pedido);
+    const mesRefIns = Number(form.data_pedido.slice(5, 7));
+    const anoRefIns = Number(form.data_pedido.slice(0, 4));
     const override = form.percentual_interno_override.trim();
     const overrideNum = override === "" ? null : Number(override);
     if (overrideNum !== null && (!Number.isFinite(overrideNum) || overrideNum < 0 || overrideNum > 100)) {
@@ -393,8 +394,8 @@ function NovoPedidoDialog({ reps, clientes, myRepId, onDone }: {
       data_pedido: form.data_pedido,
       prazo_entrega: form.prazo_entrega || null,
       valor_produtos: Number(form.valor_produtos || 0),
-      mes_ref: d.getMonth() + 1,
-      ano_ref: d.getFullYear(),
+      mes_ref: mesRefIns,
+      ano_ref: anoRefIns,
       jefferson_participou: form.jefferson_participou,
       percentual_interno_override: overrideNum,
       percentual_representante_override: overrideRepNum,
@@ -510,7 +511,8 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
       toast.error("Preencha os campos obrigatórios.");
       return;
     }
-    const d = new Date(form.data_pedido);
+    const mesRefUpd = Number(form.data_pedido.slice(5, 7));
+    const anoRefUpd = Number(form.data_pedido.slice(0, 4));
     const override = form.percentual_interno_override.trim();
     const overrideNum = override === "" ? null : Number(override);
     if (overrideNum !== null && (!Number.isFinite(overrideNum) || overrideNum < 0 || overrideNum > 100)) {
@@ -529,8 +531,8 @@ function EditarPedidoDialog({ pedido, reps, clientes, onClose, onDone }: {
       data_pedido: form.data_pedido,
       prazo_entrega: form.prazo_entrega || null,
       valor_produtos: Number(form.valor_produtos || 0),
-      mes_ref: d.getMonth() + 1,
-      ano_ref: d.getFullYear(),
+      mes_ref: mesRefUpd,
+      ano_ref: anoRefUpd,
       jefferson_participou: form.jefferson_participou,
       percentual_interno_override: overrideNum,
       percentual_representante_override: overrideRepNum,
