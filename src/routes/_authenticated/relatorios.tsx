@@ -1703,20 +1703,19 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
     },
   });
 
-  const handleCSV = () =>
-    exportCSV(
-      `pedidos-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Nº Pedido", "Cliente", "Representante", "Data", "Prazo", "Valor", "Status"],
-      filtered.map((p) => [
-        p.numero_pedido,
-        (p.clientes as { nome?: string } | null)?.nome ?? "—",
-        (p.representantes as { nome?: string } | null)?.nome ?? "—",
-        formatarData(p.data_pedido),
-        formatarData(p.prazo_entrega),
-        Number(p.valor_produtos).toFixed(2),
-        p.status,
-      ]),
-    );
+  const handleCSV = () => {
+    const headers = ["Nº Pedido", "Cliente", "Representante", "Data", "Prazo", "Valor", "Status"];
+    const rows = filtered.map((p) => [
+      p.numero_pedido,
+      (p.clientes as { nome?: string } | null)?.nome ?? "—",
+      (p.representantes as { nome?: string } | null)?.nome ?? "—",
+      formatarData(p.data_pedido),
+      formatarData(p.prazo_entrega),
+      p.valor_produtos,
+      p.status,
+    ]);
+    exportExcel(`pedidos-${ano}-${String(mes).padStart(2, "0")}`, headers, rows);
+  };
   const handlePDF = () =>
     exportPDF(
       `pedidos-${ano}-${String(mes).padStart(2, "0")}`,
