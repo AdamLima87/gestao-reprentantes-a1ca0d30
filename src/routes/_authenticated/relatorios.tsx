@@ -1854,26 +1854,23 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
     },
   });
 
-  const handleCSV = () =>
-    exportCSV(
-      `nfe-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Nº NF-e", "Data Emissão", "CNPJ", "Cliente", "Valor Produtos", "Valor NF-e", "Observação"],
-      [
-        ...notas.map((n) => {
-          const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
-          return [
-            n.numero_nfe,
-            formatarData(n.data_nfe),
-            formatCNPJ(ped?.clientes?.cnpj),
-            ped?.clientes?.nome ?? "—",
-            Number(ped?.valor_produtos ?? 0).toFixed(2),
-            Number(n.valor_nfe ?? 0).toFixed(2),
-            n.observacao ?? "",
-          ];
-        }),
-        ["TOTAL", String(totalCount), "", "", totalProdutos.toFixed(2), totalNfe.toFixed(2), ""],
-      ],
-    );
+  const handleCSV = () => {
+    const headers = ["Nº NF-e", "Data Emissão", "CNPJ", "Cliente", "Valor Produtos", "Valor NF-e", "Observação"];
+    const rows = notas.map((n) => {
+      const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
+      return [
+        n.numero_nfe,
+        formatarData(n.data_nfe),
+        formatCNPJ(ped?.clientes?.cnpj),
+        ped?.clientes?.nome ?? "—",
+        ped?.valor_produtos ?? 0,
+        n.valor_nfe ?? 0,
+        n.observacao ?? "",
+      ];
+    });
+    rows.push(["TOTAL", String(totalCount), "", "", totalProdutos, totalNfe, ""]);
+    exportExcel(`nfe-${ano}-${String(mes).padStart(2, "0")}`, headers, rows);
+  };
 
   const handlePDF = () =>
     exportPDF(
@@ -2066,15 +2063,13 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
   }, [data]);
 
   const handleCSV = () => {
-    exportCSV(
-      `clientes-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Seção", "Cliente", "Representante", "Info1", "Info2"],
-      [
-        ...inativos.map((c) => ["Inativo", c.nome, c.rep, `Última: ${c.ultima}`, ""]),
-        ...novos.map((c) => ["Novo no período", c.nome, c.rep, `Primeira: ${c.primeira}`, ""]),
-        ...ranking.map((c) => ["Ranking", c.nome, c.rep, c.total.toFixed(2), c.pedidos]),
-      ],
-    );
+    const headers = ["Seção", "Cliente", "Representante", "Info1", "Info2"];
+    const rows = [
+      ...inativos.map((c) => ["Inativo", c.nome, c.rep, `Última: ${c.ultima}`, ""]),
+      ...novos.map((c) => ["Novo no período", c.nome, c.rep, `Primeira: ${c.primeira}`, ""]),
+      ...ranking.map((c) => ["Ranking", c.nome, c.rep, c.total, c.pedidos]),
+    ];
+    exportExcel(`clientes-${ano}-${String(mes).padStart(2, "0")}`, headers, rows);
   };
   const handlePDF = () => {
     exportPDF(
