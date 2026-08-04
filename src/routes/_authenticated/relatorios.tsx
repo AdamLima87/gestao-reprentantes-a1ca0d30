@@ -1010,11 +1010,8 @@ function InternoTable({
   const totals = useMemo(() => {
     return rows.reduce(
       (acc, r) => {
-        // "$ PRODUTO" só soma vendas próprias do vendedor interno
-        // (exclui NFs onde a comissão é apenas "sobre representante" — 0,5%).
-        const vendaPropria = r.c15 != null || r.c1 != null;
         return {
-          valor: acc.valor + (vendaPropria ? r.valor : 0),
+          valor: acc.valor + r.valor,
           c15: acc.c15 + (r.c15 ?? 0),
           c1: acc.c1 + (r.c1 ?? 0),
           c05: acc.c05 + (r.c05 ?? 0),
