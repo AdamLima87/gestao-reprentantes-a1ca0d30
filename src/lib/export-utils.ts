@@ -1,3 +1,4 @@
+import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -15,6 +16,24 @@ export function exportCSV(filename: string, headers: string[], rows: (string | n
   const a = document.createElement("a");
   a.href = url;
   a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Exporta dados para um arquivo Excel (.xlsx)
+ */
+export function exportExcel(filename: string, headers: string[], rows: (string | number | boolean | Date)[][]) {
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+  
+  const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".xlsx") ? filename : `${filename}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }
