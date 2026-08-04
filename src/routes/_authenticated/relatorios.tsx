@@ -42,8 +42,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { fmtBRL, exportCSV, exportPDF } from "@/lib/export-utils";
-import * as XLSX from "xlsx";
+import { fmtBRL, exportCSV, exportPDF, exportExcel } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
   component: RelatoriosPage,
@@ -172,7 +171,7 @@ function ExportButtons({
       {canExport && (
         <>
           <Button variant="outline" size="sm" onClick={onCSV}>
-            <Download className="h-4 w-4 mr-1" /> CSV
+            <Download className="h-4 w-4 mr-1" /> Excel
           </Button>
           <Button variant="outline" size="sm" onClick={onPDF}>
             <FileText className="h-4 w-4 mr-1" /> PDF
@@ -423,40 +422,19 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
   };
 
   const handleExportXLSX = () => {
-    const aoa: (string | number)[][] = [
-      ["Relatório Geral de Comissões"],
-      [`Período: ${periodo}`],
-    ];
-    if (canVerFaturamento) aoa.push([`Faturamento do mês:`, "", faturamentoMes ?? 0]);
-    aoa.push([]);
-    aoa.push(["Representante", "%", "Valor Comissão", "Status"]);
-    linhas.forEach((l) => aoa.push([l.nome, l.percentual, l.valor, statusOf(l).label]));
-    aoa.push([]);
-    aoa.push(["TOTAL GERAL", "", totais.valor, ""]);
-    aoa.push(["Total Pago", "", totais.pago, ""]);
-    aoa.push(["Total Pendente", "", totais.pendente, ""]);
-
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 40 }, { wch: 10 }, { wch: 20 }, { wch: 14 }];
-    const money = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+    const headers = ["Representante", "%", "Valor Comissão", "Status"];
+    const rows = linhas.map((l) => [l.nome, l.percentual, l.valor, statusOf(l).label]);
+    
+    // Adicionar totais
+    rows.push([]);
+    rows.push(["TOTAL GERAL", "", totais.valor, ""]);
+    rows.push(["Total Pago", "", totais.pago, ""]);
+    rows.push(["Total Pendente", "", totais.pendente, ""]);
     if (canVerFaturamento) {
-      const fatCell = ws[XLSX.utils.encode_cell({ r: 2, c: 2 })];
-      if (fatCell) fatCell.z = money;
+      rows.push(["Faturamento do Mês", "", faturamentoMes ?? 0, ""]);
     }
-    const dataStart = canVerFaturamento ? 6 : 5;
-    const dataEnd = dataStart + linhas.length - 1;
-    for (let r = dataStart; r <= dataEnd; r++) {
-      const cell = ws[XLSX.utils.encode_cell({ r: r - 1, c: 2 })];
-      if (cell) cell.z = money;
-    }
-    const totalRow = dataEnd + 2;
-    for (const rr of [totalRow, totalRow + 1, totalRow + 2]) {
-      const cell = ws[XLSX.utils.encode_cell({ r: rr, c: 2 })];
-      if (cell) cell.z = money;
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Comissões");
-    XLSX.writeFile(wb, `comissoes-geral-${mesRef}-${anoRef}.xlsx`);
+
+    exportExcel(`comissoes-geral-${mesRef}-${anoRef}`, headers, rows);
   };
 
 
