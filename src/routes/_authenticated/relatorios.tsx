@@ -1313,11 +1313,8 @@ function GestorTable({
       linhas.push([`Subtotal ${g.nome}`, "", "", subProd.toFixed(2), "", sub.toFixed(2)]);
     }
     linhas.push(["TOTAL GERAL", "", "", totalProdutos.toFixed(2), "", totalGeral.toFixed(2)]);
-    exportCSV(
-      `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
-      ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"],
-      linhas,
-    );
+    const headers = ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"];
+    exportExcel(`comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`, headers, linhas);
   };
 
   const handlePDF = () => {
@@ -1578,12 +1575,11 @@ function VendasTab({ mes, ano }: { mes: number; ano: number }) {
     },
   });
 
-  const handleCSV = () =>
-    exportCSV(
-      `vendas-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Posição", "Representante", "Total Vendido", "Pedidos", "Ticket Médio", "% do Total"],
-      ranking.map((r, i) => [i + 1, r.nome, r.total.toFixed(2), r.pedidos, r.ticket.toFixed(2), r.pct.toFixed(1) + "%"]),
-    );
+  const handleCSV = () => {
+    const headers = ["Posição", "Representante", "Total Vendido", "Pedidos", "Ticket Médio", "% do Total"];
+    const rows = ranking.map((r, i) => [i + 1, r.nome, r.total, r.pedidos, r.ticket, r.pct.toFixed(1) + "%"]);
+    exportExcel(`vendas-${ano}-${String(mes).padStart(2, "0")}`, headers, rows);
+  };
   const handlePDF = () =>
     exportPDF(
       `vendas-${ano}-${String(mes).padStart(2, "0")}`,
