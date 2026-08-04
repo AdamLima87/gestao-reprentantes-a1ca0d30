@@ -42,8 +42,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { fmtBRL, exportCSV, exportPDF } from "@/lib/export-utils";
-import * as XLSX from "xlsx";
+import { fmtBRL, exportCSV, exportPDF, exportExcel } from "@/lib/export-utils";
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
   component: RelatoriosPage,
@@ -172,7 +171,7 @@ function ExportButtons({
       {canExport && (
         <>
           <Button variant="outline" size="sm" onClick={onCSV}>
-            <Download className="h-4 w-4 mr-1" /> CSV
+            <Download className="h-4 w-4 mr-1" /> Excel
           </Button>
           <Button variant="outline" size="sm" onClick={onPDF}>
             <FileText className="h-4 w-4 mr-1" /> PDF
@@ -423,40 +422,19 @@ function ComissoesGeralTab({ mes, ano }: { mes: number; ano: number }) {
   };
 
   const handleExportXLSX = () => {
-    const aoa: (string | number)[][] = [
-      ["Relatório Geral de Comissões"],
-      [`Período: ${periodo}`],
-    ];
-    if (canVerFaturamento) aoa.push([`Faturamento do mês:`, "", faturamentoMes ?? 0]);
-    aoa.push([]);
-    aoa.push(["Representante", "%", "Valor Comissão", "Status"]);
-    linhas.forEach((l) => aoa.push([l.nome, l.percentual, l.valor, statusOf(l).label]));
-    aoa.push([]);
-    aoa.push(["TOTAL GERAL", "", totais.valor, ""]);
-    aoa.push(["Total Pago", "", totais.pago, ""]);
-    aoa.push(["Total Pendente", "", totais.pendente, ""]);
-
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 40 }, { wch: 10 }, { wch: 20 }, { wch: 14 }];
-    const money = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+    const headers = ["Representante", "%", "Valor Comissão", "Status"];
+    const rows = linhas.map((l) => [l.nome, l.percentual, l.valor, statusOf(l).label]);
+    
+    // Adicionar totais
+    rows.push([]);
+    rows.push(["TOTAL GERAL", "", totais.valor, ""]);
+    rows.push(["Total Pago", "", totais.pago, ""]);
+    rows.push(["Total Pendente", "", totais.pendente, ""]);
     if (canVerFaturamento) {
-      const fatCell = ws[XLSX.utils.encode_cell({ r: 2, c: 2 })];
-      if (fatCell) fatCell.z = money;
+      rows.push(["Faturamento do Mês", "", faturamentoMes ?? 0, ""]);
     }
-    const dataStart = canVerFaturamento ? 6 : 5;
-    const dataEnd = dataStart + linhas.length - 1;
-    for (let r = dataStart; r <= dataEnd; r++) {
-      const cell = ws[XLSX.utils.encode_cell({ r: r - 1, c: 2 })];
-      if (cell) cell.z = money;
-    }
-    const totalRow = dataEnd + 2;
-    for (const rr of [totalRow, totalRow + 1, totalRow + 2]) {
-      const cell = ws[XLSX.utils.encode_cell({ r: rr, c: 2 })];
-      if (cell) cell.z = money;
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Comissões");
-    XLSX.writeFile(wb, `comissoes-geral-${mesRef}-${anoRef}.xlsx`);
+
+    exportExcel(`comissoes-geral-${mesRef}-${anoRef}`, headers, rows);
   };
 
 
@@ -794,23 +772,15 @@ function ExternosTable({
 
   const handleCSV = () => {
     if (!isDetail) {
-      exportCSV(
-        `comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`,
-        ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"],
-        [
-          ...rows.map((r) => [r.rep, r.tipo, r.nfes.size, r.base.toFixed(2), r.valor.toFixed(2)]),
-          ["TOTAL", "", totalNfe, totalBase.toFixed(2), totalVal.toFixed(2)],
-        ],
-      );
+      const headers = ["Representante", "Tipo", "Qtd NF-e", "Base de Cálculo", "Comissão"];
+      const rowsData = rows.map((r) => [r.rep, r.tipo, r.nfes.size, r.base, r.valor]);
+      rowsData.push(["TOTAL", "", totalNfe, totalBase, totalVal]);
+      exportExcel(`comissoes-externos-${ano}-${String(mes).padStart(2, "0")}`, headers, rowsData);
     } else {
-      exportCSV(
-        `comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`,
-        ["NF", "Nº Pedido Cliente", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"],
-        [
-          ...detailRows.map((r) => [r.numero, r.pedidoCliente, formatarData(r.emissao), r.cliente, r.valor.toFixed(2), r.pct.toFixed(2), r.comissao.toFixed(2)]),
-          ["TOTAL", "", "", "", detTotalBase.toFixed(2), "", detTotalCom.toFixed(2)],
-        ],
-      );
+      const headers = ["NF", "Nº Pedido Cliente", "Data Emissão", "Cliente", "Valor Produto", "%", "Comissão"];
+      const rowsData = detailRows.map((r) => [r.numero, r.pedidoCliente, formatarData(r.emissao), r.cliente, r.valor, r.pct, r.comissao]);
+      rowsData.push(["TOTAL", "", "", "", detTotalBase, "", detTotalCom]);
+      exportExcel(`comissoes-${repNome}-${ano}-${String(mes).padStart(2, "0")}`, headers, rowsData);
     }
   };
   const handlePDF = () => {
@@ -1084,40 +1054,25 @@ function InternoTable({
   const totalGeral = totals.c15 + totals.c1 + totals.c05;
   const summaryLine = `Total novo/reativação: ${fmtBRL(totals.c15)}  |  Total recorrente: ${fmtBRL(totals.c1)}  |  Total sobre representante: ${fmtBRL(totals.c05)}  |  Total geral: ${fmtBRL(totalGeral)}`;
 
-  const handleCSV = () =>
-    exportCSV(
-      `comissoes-interno-${ano}-${String(mes).padStart(2, "0")}`,
-      headers,
-      [
-        ...rows.map((r) => {
-          const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
-          return [
-            r.numero,
-            r.pedidoCliente,
-            formatarData(r.emissao),
-            r.empresa,
-            formatarData(r.entrega),
-            r.valor.toFixed(2),
-            r.c15 == null ? "—" : r.c15.toFixed(2),
-            r.c1 == null ? "—" : r.c1.toFixed(2),
-            r.c05 == null ? "—" : r.c05.toFixed(2),
-            tot.toFixed(2),
-          ];
-        }),
-        [
-          "TOTAL",
-          "",
-          "",
-          "",
-          "",
-          totals.valor.toFixed(2),
-          totals.c15.toFixed(2),
-          totals.c1.toFixed(2),
-          totals.c05.toFixed(2),
-          totalGeral.toFixed(2),
-        ],
-      ],
-    );
+  const handleCSV = () => {
+    const rowsData = rows.map((r) => {
+      const tot = (r.c15 ?? 0) + (r.c1 ?? 0) + (r.c05 ?? 0);
+      return [
+        r.numero,
+        r.pedidoCliente,
+        formatarData(r.emissao),
+        r.empresa,
+        formatarData(r.entrega),
+        r.valor,
+        r.c15 ?? 0,
+        r.c1 ?? 0,
+        r.c05 ?? 0,
+        tot,
+      ];
+    });
+    rowsData.push(["TOTAL", "", "", "", "", totals.valor, totals.c15, totals.c1, totals.c05, totalGeral]);
+    exportExcel(`comissoes-interno-${ano}-${String(mes).padStart(2, "0")}`, headers, rowsData);
+  };
 
   const handlePDF = () =>
     exportPDF(
@@ -1358,11 +1313,8 @@ function GestorTable({
       linhas.push([`Subtotal ${g.nome}`, "", "", subProd.toFixed(2), "", sub.toFixed(2)]);
     }
     linhas.push(["TOTAL GERAL", "", "", totalProdutos.toFixed(2), "", totalGeral.toFixed(2)]);
-    exportCSV(
-      `comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`,
-      ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"],
-      linhas,
-    );
+    const headers = ["NF-e", "Data", "Cliente", "Valor Produtos", "%", "Comissão"];
+    exportExcel(`comissao-gestor-${ano}-${String(mes).padStart(2, "0")}`, headers, linhas);
   };
 
   const handlePDF = () => {
@@ -1623,12 +1575,11 @@ function VendasTab({ mes, ano }: { mes: number; ano: number }) {
     },
   });
 
-  const handleCSV = () =>
-    exportCSV(
-      `vendas-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Posição", "Representante", "Total Vendido", "Pedidos", "Ticket Médio", "% do Total"],
-      ranking.map((r, i) => [i + 1, r.nome, r.total.toFixed(2), r.pedidos, r.ticket.toFixed(2), r.pct.toFixed(1) + "%"]),
-    );
+  const handleCSV = () => {
+    const headers = ["Posição", "Representante", "Total Vendido", "Pedidos", "Ticket Médio", "% do Total"];
+    const rows = ranking.map((r, i) => [i + 1, r.nome, r.total, r.pedidos, r.ticket, r.pct.toFixed(1) + "%"]);
+    exportExcel(`vendas-${ano}-${String(mes).padStart(2, "0")}`, headers, rows);
+  };
   const handlePDF = () =>
     exportPDF(
       `vendas-${ano}-${String(mes).padStart(2, "0")}`,
@@ -1752,20 +1703,19 @@ function PedidosTab({ mes, ano }: { mes: number; ano: number }) {
     },
   });
 
-  const handleCSV = () =>
-    exportCSV(
-      `pedidos-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Nº Pedido", "Cliente", "Representante", "Data", "Prazo", "Valor", "Status"],
-      filtered.map((p) => [
-        p.numero_pedido,
-        (p.clientes as { nome?: string } | null)?.nome ?? "—",
-        (p.representantes as { nome?: string } | null)?.nome ?? "—",
-        formatarData(p.data_pedido),
-        formatarData(p.prazo_entrega),
-        Number(p.valor_produtos).toFixed(2),
-        p.status,
-      ]),
-    );
+  const handleCSV = () => {
+    const headers = ["Nº Pedido", "Cliente", "Representante", "Data", "Prazo", "Valor", "Status"];
+    const rows = filtered.map((p) => [
+      p.numero_pedido,
+      (p.clientes as { nome?: string } | null)?.nome ?? "—",
+      (p.representantes as { nome?: string } | null)?.nome ?? "—",
+      formatarData(p.data_pedido),
+      formatarData(p.prazo_entrega),
+      p.valor_produtos,
+      p.status,
+    ]);
+    exportExcel(`pedidos-${ano}-${String(mes).padStart(2, "0")}`, headers, rows);
+  };
   const handlePDF = () =>
     exportPDF(
       `pedidos-${ano}-${String(mes).padStart(2, "0")}`,
@@ -1903,26 +1853,23 @@ function NfeTab({ mes, ano }: { mes: number; ano: number }) {
     },
   });
 
-  const handleCSV = () =>
-    exportCSV(
-      `nfe-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Nº NF-e", "Data Emissão", "CNPJ", "Cliente", "Valor Produtos", "Valor NF-e", "Observação"],
-      [
-        ...notas.map((n) => {
-          const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
-          return [
-            n.numero_nfe,
-            formatarData(n.data_nfe),
-            formatCNPJ(ped?.clientes?.cnpj),
-            ped?.clientes?.nome ?? "—",
-            Number(ped?.valor_produtos ?? 0).toFixed(2),
-            Number(n.valor_nfe ?? 0).toFixed(2),
-            n.observacao ?? "",
-          ];
-        }),
-        ["TOTAL", String(totalCount), "", "", totalProdutos.toFixed(2), totalNfe.toFixed(2), ""],
-      ],
-    );
+  const handleCSV = () => {
+    const headers = ["Nº NF-e", "Data Emissão", "CNPJ", "Cliente", "Valor Produtos", "Valor NF-e", "Observação"];
+    const rows = notas.map((n) => {
+      const ped = n.pedidos as { valor_produtos?: number; clientes?: { nome?: string; cnpj?: string } | null } | null;
+      return [
+        n.numero_nfe,
+        formatarData(n.data_nfe),
+        formatCNPJ(ped?.clientes?.cnpj),
+        ped?.clientes?.nome ?? "—",
+        ped?.valor_produtos ?? 0,
+        n.valor_nfe ?? 0,
+        n.observacao ?? "",
+      ];
+    });
+    rows.push(["TOTAL", String(totalCount), "", "", totalProdutos, totalNfe, ""]);
+    exportExcel(`nfe-${ano}-${String(mes).padStart(2, "0")}`, headers, rows);
+  };
 
   const handlePDF = () =>
     exportPDF(
@@ -2115,15 +2062,13 @@ function ClientesTab({ mes, ano }: { mes: number; ano: number }) {
   }, [data]);
 
   const handleCSV = () => {
-    exportCSV(
-      `clientes-${ano}-${String(mes).padStart(2, "0")}`,
-      ["Seção", "Cliente", "Representante", "Info1", "Info2"],
-      [
-        ...inativos.map((c) => ["Inativo", c.nome, c.rep, `Última: ${c.ultima}`, ""]),
-        ...novos.map((c) => ["Novo no período", c.nome, c.rep, `Primeira: ${c.primeira}`, ""]),
-        ...ranking.map((c) => ["Ranking", c.nome, c.rep, c.total.toFixed(2), c.pedidos]),
-      ],
-    );
+    const headers = ["Seção", "Cliente", "Representante", "Info1", "Info2"];
+    const rows = [
+      ...inativos.map((c) => ["Inativo", c.nome, c.rep, `Última: ${c.ultima}`, ""]),
+      ...novos.map((c) => ["Novo no período", c.nome, c.rep, `Primeira: ${c.primeira}`, ""]),
+      ...ranking.map((c) => ["Ranking", c.nome, c.rep, c.total, c.pedidos]),
+    ];
+    exportExcel(`clientes-${ano}-${String(mes).padStart(2, "0")}`, headers, rows);
   };
   const handlePDF = () => {
     exportPDF(
