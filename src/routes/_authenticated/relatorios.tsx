@@ -980,7 +980,7 @@ function InternoTable({
         emissao: c.nfe?.data_nfe ?? "",
         empresa: c.nfe?.pedidos?.clientes?.nome ?? "—",
         entrega: c.nfe?.data_entrega ?? "",
-        valor: Number(c.nfe?.pedidos?.valor_produtos ?? c.base_calculo),
+        valor: Number((c.nfe?.pedidos as any)?.valor_produtos ?? c.base_calculo),
         c15: null,
         c1: null,
         c05: null,
