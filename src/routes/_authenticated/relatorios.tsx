@@ -539,7 +539,7 @@ function ComissoesTab({ mes, ano }: { mes: number; ano: number }) {
       const res = await supabase
         .from("comissoes")
         .select(
-          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, gestor_user_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(numero_pedido_cliente, clientes(nome)))",
+          "tipo, base_calculo, valor_comissao, percentual_aplicado, nfe_id, representante_id, gestor_user_id, representantes(nome, tipo), nfe(numero_nfe, data_nfe, data_entrega, pedidos(numero_pedido_cliente, valor_produtos, clientes(nome)))",
         )
         .eq("mes_ref", mes)
         .eq("ano_ref", ano);
@@ -980,7 +980,7 @@ function InternoTable({
         emissao: c.nfe?.data_nfe ?? "",
         empresa: c.nfe?.pedidos?.clientes?.nome ?? "—",
         entrega: c.nfe?.data_entrega ?? "",
-        valor: Number(c.base_calculo),
+        valor: Number(c.nfe?.pedidos?.valor_produtos ?? c.base_calculo),
         c15: null,
         c1: null,
         c05: null,
