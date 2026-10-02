@@ -9,4 +9,4 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Commission classification must derive each client's prior purchase from chronological NF-e history; mutable customer summary dates are display-only because recalculation must be deterministic.
+- Commission classification must derive each client's prior purchase from chronological NF-e history, comparing pedido dates (`data_pedido`), never NF-e dates; mutable customer summary dates are display-only because recalculation must be deterministic.
